@@ -464,7 +464,10 @@ function startSession(topic,sysPrompt,opening){
   document.getElementById("chat").innerHTML="";
   document.getElementById("smr").style.display="none";
   addMsg("ai",opening,true);
-  speak(opening,function(){setst("Press mic to start speaking");});
+  unlockAudio();
+  setTimeout(function(){
+    speak(opening,function(){setst("Press mic to start speaking");});
+  }, 300);
 }
 
 // ── Chat helpers ──
