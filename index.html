@@ -580,9 +580,10 @@ function speak(text,onDone){
     audio.addEventListener("error",function(){
       if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);speakFallback(text,onDone);}
     });
-    audio.play().catch(function(){
-      if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);speakFallback(text,onDone);}
-    });
+    audio.play().catch(function(err){
+  setst("Play blocked: "+err.message);
+  if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);speakFallback(text,onDone);}
+});
   })
   .catch(function(e){console.log("TTS error",e);setSpeaking(false);speakFallback(text,onDone);});
 }
