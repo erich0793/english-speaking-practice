@@ -21,6 +21,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .btn-primary{width:100%;padding:11px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-size:15px;cursor:pointer}
 .btn-primary:hover{background:#0C447C}
 .login-note{font-size:12px;color:#aaa;text-align:center;margin-top:.75rem}
+.voice-pick{display:flex;gap:10px;margin-bottom:1rem}
+.voice-btn{flex:1;padding:12px 8px;border-radius:10px;border:1.5px solid #e0e0e0;background:#fff;cursor:pointer;text-align:center;transition:all .15s}
+.voice-btn.selected{border-color:#185FA5;background:#E6F1FB}
+.voice-btn .vi{font-size:24px;display:block;margin-bottom:4px}
+.voice-btn .vn{font-size:13px;color:#333}
+.voice-btn.selected .vn{color:#185FA5;font-weight:500}
 
 /* Top bar */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid #e0e0e0}
@@ -139,6 +145,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     <div class="login-box">
       <label>Enter your username to continue</label>
       <input type="text" id="usernameInput" placeholder="e.g. john123" autocomplete="username" />
+      <label style="margin-bottom:8px;display:block">Choose AI voice</label>
+      <div class="voice-pick">
+        <button class="voice-btn selected" id="vbtnF" onclick="selectVoice('female')">
+          <span class="vi">👩</span><span class="vn">Female</span>
+        </button>
+        <button class="voice-btn" id="vbtnM" onclick="selectVoice('male')">
+          <span class="vi">👨</span><span class="vn">Male</span>
+        </button>
+      </div>
       <button class="btn-primary" onclick="doLogin()">Continue</button>
       <p class="login-note">No password needed. New username = new account.</p>
     </div>
@@ -233,6 +248,7 @@ var SUPA_URL = "https://xujxibajkncuubgwfgkq.supabase.co";
 var SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1anhpYmFqa25jdXViZ3dmZ2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzczMTAsImV4cCI6MjA5MTgxMzMxMH0.n10WhHlcgl7gbK9hG9v3op2LgTVRoUkqQeTPGj0t3zA";
 
 var currentUser = null;
+var VOICE_GENDER = "female";
 var RC=null,IR=false,CUR="",HIST=[],UTTS=[],TOPIC="",SYSPR="",ON=false,SPEAKING=false;
 var silenceTimer=null,currentMode="";
 
@@ -250,6 +266,11 @@ function dbDelete(table, id){
 }
 
 // ── Login ──
+function selectVoice(g){
+  VOICE_GENDER=g;
+  document.getElementById("vbtnF").classList.toggle("selected",g==="female");
+  document.getElementById("vbtnM").classList.toggle("selected",g==="male");
+}
 function doLogin(){
   var u = document.getElementById("usernameInput").value.trim().toLowerCase();
   if(!u){alert("Please enter a username.");return;}
@@ -407,6 +428,7 @@ var SCENARIOS={
 };
 
 function selectMode(mode){
+  unlockAudio();
   currentMode=mode;
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("mode-"+mode).classList.add("active");
@@ -427,6 +449,7 @@ function showKeywords(kwArr){
   });
 }
 function startWithCustom(){
+  unlockAudio();
   var v=document.getElementById("ti").value.trim();
   if(!v){setst("Please enter a topic first.");return;}
   var sc=SCENARIOS[currentMode||"free"];
@@ -469,6 +492,16 @@ function showThinking(){
 function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 
 // ── TTS ──
+var AUDIO_UNLOCKED = false;
+function unlockAudio(){
+  if(AUDIO_UNLOCKED) return;
+  var ctx = new (window.AudioContext||window.webkitAudioContext)();
+  var buf = ctx.createBuffer(1,1,22050);
+  var src = ctx.createBufferSource();
+  src.buffer = buf; src.connect(ctx.destination); src.start(0);
+  ctx.resume();
+  AUDIO_UNLOCKED = true;
+}
 function setSpeaking(val){
   SPEAKING=val;
   var mb=document.getElementById("mb");
@@ -481,8 +514,9 @@ function speakFallback(text,onDone){
   var utter=new SpeechSynthesisUtterance(text);
   utter.lang="en-US";utter.rate=0.95;utter.pitch=1;
   var voices=window.speechSynthesis.getVoices();
-  var v=voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Female")>-1;})
-    ||voices.find(function(v){return v.lang==="en-US";})
+  var v=VOICE_GENDER==="male"
+    ?(voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Male")>-1;})||voices.find(function(v){return v.lang==="en-US";}))
+    :(voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Female")>-1;})||voices.find(function(v){return v.lang==="en-US";}))
     ||voices.find(function(v){return v.lang.startsWith("en");});
   if(v)utter.voice=v;
   setSpeaking(true);
@@ -497,7 +531,7 @@ function speak(text,onDone){
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
       input:{text:text},
-      voice:{languageCode:"en-US",name:"en-US-Neural2-F"},
+      voice:{languageCode:"en-US",name:VOICE_GENDER==="male"?"en-US-Neural2-D":"en-US-Neural2-F"},
       audioConfig:{audioEncoding:"MP3",speakingRate:0.95}
     })
   })
@@ -507,7 +541,10 @@ function speak(text,onDone){
     var audio=new Audio("data:audio/mp3;base64,"+d.audioContent);
     audio.onended=function(){setSpeaking(false);if(onDone)onDone();};
     audio.onerror=function(){setSpeaking(false);speakFallback(text,onDone);};
-    audio.play();
+    var playPromise=audio.play();
+    if(playPromise!==undefined){
+      playPromise.catch(function(){setSpeaking(false);speakFallback(text,onDone);});
+    }
   })
   .catch(function(){setSpeaking(false);speakFallback(text,onDone);});
 }
