@@ -564,18 +564,22 @@ function speak(text,onDone){
     if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
     var src="data:audio/mpeg;base64,"+d.audioContent;
     var audio=new Audio(src);
-    audio.addEventListener("ended",function(){setSpeaking(false);if(onDone)onDone();});
-    audio.addEventListener("error",function(){setSpeaking(false);speakFallback(text,onDone);});
-    var played=false;
-    audio.addEventListener("canplaythrough",function(){
-      if(played)return; played=true;
-      audio.play().catch(function(){setSpeaking(false);speakFallback(text,onDone);});
+    var done=false;
+    var wordsPerSec=2.5;
+    var words=text.split(" ").length;
+    var estMs=Math.max(3000, Math.round((words/wordsPerSec)*1000)+1500);
+    var forceTimer=setTimeout(function(){
+      if(!done){done=true;audio.pause();setSpeaking(false);if(onDone)onDone();}
+    }, estMs);
+    audio.addEventListener("ended",function(){
+      if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);if(onDone)onDone();}
     });
-    // fallback: try playing after short delay if canplaythrough doesn't fire
-    setTimeout(function(){
-      if(!played){played=true;audio.play().catch(function(){setSpeaking(false);speakFallback(text,onDone);});}
-    },500);
-    audio.load();
+    audio.addEventListener("error",function(){
+      if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);speakFallback(text,onDone);}
+    });
+    audio.play().catch(function(){
+      if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);speakFallback(text,onDone);}
+    });
   })
   .catch(function(e){console.log("TTS error",e);setSpeaking(false);speakFallback(text,onDone);});
 }
