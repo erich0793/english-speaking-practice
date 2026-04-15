@@ -493,37 +493,24 @@ function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 // ── TTS ──
 var AUDIO_UNLOCKED = false;
 function testTTS(){
-  unlockAudio();
-  var statusEl = document.getElementById("st");
-  statusEl.textContent = "Testing Google TTS...";
+  var st = document.getElementById("st");
+  st.textContent = "Calling Google TTS...";
   fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({input:{text:"Hello, this is a voice test."},voice:{languageCode:"en-US",name:"en-US-Neural2-F"},audioConfig:{audioEncoding:"OGG_OPUS"}})
+    body:JSON.stringify({input:{text:"Hello this is a test."},voice:{languageCode:"en-US",name:"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3"}})
   })
-  .then(function(r){
-    statusEl.textContent = "API response: "+r.status;
-    return r.arrayBuffer();
+  .then(function(r){st.textContent="HTTP "+r.status;return r.json();})
+  .then(function(d){
+    if(!d.audioContent){st.textContent="No audio: "+JSON.stringify(d);return;}
+    st.textContent="Got audio ("+d.audioContent.length+" chars), playing...";
+    var audio=new Audio("data:audio/mpeg;base64,"+d.audioContent);
+    audio.oncanplaythrough=function(){audio.play();};
+    audio.onended=function(){st.textContent="Test done!";};
+    audio.onerror=function(e){st.textContent="Audio error: "+JSON.stringify(e);};
+    audio.load();
   })
-  .then(function(ab){
-    statusEl.textContent = "Audio bytes: "+ab.byteLength;
-    var ctx=getAudioCtx();
-    statusEl.textContent += " | ctx state: "+ctx.state;
-    return ctx.decodeAudioData(ab);
-  })
-  .then(function(decoded){
-    statusEl.textContent = "Decoded OK, playing...";
-    var ctx=getAudioCtx();
-    var src=ctx.createBufferSource();
-    src.buffer=decoded;
-    src.connect(ctx.destination);
-    src.onended=function(){statusEl.textContent="Voice test done!";};
-    src.start(0);
-  })
-  .catch(function(e){
-    statusEl.textContent = "ERROR: "+e.message;
-    console.error("TTS test error",e);
-  });
+  .catch(function(e){st.textContent="Fetch error: "+e.message;});
 }
 var SHARED_CTX = null;
 function getAudioCtx(){
@@ -569,21 +556,20 @@ function speak(text,onDone){
     body:JSON.stringify({
       input:{text:text},
       voice:{languageCode:"en-US",name:VOICE_GENDER==="male"?"en-US-Neural2-D":"en-US-Neural2-F"},
-      audioConfig:{audioEncoding:"OGG_OPUS",speakingRate:0.95}
+      audioConfig:{audioEncoding:"MP3",speakingRate:0.95}
     })
   })
-  .then(function(r){return r.arrayBuffer();})
-  .then(function(ab){
-    var ctx=getAudioCtx();
-    return ctx.decodeAudioData(ab);
-  })
-  .then(function(decoded){
-    var ctx=getAudioCtx();
-    var src=ctx.createBufferSource();
-    src.buffer=decoded;
-    src.connect(ctx.destination);
-    src.onended=function(){setSpeaking(false);if(onDone)onDone();};
-    src.start(0);
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
+    var audio=new Audio("data:audio/mpeg;base64,"+d.audioContent);
+    audio.onended=function(){setSpeaking(false);if(onDone)onDone();};
+    audio.onerror=function(){setSpeaking(false);speakFallback(text,onDone);};
+    audio.oncanplaythrough=function(){
+      var p=audio.play();
+      if(p&&p.catch)p.catch(function(){setSpeaking(false);speakFallback(text,onDone);});
+    };
+    audio.load();
   })
   .catch(function(e){console.log("TTS error",e);setSpeaking(false);speakFallback(text,onDone);});
 }
