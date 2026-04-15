@@ -469,23 +469,47 @@ function showThinking(){
 function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 
 // ── TTS ──
-function speak(text,onDone){
+function setSpeaking(val){
+  SPEAKING=val;
+  var mb=document.getElementById("mb");
+  if(val){mb.classList.remove("listening");mb.classList.add("speaking");setst("AI is speaking...");}
+  else{mb.classList.remove("speaking");setst("Press mic to respond");}
+}
+function speakFallback(text,onDone){
   if(!window.speechSynthesis){if(onDone)onDone();return;}
   window.speechSynthesis.cancel();
   var utter=new SpeechSynthesisUtterance(text);
-  utter.lang="en-US"; utter.rate=0.95; utter.pitch=1;
+  utter.lang="en-US";utter.rate=0.95;utter.pitch=1;
   var voices=window.speechSynthesis.getVoices();
   var v=voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Female")>-1;})
     ||voices.find(function(v){return v.lang==="en-US";})
     ||voices.find(function(v){return v.lang.startsWith("en");});
-  if(v) utter.voice=v;
-  SPEAKING=true;
-  document.getElementById("mb").classList.remove("listening");
-  document.getElementById("mb").classList.add("speaking");
-  setst("AI is speaking...");
-  utter.onend=function(){SPEAKING=false;document.getElementById("mb").classList.remove("speaking");setst("Press mic to respond");if(onDone)onDone();};
-  utter.onerror=function(){SPEAKING=false;document.getElementById("mb").classList.remove("speaking");setst("Press mic to respond");if(onDone)onDone();};
+  if(v)utter.voice=v;
+  setSpeaking(true);
+  utter.onend=function(){setSpeaking(false);if(onDone)onDone();};
+  utter.onerror=function(){setSpeaking(false);if(onDone)onDone();};
   window.speechSynthesis.speak(utter);
+}
+function speak(text,onDone){
+  setSpeaking(true);
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      input:{text:text},
+      voice:{languageCode:"en-US",name:"en-US-Neural2-F"},
+      audioConfig:{audioEncoding:"MP3",speakingRate:0.95}
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
+    var audio=new Audio("data:audio/mp3;base64,"+d.audioContent);
+    audio.onended=function(){setSpeaking(false);if(onDone)onDone();};
+    audio.onerror=function(){setSpeaking(false);speakFallback(text,onDone);};
+    audio.play();
+  })
+  .catch(function(){setSpeaking(false);speakFallback(text,onDone);});
 }
 
 // ── STT ──
