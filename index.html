@@ -538,13 +538,17 @@ function speak(text,onDone){
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
-    var audio=new Audio("data:audio/mp3;base64,"+d.audioContent);
-    audio.onended=function(){setSpeaking(false);if(onDone)onDone();};
-    audio.onerror=function(){setSpeaking(false);speakFallback(text,onDone);};
-    var playPromise=audio.play();
-    if(playPromise!==undefined){
-      playPromise.catch(function(){setSpeaking(false);speakFallback(text,onDone);});
-    }
+    var binary=atob(d.audioContent);
+    var bytes=new Uint8Array(binary.length);
+    for(var i=0;i<binary.length;i++){bytes[i]=binary.charCodeAt(i);}
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    ctx.decodeAudioData(bytes.buffer,function(buf){
+      var src=ctx.createBufferSource();
+      src.buffer=buf;
+      src.connect(ctx.destination);
+      src.onended=function(){setSpeaking(false);if(onDone)onDone();};
+      src.start(0);
+    },function(){setSpeaking(false);speakFallback(text,onDone);});
   })
   .catch(function(){setSpeaking(false);speakFallback(text,onDone);});
 }
