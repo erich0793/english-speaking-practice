@@ -166,8 +166,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
   <div class="topbar">
     <h1>English Practice</h1>
     <div class="topbar-btns">
-      <button class="icon-btn" id="btnSaved" onclick="showTab('saved')">⭐ Saved</button>
-      <button class="icon-btn" id="btnWeak" onclick="showTab('weak')">📊 Analysis</button>
       <button class="icon-btn" onclick="logout()" style="color:#A32D2D">Logout</button>
     </div>
   </div>
@@ -493,13 +491,18 @@ function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 
 // ── TTS ──
 var AUDIO_UNLOCKED = false;
+var SHARED_CTX = null;
+function getAudioCtx(){
+  if(!SHARED_CTX) SHARED_CTX = new (window.AudioContext||window.webkitAudioContext)();
+  if(SHARED_CTX.state === "suspended") SHARED_CTX.resume();
+  return SHARED_CTX;
+}
 function unlockAudio(){
   if(AUDIO_UNLOCKED) return;
-  var ctx = new (window.AudioContext||window.webkitAudioContext)();
+  var ctx = getAudioCtx();
   var buf = ctx.createBuffer(1,1,22050);
   var src = ctx.createBufferSource();
-  src.buffer = buf; src.connect(ctx.destination); src.start(0);
-  ctx.resume();
+  src.buffer=buf; src.connect(ctx.destination); src.start(0);
   AUDIO_UNLOCKED = true;
 }
 function setSpeaking(val){
@@ -535,22 +538,20 @@ function speak(text,onDone){
       audioConfig:{audioEncoding:"MP3",speakingRate:0.95}
     })
   })
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
-    var binary=atob(d.audioContent);
-    var bytes=new Uint8Array(binary.length);
-    for(var i=0;i<binary.length;i++){bytes[i]=binary.charCodeAt(i);}
-    var ctx=new(window.AudioContext||window.webkitAudioContext)();
-    ctx.decodeAudioData(bytes.buffer,function(buf){
-      var src=ctx.createBufferSource();
-      src.buffer=buf;
-      src.connect(ctx.destination);
-      src.onended=function(){setSpeaking(false);if(onDone)onDone();};
-      src.start(0);
-    },function(){setSpeaking(false);speakFallback(text,onDone);});
+  .then(function(r){return r.arrayBuffer();})
+  .then(function(ab){
+    var ctx=getAudioCtx();
+    return ctx.decodeAudioData(ab);
   })
-  .catch(function(){setSpeaking(false);speakFallback(text,onDone);});
+  .then(function(decoded){
+    var ctx=getAudioCtx();
+    var src=ctx.createBufferSource();
+    src.buffer=decoded;
+    src.connect(ctx.destination);
+    src.onended=function(){setSpeaking(false);if(onDone)onDone();};
+    src.start(0);
+  })
+  .catch(function(e){console.log("TTS error",e);setSpeaking(false);speakFallback(text,onDone);});
 }
 
 // ── STT ──
