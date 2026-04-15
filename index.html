@@ -580,7 +580,12 @@ function showFeedback(fb){
   }
   if(fb.improvements&&fb.improvements.length){
     h+='<div class="fbh">Suggestions</div>';
-    fb.improvements.forEach(function(i){h+='<div class="fbi fimp"><span class="orig">'+escHtml(i.original)+'</span> to <span class="fix">'+escHtml(i.suggestion)+'</span><br><small>'+escHtml(i.note||"")+'</small></div>';});
+    fb.improvements.forEach(function(i){
+      h+='<div class="fbi fimp" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
+        +'<div><span class="orig">'+escHtml(i.original)+'</span> to <span class="fix">'+escHtml(i.suggestion)+'</span><br><small>'+escHtml(i.note||"")+'</small></div>'
+        +'<button class="fbi-save" title="Save" onclick="saveSentence(\''+escAttr(i.original)+'\',\''+escAttr(i.suggestion)+'\',\''+escAttr(i.note||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button>'
+        +'</div>';
+    });
   }
   if(fb.strengths&&fb.strengths.length){h+='<div class="fbh">What you did well</div>';fb.strengths.forEach(function(s){h+='<div class="fbi fgd">'+escHtml(s)+'</div>';});}
   if(fb.overall_tip) h+='<div class="tipbox"><strong>Tip:</strong> '+escHtml(fb.overall_tip)+'</div>';
