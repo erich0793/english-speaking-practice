@@ -499,7 +499,7 @@ function testTTS(){
   fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({input:{text:"Hello, this is a voice test."},voice:{languageCode:"en-US",name:"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3"}})
+    body:JSON.stringify({input:{text:"Hello, this is a voice test."},voice:{languageCode:"en-US",name:"en-US-Neural2-F"},audioConfig:{audioEncoding:"OGG_OPUS"}})
   })
   .then(function(r){
     statusEl.textContent = "API response: "+r.status;
@@ -569,7 +569,7 @@ function speak(text,onDone){
     body:JSON.stringify({
       input:{text:text},
       voice:{languageCode:"en-US",name:VOICE_GENDER==="male"?"en-US-Neural2-D":"en-US-Neural2-F"},
-      audioConfig:{audioEncoding:"MP3",speakingRate:0.95}
+      audioConfig:{audioEncoding:"OGG_OPUS",speakingRate:0.95}
     })
   })
   .then(function(r){return r.arrayBuffer();})
