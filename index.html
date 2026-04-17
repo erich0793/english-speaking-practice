@@ -496,6 +496,7 @@ function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 // ── TTS ──
 var AUDIO_UNLOCKED = false;
 function testTTS(){
+  unlockAudio();
   var st = document.getElementById("st");
   st.textContent = "Calling Google TTS...";
   fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{
@@ -507,11 +508,13 @@ function testTTS(){
   .then(function(d){
     if(!d.audioContent){st.textContent="No audio: "+JSON.stringify(d);return;}
     st.textContent="Got audio ("+d.audioContent.length+" chars), playing...";
-    var audio=new Audio("data:audio/mpeg;base64,"+d.audioContent);
-    audio.oncanplaythrough=function(){audio.play();};
-    audio.onended=function(){st.textContent="Test done!";};
-    audio.onerror=function(e){st.textContent="Audio error: "+JSON.stringify(e);};
-    audio.load();
+    var ctx=getAudioCtx();
+    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(audioBuf){
+      var src=ctx.createBufferSource();
+      src.buffer=audioBuf; src.connect(ctx.destination);
+      src.onended=function(){st.textContent="Test done!";};
+      src.start(0);
+    },function(){st.textContent="Decode error — fallback";speakFallback("Hello this is a test.",null);});
   })
   .catch(function(e){st.textContent="Fetch error: "+e.message;});
 }
@@ -528,6 +531,11 @@ function unlockAudio(){
   var src = ctx.createBufferSource();
   src.buffer=buf; src.connect(ctx.destination); src.start(0);
   AUDIO_UNLOCKED = true;
+}
+function base64ToArrayBuffer(b64){
+  var bin=atob(b64),len=bin.length,arr=new Uint8Array(len);
+  for(var i=0;i<len;i++) arr[i]=bin.charCodeAt(i);
+  return arr.buffer;
 }
 function setSpeaking(val){
   SPEAKING=val;
@@ -565,25 +573,23 @@ function speak(text,onDone){
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
-    var src="data:audio/mpeg;base64,"+d.audioContent;
-    var audio=new Audio(src);
-    var done=false;
-    var wordsPerSec=2.5;
-    var words=text.split(" ").length;
-    var estMs=Math.max(3000, Math.round((words/wordsPerSec)*1000)+1500);
-    var forceTimer=setTimeout(function(){
-      if(!done){done=true;audio.pause();setSpeaking(false);if(onDone)onDone();}
-    }, estMs);
-    audio.addEventListener("ended",function(){
-      if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);if(onDone)onDone();}
+    var ctx=getAudioCtx();
+    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(audioBuf){
+      var src=ctx.createBufferSource();
+      src.buffer=audioBuf;
+      src.connect(ctx.destination);
+      var done=false;
+      var estMs=Math.max(3000,Math.round((text.split(" ").length/2.5)*1000)+1500);
+      var forceTimer=setTimeout(function(){
+        if(!done){done=true;try{src.stop();}catch(e){}setSpeaking(false);if(onDone)onDone();}
+      },estMs);
+      src.onended=function(){
+        if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);if(onDone)onDone();}
+      };
+      src.start(0);
+    },function(){
+      setSpeaking(false);speakFallback(text,onDone);
     });
-    audio.addEventListener("error",function(){
-      if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);speakFallback(text,onDone);}
-    });
-    audio.play().catch(function(err){
-  setst("Play blocked: "+err.message);
-  if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);speakFallback(text,onDone);}
-});
   })
   .catch(function(e){console.log("TTS error",e);setSpeaking(false);speakFallback(text,onDone);});
 }
@@ -609,6 +615,7 @@ function initRec(){
 function toggleRec(){
   if(!ON){setst("Please select a scenario or topic first.");return;}
   if(SPEAKING)return;
+  unlockAudio();
   if(!RC&&!initRec())return;
   if(IR){RC.stop();IR=false;}
   else{
