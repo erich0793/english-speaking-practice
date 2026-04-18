@@ -513,7 +513,7 @@ function testTTS(){
       var src=ctx.createBufferSource();
       src.buffer=audioBuf; src.connect(ctx.destination);
       src.onended=function(){st.textContent="Test done!";};
-      src.start(0);
+      ctx.resume().then(function(){src.start(0);});
     },function(){st.textContent="Decode error — fallback";speakFallback("Hello this is a test.",null);});
   })
   .catch(function(e){st.textContent="Fetch error: "+e.message;});
@@ -586,7 +586,7 @@ function speak(text,onDone){
       src.onended=function(){
         if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);if(onDone)onDone();}
       };
-      src.start(0);
+      ctx.resume().then(function(){src.start(0);});
     },function(){
       setSpeaking(false);speakFallback(text,onDone);
     });
@@ -720,6 +720,9 @@ function restart(){
 function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function escAttr(s){return String(s||"").replace(/'/g,"\\'");}
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="visible"&&SHARED_CTX&&SHARED_CTX.state==="suspended")SHARED_CTX.resume();
+});
 function showToast(msg){
   var t=document.createElement("div");
   t.textContent=msg;
