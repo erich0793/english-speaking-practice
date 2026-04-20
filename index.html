@@ -33,11 +33,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .topbar h1{font-size:17px;font-weight:500}
 .topbar-btns{display:flex;gap:8px}
 .icon-btn{font-size:13px;padding:6px 12px;border-radius:20px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;color:#333}
-.icon-btn.active{background:#E6F1FB;border-color:#185FA5;color:#185FA5}
 
-/* Tabs */
+/* Tabs — 4 tabs */
 .tabs{display:flex;gap:0;margin-bottom:1rem;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;background:#f5f5f5}
-.tab{flex:1;padding:9px;text-align:center;font-size:13px;cursor:pointer;color:#666;border:none;background:transparent}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;cursor:pointer;color:#666;border:none;background:transparent}
 .tab.active{background:#fff;color:#185FA5;font-weight:500}
 
 /* Daily + modes */
@@ -64,7 +63,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 /* Chat */
 .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;justify-content:center}
 .tag{font-size:11px;padding:3px 10px;border-radius:20px;background:#E6F1FB;color:#0C447C}
-.chat{min-height:200px;max-height:300px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:12px;background:#f9f9f9;padding:1rem;display:flex;flex-direction:column;gap:10px;margin-bottom:1rem}
+.chat{min-height:200px;max-height:340px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:12px;background:#f9f9f9;padding:1rem;display:flex;flex-direction:column;gap:10px;margin-bottom:1rem}
 .msg{display:flex;gap:8px}
 .msg.user{flex-direction:row-reverse}
 .av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:2px}
@@ -91,6 +90,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .acts{display:flex;gap:8px;justify-content:center;margin-bottom:1rem}
 .endbtn{border-color:#A32D2D;color:#A32D2D}
 
+/* Task card */
+.task-card{background:#fff;border:1.5px solid #185FA5;border-radius:12px;padding:12px 14px;width:100%;text-align:left}
+.task-card.done{border-color:#639922;background:#EAF3DE}
+.task-cultural{font-size:11px;color:#555;background:#f0f4ff;border-radius:6px;padding:6px 9px;margin-bottom:8px;line-height:1.5}
+.task-header{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.task-label{font-size:11px;font-weight:600;color:#185FA5;background:#E6F1FB;padding:2px 8px;border-radius:20px}
+.task-card.done .task-label{color:#27500A;background:#EAF3DE}
+.task-desc{font-size:12px;color:#333;margin-bottom:6px;line-height:1.5}
+.task-steps{display:flex;flex-direction:column;gap:2px}
+.task-step{font-size:12px;color:#666;transition:color .3s}
+.task-step.done{color:#27500A;font-weight:500}
+.task-complete-msg{font-size:12px;color:#27500A;font-weight:500;text-align:center;padding:5px;background:#d4edcc;border-radius:6px;margin-top:6px;display:none}
+
+/* Confidence badge */
+.conf-row{display:flex;justify-content:flex-end;padding-right:4px;margin-top:-4px}
+.conf-badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:10px}
+.conf-warn{background:#FAEEDA;color:#633806}
+.conf-low{background:#FCEBEB;color:#791F1F}
+
 /* Feedback */
 .smr{border:1px solid #e0e0e0;border-radius:12px;background:#fff;padding:1.25rem;display:none;margin-top:1rem}
 .sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1rem}
@@ -102,6 +120,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .ferr{background:#FCEBEB;color:#791F1F;border-left:3px solid #E24B4A}
 .fimp{background:#FAEEDA;color:#633806;border-left:3px solid #EF9F27}
 .fgd{background:#EAF3DE;color:#27500A;border-left:3px solid #639922}
+.fpron{background:#f0f4ff;color:#1a3a6b;border-left:3px solid #185FA5}
 .orig{text-decoration:line-through;color:#A32D2D}
 .fix{color:#27500A;font-weight:500}
 .tipbox{margin-top:.75rem;padding:12px;border-radius:0 8px 8px 0;background:#f0f4ff;font-size:13px;border-left:3px solid #185FA5}
@@ -110,25 +129,72 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .fbi-save:hover{opacity:1}
 
 /* Saved sentences */
+.saved-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
 .saved-list{display:flex;flex-direction:column;gap:10px}
 .saved-item{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:12px 14px}
 .saved-item .orig-text{font-size:14px;color:#1a1a1a;margin-bottom:4px}
 .saved-item .fix-text{font-size:13px;color:#27500A;font-weight:500;margin-bottom:4px}
-.saved-item .note-text{font-size:12px;color:#666}
-.saved-item .meta{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.saved-item .note-text{font-size:12px;color:#666;margin-bottom:4px}
+.saved-item .meta{display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:4px}
 .saved-item .scenario-tag{font-size:11px;padding:2px 8px;border-radius:20px;background:#E6F1FB;color:#0C447C}
+.saved-item .item-actions{display:flex;gap:8px;align-items:center}
 .del-btn{font-size:12px;color:#A32D2D;background:none;border:none;cursor:pointer;padding:0}
+.practice-btn{font-size:12px;color:#185FA5;background:none;border:1px solid #185FA5;border-radius:20px;padding:2px 10px;cursor:pointer}
+.practice-btn:hover{background:#E6F1FB}
 .empty-msg{text-align:center;color:#aaa;font-size:14px;padding:2rem 0}
 
-/* Weakness */
+/* Flashcard */
+.fc-progress{font-size:12px;color:#999;text-align:center;margin-bottom:.5rem}
+.fc-card{background:#fff;border:1px solid #e0e0e0;border-radius:14px;padding:1.5rem;min-height:170px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;margin-bottom:.75rem;transition:box-shadow .15s}
+.fc-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.fc-prompt{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.75rem}
+.fc-sentence{font-size:18px;color:#A32D2D;text-decoration:line-through;line-height:1.5}
+.fc-tap{font-size:12px;color:#bbb;margin-top:.75rem}
+.fc-correct{font-size:17px;color:#27500A;font-weight:500;line-height:1.5;margin-bottom:.5rem}
+.fc-note{font-size:13px;color:#666;margin-bottom:.5rem}
+.fc-tag{font-size:11px;padding:2px 10px;border-radius:20px;background:#E6F1FB;color:#0C447C;display:inline-block}
+.fc-actions{display:flex;gap:8px}
+.fc-again{flex:1;padding:10px;border-radius:8px;border:1px solid #E24B4A;background:#FCEBEB;color:#A32D2D;cursor:pointer;font-size:13px}
+.fc-know{flex:1;padding:10px;border-radius:8px;border:1px solid #639922;background:#EAF3DE;color:#27500A;cursor:pointer;font-size:13px;font-weight:500}
+.fc-done-box{text-align:center;padding:1.5rem;background:#fff;border-radius:12px;border:1px solid #e0e0e0}
+
+/* Weakness / Analysis */
 .weakness-section{margin-bottom:1.5rem}
 .weakness-section h3{font-size:14px;font-weight:500;margin-bottom:.75rem;color:#1a1a1a}
 .wbar-wrap{margin-bottom:8px}
 .wbar-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
 .wbar{height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden}
-.wbar-fill{height:100%;border-radius:4px;background:#E24B4A;transition:width .4s}
-.weak-examples{margin-top:.75rem}
-.weak-ex{font-size:13px;padding:8px 12px;background:#FCEBEB;border-left:3px solid #E24B4A;border-radius:0 8px 8px 0;margin-bottom:6px;color:#791F1F}
+.wbar-fill{height:100%;border-radius:4px;transition:width .4s}
+.wbar-fill.c-grammar{background:#E24B4A}
+.wbar-fill.c-word_choice{background:#EF9F27}
+.wbar-fill.c-structure{background:#185FA5}
+.wbar-fill.c-fluency{background:#9B5DE5}
+.wbar-fill.c-other{background:#888}
+.pattern-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.pattern-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px 12px}
+.pattern-card.hot{border-color:#E24B4A}
+.pattern-card h4{font-size:12px;font-weight:600;margin-bottom:4px}
+.pattern-card.hot h4{color:#A32D2D}
+.pattern-card p{font-size:11px;color:#666;line-height:1.5}
+.all-examples{display:flex;flex-direction:column;gap:6px}
+.ex-item{font-size:13px;padding:8px 12px;border-radius:0 8px 8px 0;color:#791F1F;background:#FCEBEB;border-left:3px solid #E24B4A}
+.ex-item.c-word_choice{color:#633806;background:#FAEEDA;border-color:#EF9F27}
+.ex-item.c-structure{color:#1a3a6b;background:#f0f4ff;border-color:#185FA5}
+.ex-item.c-fluency{color:#4a2d6b;background:#f5f0ff;border-color:#9B5DE5}
+
+/* For You tab */
+.fy-section{margin-bottom:1.5rem}
+.fy-section h3{font-size:14px;font-weight:500;margin-bottom:.75rem;color:#1a1a1a}
+.lesson-card{background:#fff;border:1.5px solid #185FA5;border-radius:12px;padding:1.25rem;text-align:center}
+.lesson-icon{font-size:36px;margin-bottom:.5rem}
+.lesson-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.lesson-sub{font-size:13px;color:#666;margin-bottom:1rem}
+.lesson-targets{list-style:none;text-align:left;display:inline-block;margin-bottom:1rem}
+.lesson-targets li{font-size:13px;padding:3px 0;color:#333}
+.lesson-targets li::before{content:"→ ";color:#185FA5;font-weight:600}
+.lesson-btn{padding:10px 24px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-size:14px;cursor:pointer;font-weight:500}
+.lesson-btn:hover{background:#0C447C}
+.fy-empty{text-align:center;padding:2rem 1rem;color:#aaa;font-size:14px}
 
 .note{font-size:12px;color:#aaa;text-align:center;margin-top:1rem}
 </style>
@@ -162,7 +228,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 
 <!-- MAIN APP SCREEN -->
 <div class="screen" id="appScreen">
-  <!-- Top bar -->
   <div class="topbar">
     <h1>English Practice</h1>
     <div class="topbar-btns">
@@ -170,11 +235,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     </div>
   </div>
 
-  <!-- TABS -->
+  <!-- 4 TABS -->
   <div class="tabs">
     <button class="tab active" id="tabPractice" onclick="showTab('practice')">Practice</button>
     <button class="tab" id="tabSaved" onclick="showTab('saved')">⭐ Saved</button>
     <button class="tab" id="tabWeak" onclick="showTab('weak')">📊 Analysis</button>
+    <button class="tab" id="tabForyou" onclick="showTab('foryou')">🎓 For You</button>
   </div>
 
   <!-- PRACTICE TAB -->
@@ -210,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     <div class="st" id="st">Select a scenario or topic to begin</div>
     <div class="tb" id="tb">Your speech will appear here...</div>
     <p class="hint">🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop</p>
-<p style="text-align:center;margin-bottom:.5rem"><button class="abtn" onclick="testTTS()" style="font-size:12px;padding:4px 10px">🔊 Test voice</button></p>
+    <p style="text-align:center;margin-bottom:.5rem"><button class="abtn" onclick="testTTS()" style="font-size:12px;padding:4px 10px">🔊 Test voice</button></p>
     <div class="ctrl">
       <button class="mic" id="mb" onclick="toggleRec()">
         <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
@@ -228,103 +294,114 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     <p class="note">Works best on Chrome or Edge browser</p>
   </div>
 
-  <!-- SAVED SENTENCES TAB -->
+  <!-- SAVED TAB -->
   <div id="tabContentSaved" style="display:none">
-    <h2 style="font-size:15px;font-weight:500;margin-bottom:1rem">⭐ Saved Sentences</h2>
-    <div class="saved-list" id="savedList"><div class="empty-msg">No saved sentences yet.<br>Tap ⭐ on any AI message or correction to save it.</div></div>
+    <div class="saved-header">
+      <h2 style="font-size:15px;font-weight:500">⭐ Saved Sentences</h2>
+      <button class="abtn" id="fcToggleBtn" onclick="toggleFlashcards()" style="font-size:12px;padding:6px 12px">📇 Flashcards</button>
+    </div>
+    <!-- Saved list view -->
+    <div id="savedListArea">
+      <div class="saved-list" id="savedList">
+        <div class="empty-msg">No saved sentences yet.<br>Tap ⭐ on any message to save it.</div>
+      </div>
+    </div>
+    <!-- Flashcard view (hidden by default) -->
+    <div id="flashcardArea" style="display:none"></div>
   </div>
 
-  <!-- WEAKNESS ANALYSIS TAB -->
+  <!-- ANALYSIS TAB -->
   <div id="tabContentWeak" style="display:none">
     <h2 style="font-size:15px;font-weight:500;margin-bottom:1rem">📊 Weakness Analysis</h2>
     <div id="weakContent"><div class="empty-msg">Complete at least one session to see your analysis.</div></div>
   </div>
+
+  <!-- FOR YOU TAB -->
+  <div id="tabContentForyou" style="display:none">
+    <h2 style="font-size:15px;font-weight:500;margin-bottom:1rem">🎓 Made For You</h2>
+    <div id="foryouContent"><div class="empty-msg">Complete at least one session to get your personalized lesson.</div></div>
+  </div>
 </div>
 
 <script>
-var PROXY = "https://xujxibajkncuubgwfgkq.supabase.co/functions/v1/claude-proxy";
-var SUPA_URL = "https://xujxibajkncuubgwfgkq.supabase.co";
-var SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1anhpYmFqa25jdXViZ3dmZ2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzczMTAsImV4cCI6MjA5MTgxMzMxMH0.n10WhHlcgl7gbK9hG9v3op2LgTVRoUkqQeTPGj0t3zA";
+var PROXY="https://xujxibajkncuubgwfgkq.supabase.co/functions/v1/claude-proxy";
+var SUPA_URL="https://xujxibajkncuubgwfgkq.supabase.co";
+var SUPA_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1anhpYmFqa25jdXViZ3dmZ2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzczMTAsImV4cCI6MjA5MTgxMzMxMH0.n10WhHlcgl7gbK9hG9v3op2LgTVRoUkqQeTPGj0t3zA";
 
-var currentUser = null;
-var VOICE_GENDER = "female";
+var currentUser=null,VOICE_GENDER="female";
 var RC=null,IR=false,CUR="",HIST=[],UTTS=[],TOPIC="",SYSPR="",ON=false,SPEAKING=false;
 var silenceTimer=null,currentMode="";
+var CONF_SCORES=[],LAST_CONF=null;
+var TASK_DONE=false,TASK_DEF=null;
+var SAVED_MAP={};
+var FC_CARDS=[],FC_INDEX=0,FC_FLIPPED=false,FC_KNOWN=[],FC_AGAIN=[],FC_ACTIVE=false;
 
-// ── Supabase REST helpers ──
-function dbGet(table, filters){
-  var url = SUPA_URL+"/rest/v1/"+table+"?order=created_at.desc";
-  if(filters) url += "&"+filters;
+// ── Supabase ──
+function dbGet(table,filters){
+  var url=SUPA_URL+"/rest/v1/"+table+"?order=created_at.desc";
+  if(filters)url+="&"+filters;
   return fetch(url,{headers:{"apikey":SUPA_ANON,"Authorization":"Bearer "+SUPA_ANON}}).then(function(r){return r.json();});
 }
-function dbInsert(table, data){
+function dbInsert(table,data){
   return fetch(SUPA_URL+"/rest/v1/"+table,{method:"POST",headers:{"apikey":SUPA_ANON,"Authorization":"Bearer "+SUPA_ANON,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify(data)}).then(function(r){return r.json();});
 }
-function dbDelete(table, id){
+function dbDelete(table,id){
   return fetch(SUPA_URL+"/rest/v1/"+table+"?id=eq."+id,{method:"DELETE",headers:{"apikey":SUPA_ANON,"Authorization":"Bearer "+SUPA_ANON}});
 }
 
 // ── Login ──
-function selectVoice(g){
-  VOICE_GENDER=g;
-  document.getElementById("vbtnF").classList.toggle("selected",g==="female");
-  document.getElementById("vbtnM").classList.toggle("selected",g==="male");
-}
+function selectVoice(g){VOICE_GENDER=g;document.getElementById("vbtnF").classList.toggle("selected",g==="female");document.getElementById("vbtnM").classList.toggle("selected",g==="male");}
 function doLogin(){
-  var u = document.getElementById("usernameInput").value.trim().toLowerCase();
+  var u=document.getElementById("usernameInput").value.trim().toLowerCase();
   if(!u){alert("Please enter a username.");return;}
   dbGet("users","username=eq."+encodeURIComponent(u)).then(function(rows){
-    if(rows&&rows.length>0){
-      currentUser=rows[0];
-      onLoginSuccess();
-    } else {
-      dbInsert("users",{username:u}).then(function(rows2){
-        if(rows2&&rows2.length>0){currentUser=rows2[0];onLoginSuccess();}
-        else{alert("Could not create account. Try again.");}
-      });
-    }
+    if(rows&&rows.length>0){currentUser=rows[0];onLoginSuccess();}
+    else{dbInsert("users",{username:u}).then(function(rows2){if(rows2&&rows2.length>0){currentUser=rows2[0];onLoginSuccess();}else{alert("Could not create account. Try again.");}});}
   });
 }
 function onLoginSuccess(){
-  localStorage.setItem("ep_user", JSON.stringify(currentUser));
+  localStorage.setItem("ep_user",JSON.stringify(currentUser));
   document.getElementById("loginScreen").classList.remove("active");
   document.getElementById("appScreen").classList.add("active");
   initApp();
 }
 function logout(){
-  localStorage.removeItem("ep_user");
-  currentUser=null;
+  localStorage.removeItem("ep_user");currentUser=null;
   document.getElementById("appScreen").classList.remove("active");
   document.getElementById("loginScreen").classList.add("active");
 }
 
 // ── Init ──
-window.onload = function(){
-  var saved = localStorage.getItem("ep_user");
+window.onload=function(){
+  var saved=localStorage.getItem("ep_user");
   if(saved){try{currentUser=JSON.parse(saved);onLoginSuccess();}catch(e){}}
   if(window.speechSynthesis){window.speechSynthesis.getVoices();window.speechSynthesis.onvoiceschanged=function(){window.speechSynthesis.getVoices();};}
 };
-function initApp(){
-  var t=getTodayTopic();
-  document.getElementById("dailyText").textContent=t.text;
-}
+function initApp(){document.getElementById("dailyText").textContent=getTodayTopic().text;}
 
 // ── Tabs ──
 function showTab(tab){
-  ["practice","saved","weak"].forEach(function(t){
-    document.getElementById("tabContent"+t.charAt(0).toUpperCase()+t.slice(1)).style.display=t===tab?"block":"none";
-    document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("active",t===tab);
+  ["practice","saved","weak","foryou"].forEach(function(t){
+    var c=document.getElementById("tabContent"+t.charAt(0).toUpperCase()+t.slice(1));
+    if(c)c.style.display=t===tab?"block":"none";
+    var b=document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1));
+    if(b)b.classList.toggle("active",t===tab);
   });
-  if(tab==="saved") loadSaved();
-  if(tab==="weak") loadWeakness();
+  if(tab==="saved")loadSaved();
+  if(tab==="weak")loadWeakness();
+  if(tab==="foryou")loadForYou();
 }
 
 // ── Saved sentences ──
 function loadSaved(){
-  if(!currentUser) return;
+  if(!currentUser)return;
   dbGet("saved_sentences","user_id=eq."+currentUser.id).then(function(rows){
+    SAVED_MAP={};
     var list=document.getElementById("savedList");
     if(!rows||!rows.length){list.innerHTML='<div class="empty-msg">No saved sentences yet.<br>Tap ⭐ on any message to save it.</div>';return;}
+    // Cache for offline flashcards
+    localStorage.setItem("ep_saved_"+currentUser.id,JSON.stringify(rows));
+    rows.forEach(function(r){SAVED_MAP[r.id]=r;});
     list.innerHTML=rows.map(function(r){
       return '<div class="saved-item" id="si-'+r.id+'">'
         +'<div class="orig-text">'+escHtml(r.original)+'</div>'
@@ -332,56 +409,208 @@ function loadSaved(){
         +(r.note?'<div class="note-text">'+escHtml(r.note)+'</div>':'')
         +'<div class="meta">'
         +(r.scenario?'<span class="scenario-tag">'+escHtml(r.scenario)+'</span>':'<span></span>')
+        +'<div class="item-actions">'
+        +(r.corrected?'<button class="practice-btn" onclick="practiceThisSentence(\''+r.id+'\')">🔄 Practice</button>':'')
         +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">Remove</button>'
-        +'</div></div>';
+        +'</div></div></div>';
     }).join("");
   });
 }
-function saveSentence(original, corrected, note){
-  if(!currentUser) return;
-  dbInsert("saved_sentences",{user_id:currentUser.id,original:original,corrected:corrected||null,note:note||null,scenario:currentMode||null}).then(function(){
-    showToast("Saved!");
-  });
+function saveSentence(original,corrected,note){
+  if(!currentUser)return;
+  dbInsert("saved_sentences",{user_id:currentUser.id,original:original,corrected:corrected||null,note:note||null,scenario:currentMode||null}).then(function(){showToast("Saved!");});
 }
 function deleteSaved(id){
-  dbDelete("saved_sentences",id).then(function(){
-    var el=document.getElementById("si-"+id);
-    if(el) el.remove();
+  dbDelete("saved_sentences",id).then(function(){var el=document.getElementById("si-"+id);if(el)el.remove();});
+}
+
+// ── Practice a saved sentence ──
+function practiceThisSentence(id){
+  var r=SAVED_MAP[id];
+  if(!r||!r.corrected)return;
+  showTab("practice");
+  var sys="You are an English speaking coach. The student is practicing this corrected phrase: \""+r.corrected+"\""
+    +(r.note?" (context: "+r.note+")")+"."
+    +" Give the student 3 different real-life situations one at a time where they should naturally use this phrase or similar language."
+    +" After each response, briefly note if they used the target language correctly, then present the next situation."
+    +" Be warm and encouraging. Only say spoken words.";
+  var opening="Let's practice this phrase: \""+r.corrected+"\" — I'll give you real situations to use it. Here's the first: Imagine you're at a coffee shop and the barista gave you the wrong order. What would you say?";
+  currentMode="practice";
+  startSession("Sentence Practice",sys,opening,{
+    cultural:null,
+    task:'Use the phrase in 3 different situations.',
+    taskCheck:function(utts){return{done:utts.length>=3,steps:[{label:"Complete 3 practice situations ("+Math.min(utts.length,3)+"/3)",done:utts.length>=3}]};}
   });
 }
 
+// ── Flashcards ──
+function toggleFlashcards(){
+  FC_ACTIVE=!FC_ACTIVE;
+  document.getElementById("savedListArea").style.display=FC_ACTIVE?"none":"block";
+  document.getElementById("flashcardArea").style.display=FC_ACTIVE?"block":"none";
+  document.getElementById("fcToggleBtn").textContent=FC_ACTIVE?"← Back to list":"📇 Flashcards";
+  if(FC_ACTIVE)loadFlashcardData();
+}
+function loadFlashcardData(){
+  var area=document.getElementById("flashcardArea");
+  area.innerHTML='<div class="empty-msg">Loading...</div>';
+  // Try offline cache first
+  var cacheKey="ep_saved_"+(currentUser?currentUser.id:"");
+  var cached=localStorage.getItem(cacheKey);
+  if(cached){
+    try{
+      var cards=JSON.parse(cached).filter(function(r){return r.corrected;});
+      if(cards.length){initFlashcards(cards);return;}
+    }catch(e){}
+  }
+  if(!currentUser){area.innerHTML='<div class="empty-msg">Please log in.</div>';return;}
+  dbGet("saved_sentences","user_id=eq."+currentUser.id).then(function(rows){
+    var cards=(rows||[]).filter(function(r){return r.corrected;});
+    if(rows)localStorage.setItem(cacheKey,JSON.stringify(rows));
+    initFlashcards(cards);
+  });
+}
+function initFlashcards(cards){
+  if(!cards.length){
+    document.getElementById("flashcardArea").innerHTML='<div class="empty-msg">No saved corrections yet. Save some sentences from your sessions first!</div>';
+    return;
+  }
+  FC_CARDS=cards.slice().sort(function(){return Math.random()-.5;});
+  FC_INDEX=0;FC_FLIPPED=false;FC_KNOWN=[];FC_AGAIN=[];
+  renderFC();
+}
+function renderFC(){
+  var area=document.getElementById("flashcardArea");
+  if(FC_INDEX>=FC_CARDS.length){
+    area.innerHTML='<div class="fc-done-box">'
+      +'<div style="font-size:32px;margin-bottom:8px">🎉</div>'
+      +'<div style="font-size:16px;font-weight:500;margin-bottom:4px">Round complete!</div>'
+      +'<div style="font-size:13px;color:#666;margin-bottom:1rem">Got it: <strong>'+FC_KNOWN.length+'</strong> &nbsp;|&nbsp; Need practice: <strong>'+FC_AGAIN.length+'</strong></div>'
+      +(FC_AGAIN.length?'<button class="lesson-btn" style="margin-bottom:8px;display:block;width:100%" onclick="retryMissed()">Retry '+FC_AGAIN.length+' missed cards</button>':'')
+      +'<button class="abtn" style="width:100%" onclick="initFlashcards(FC_CARDS.concat(FC_KNOWN).concat(FC_AGAIN))">Shuffle & restart</button>'
+      +'</div>';
+    return;
+  }
+  var c=FC_CARDS[FC_INDEX];
+  area.innerHTML='<div class="fc-progress">'+(FC_INDEX+1)+' / '+FC_CARDS.length+'</div>'
+    +'<div class="fc-card" id="fcCard" onclick="flipFC()">'
+    +'<div id="fcFront">'
+    +'<div class="fc-prompt">What is the correct version?</div>'
+    +'<div class="fc-sentence">'+escHtml(c.original)+'</div>'
+    +'<div class="fc-tap">Tap to reveal</div>'
+    +'</div>'
+    +'<div id="fcBack" style="display:none">'
+    +'<div class="fc-correct">'+escHtml(c.corrected)+'</div>'
+    +(c.note?'<div class="fc-note">'+escHtml(c.note)+'</div>':'')
+    +(c.scenario?'<div class="fc-tag">'+escHtml(c.scenario)+'</div>':'')
+    +'</div>'
+    +'</div>'
+    +'<div id="fcActions" style="display:none" class="fc-actions">'
+    +'<button class="fc-again" onclick="markFC(false)">↩ Need practice</button>'
+    +'<button class="fc-know" onclick="markFC(true)">✓ Got it</button>'
+    +'</div>';
+  FC_FLIPPED=false;
+}
+function flipFC(){
+  if(FC_FLIPPED)return;
+  FC_FLIPPED=true;
+  document.getElementById("fcFront").style.display="none";
+  document.getElementById("fcBack").style.display="block";
+  document.getElementById("fcActions").style.display="flex";
+}
+function markFC(known){
+  if(known)FC_KNOWN.push(FC_CARDS[FC_INDEX]);else FC_AGAIN.push(FC_CARDS[FC_INDEX]);
+  FC_INDEX++;renderFC();
+}
+function retryMissed(){
+  FC_CARDS=FC_AGAIN.slice();FC_INDEX=0;FC_FLIPPED=false;FC_KNOWN=[];FC_AGAIN=[];renderFC();
+}
+
 // ── Weakness analysis ──
+var ERROR_PATTERNS={
+  grammar:{label:"Grammar",color:"c-grammar",tip:"Articles (a/an/the), verb tenses, subject-verb agreement, prepositions.",advice:"Practice: 'I went' not 'I go yesterday'; 'an apple' not 'a apple'."},
+  word_choice:{label:"Word Choice",color:"c-word_choice",tip:"Using an imprecise or wrong word; formal/informal mismatch.",advice:"Read aloud to build vocabulary. Note which words you mix up most often."},
+  structure:{label:"Sentence Structure",color:"c-structure",tip:"Word order, run-on sentences, missing connectors.",advice:"Keep sentences short. Use 'because', 'so', 'but' to link ideas clearly."},
+  fluency:{label:"Fluency",color:"c-fluency",tip:"Filler words (um, uh), long pauses, restarting mid-sentence.",advice:"It's better to pause silently than say 'um'. Slow down and breathe."}
+};
 function loadWeakness(){
-  if(!currentUser){return;}
-  dbGet("session_errors","user_id=eq."+currentUser.id+"&limit=200").then(function(rows){
+  if(!currentUser)return;
+  dbGet("session_errors","user_id=eq."+currentUser.id+"&limit=300").then(function(rows){
     var content=document.getElementById("weakContent");
     if(!rows||!rows.length){content.innerHTML='<div class="empty-msg">Complete at least one session to see your analysis.</div>';return;}
-    // Count error types
     var types={};
-    rows.forEach(function(r){
-      var t=r.error_type||"grammar";
-      if(!types[t]) types[t]={count:0,examples:[]};
-      types[t].count++;
-      if(types[t].examples.length<3) types[t].examples.push({orig:r.original,fix:r.corrected,reason:r.reason});
-    });
+    rows.forEach(function(r){var t=r.error_type||"grammar";if(!types[t])types[t]={count:0,examples:[]};types[t].count++;if(types[t].examples.length<5)types[t].examples.push({orig:r.original,fix:r.corrected,reason:r.reason,type:t});});
     var total=rows.length;
     var sorted=Object.keys(types).sort(function(a,b){return types[b].count-types[a].count;});
-    var html='<div class="weakness-section"><h3>Error frequency ('+total+' total errors)</h3>';
+    var html='<div class="weakness-section"><h3>Error frequency <span style="font-size:12px;color:#aaa;font-weight:400">('+total+' total)</span></h3>';
     sorted.forEach(function(t){
+      var pat=ERROR_PATTERNS[t]||{label:capitalize(t.replace(/_/g," ")),color:"c-other"};
       var pct=Math.round(types[t].count/total*100);
-      html+='<div class="wbar-wrap">'
-        +'<div class="wbar-label"><span>'+capitalize(t.replace(/_/g," "))+'</span><span>'+types[t].count+' times ('+pct+'%)</span></div>'
-        +'<div class="wbar"><div class="wbar-fill" style="width:'+pct+'%"></div></div>'
-        +'</div>';
+      html+='<div class="wbar-wrap"><div class="wbar-label"><span>'+pat.label+'</span><span style="color:#999">'+types[t].count+'× &nbsp;'+pct+'%</span></div><div class="wbar"><div class="wbar-fill '+pat.color+'" style="width:'+pct+'%"></div></div></div>';
     });
-    html+='</div><div class="weakness-section"><h3>Recent examples to review</h3>';
-    var top=sorted[0];
-    if(top) types[top].examples.forEach(function(e){
-      html+='<div class="weak-ex"><span class="orig">'+escHtml(e.orig)+'</span> → <span class="fix">'+escHtml(e.fix)+'</span>'
-        +(e.reason?'<br><small>'+escHtml(e.reason)+'</small>':'')+'</div>';
+    html+='</div><div class="weakness-section"><h3>What each error type means</h3><div class="pattern-grid">';
+    sorted.forEach(function(t){
+      var pat=ERROR_PATTERNS[t];if(!pat)return;
+      var isHot=t===sorted[0];
+      html+='<div class="pattern-card'+(isHot?' hot':'')+'"><h4>'+(isHot?'🔥 ':'')+pat.label+'</h4><p>'+pat.tip+'</p><p style="margin-top:4px;color:#888">'+pat.advice+'</p></div>';
     });
-    html+='</div>';
+    html+='</div></div><div class="weakness-section"><h3>Recent examples to review</h3><div class="all-examples">';
+    var shown=0;
+    sorted.slice(0,2).forEach(function(t){
+      var pat=ERROR_PATTERNS[t]||{label:capitalize(t),color:"c-other"};
+      types[t].examples.forEach(function(e){
+        html+='<div class="ex-item c-'+t+'"><strong>'+escHtml(pat.label)+':</strong> <span style="text-decoration:line-through;opacity:.7">'+escHtml(e.orig)+'</span> → <strong>'+escHtml(e.fix)+'</strong>'+(e.reason?'<br><span style="font-size:12px;opacity:.8">'+escHtml(e.reason)+'</span>':'')+'</div>';
+        shown++;
+      });
+    });
+    if(!shown)html+='<div class="empty-msg" style="padding:.5rem">No examples yet.</div>';
+    html+='</div></div>';
     content.innerHTML=html;
+  });
+}
+
+// ── For You tab ──
+function loadForYou(){
+  if(!currentUser)return;
+  var content=document.getElementById("foryouContent");
+  dbGet("session_errors","user_id=eq."+currentUser.id+"&limit=200").then(function(rows){
+    if(!rows||!rows.length){
+      content.innerHTML='<div class="fy-empty">Complete at least one session to get your personalized lesson.<br><br><button class="lesson-btn" onclick="showTab(\'practice\')">Go to Practice →</button></div>';
+      return;
+    }
+    var types={};
+    rows.forEach(function(r){var t=r.error_type||"grammar";if(!types[t])types[t]={count:0,examples:[]};types[t].count++;if(types[t].examples.length<3)types[t].examples.push(r.original);});
+    var sorted=Object.keys(types).sort(function(a,b){return types[b].count-types[a].count;});
+    var top=sorted.slice(0,3);
+    var total=rows.length;
+    var html='<div class="fy-section">';
+    html+='<div class="lesson-card">';
+    html+='<div class="lesson-icon">🎓</div>';
+    html+='<div class="lesson-title">Your Personalized Lesson</div>';
+    html+='<div class="lesson-sub">Based on '+total+' errors across your sessions, we\'ll focus on:</div>';
+    html+='<ul class="lesson-targets">';
+    top.forEach(function(t){var pat=ERROR_PATTERNS[t];html+='<li>'+(pat?pat.label:capitalize(t))+' ('+types[t].count+'×)</li>';});
+    html+='</ul>';
+    html+='<button class="lesson-btn" onclick=\'startMadeForYouLesson('+JSON.stringify(top)+')\'>Start Lesson →</button>';
+    html+='</div></div>';
+    content.innerHTML=html;
+  });
+}
+
+function startMadeForYouLesson(topTypes){
+  var typeNames=topTypes.map(function(t){return ERROR_PATTERNS[t]?ERROR_PATTERNS[t].label:t;}).join(", ");
+  var sys="You are a warm and encouraging English speaking coach. This student's recorded weaknesses are: "+typeNames+"."
+    +" Have a natural, flowing conversation with them. Internally notice when they make errors in these categories — but do NOT interrupt to correct them."
+    +" After every 2–3 exchanges, gently weave in a natural correction like: 'By the way, a more natural way to say that would be...'"
+    +" Ask engaging questions that naturally invite the student to use the grammar patterns they struggle with."
+    +" Only say spoken words. One question at a time.";
+  var opening="Hi! I've looked at your practice history and I know exactly what to work on. Let's have a natural conversation — no pressure, just talk! To start: what did you do this past weekend?";
+  showTab("practice");
+  currentMode="lesson";
+  startSession("Made For You Lesson",sys,opening,{
+    cultural:null,
+    task:"Complete at least 5 exchanges to finish the lesson.",
+    taskCheck:function(utts){return{done:utts.length>=5,steps:[{label:"Complete 5 exchanges ("+Math.min(utts.length,5)+"/5 done)",done:utts.length>=5}]};}
   });
 }
 
@@ -403,47 +632,104 @@ var DAILY_TOPICS=[
   {text:"What do you think about social media?",keywords:["benefits","drawbacks","addiction","connection","privacy"]},
   {text:"Talk about your favourite season and why",keywords:["weather","activities","atmosphere","reminds me","prefer"]}
 ];
-function getTodayTopic(){
-  var d=new Date();
-  var idx=(d.getFullYear()*366+d.getMonth()*31+d.getDate())%DAILY_TOPICS.length;
-  return DAILY_TOPICS[idx];
-}
+function getTodayTopic(){var d=new Date();return DAILY_TOPICS[(d.getFullYear()*366+d.getMonth()*31+d.getDate())%DAILY_TOPICS.length];}
 function useDailyTopic(){
   var t=getTodayTopic();
   document.getElementById("ti").value=t.text;
-  selectMode("free");
-  showKeywords(t.keywords);
-  startSession(t.text,SCENARIOS.free.system.replace("TOPIC",t.text),SCENARIOS.free.opening.replace("TOPIC",t.text));
+  selectMode("free");showKeywords(t.keywords);
+  startSession(t.text,SCENARIOS.free.system.replace("TOPIC",t.text),SCENARIOS.free.opening.replace("TOPIC",t.text),SCENARIOS.free);
 }
+
+// ── Task checkers ──
+var TASK_CHECKS={
+  restaurant:function(utts){
+    var text=utts.join(" ").toLowerCase();
+    var hasMain=["salmon","steak","pasta","burger","chicken","beef","fish","entree","main"].some(function(m){return text.indexOf(m)>-1;});
+    var hasDessert=["cake","cheesecake","ice cream","dessert","lava","pudding","sorbet","sweet"].some(function(d){return text.indexOf(d)>-1;});
+    return{done:hasMain&&hasDessert,steps:[{label:"Order a main course",done:hasMain},{label:"Order a dessert",done:hasDessert}]};
+  },
+  interview:function(utts){
+    var exWords=["example","for instance","time when","worked","experience","previous","once","specifically","managed","achieved"];
+    var matched=utts.filter(function(u){return exWords.some(function(w){return u.toLowerCase().indexOf(w)>-1;});});
+    return{done:utts.length>=3&&matched.length>=2,steps:[{label:"Answer 3+ questions",done:utts.length>=3},{label:"Use specific examples (2+)",done:matched.length>=2}]};
+  },
+  shopping:function(utts){
+    var text=utts.join(" ").toLowerCase();
+    var s1=["looking for","need","want","do you have","shirt","jacket","pants","shoes","size","something"].some(function(w){return text.indexOf(w)>-1;});
+    var s2=["how much","price","cost","expensive","afford","budget","discount","sale","cheaper"].some(function(w){return text.indexOf(w)>-1;});
+    var s3=["i'll take","i'll buy","i'll get","not interested","too expensive","i'll pass","perfect","deal","sold","never mind","that works"].some(function(w){return text.indexOf(w)>-1;});
+    return{done:s1&&s2&&s3,steps:[{label:"Find an item to buy",done:s1},{label:"Ask about the price",done:s2},{label:"Make a decision",done:s3}]};
+  },
+  directions:function(utts){
+    var text=utts.join(" ").toLowerCase();
+    var s1=["how do i get","where is","can you tell me","direction","how far","find","get to","looking for"].some(function(w){return text.indexOf(w)>-1;});
+    var s2=["thank you","got it","i see","understand","okay so","right","left then","i'll go","makes sense","perfect","so i should"].some(function(w){return text.indexOf(w)>-1;});
+    return{done:s1&&s2,steps:[{label:"Ask for directions",done:s1},{label:"Confirm you understood",done:s2}]};
+  },
+  hotel:function(utts){
+    var text=utts.join(" ").toLowerCase();
+    var s1=["reservation","name is","check in","checking in","booking","i have","last name"].some(function(w){return text.indexOf(w)>-1;});
+    var facCount=["wifi","wi-fi","gym","breakfast","pool","parking","restaurant","spa","fitness","internet","checkout","laundry"].filter(function(f){return text.indexOf(f)>-1;}).length;
+    return{done:s1&&facCount>=2,steps:[{label:"Complete check-in",done:s1},{label:"Ask about 2+ hotel services",done:facCount>=2}]};
+  }
+};
 
 // ── Scenarios ──
 var SCENARIOS={
-  free:{name:"Free talk",system:"You are a friendly English conversation partner. Topic: TOPIC. Reply 2-3 natural sentences, ask one follow-up. Do NOT correct grammar. Only say spoken words — never describe actions or gestures.",opening:"Let's talk about TOPIC. What's on your mind?",keywords:["actually","I think","in my opinion","for example","by the way"]},
-  restaurant:{name:"Restaurant",system:"You are a friendly waiter at a restaurant. Help the customer order and chat. Stay in character. Do NOT correct grammar. Only say spoken words — never describe actions or gestures.",opening:"Welcome! Have you had a chance to look at the menu? Can I start you with drinks?",keywords:["I'd like to order","What do you recommend","Is this spicy","Can I have the bill","Excuse me"]},
-  interview:{name:"Job interview",system:"You are a professional interviewer. Ask common interview questions one at a time. Be encouraging. Do NOT correct grammar. Only say spoken words — never describe actions or gestures.",opening:"Thank you for coming in. Could you start by telling me a little about yourself?",keywords:["My strength is","I have experience in","For example","I am passionate about","In my previous role"]},
-  shopping:{name:"Shopping",system:"You are a helpful shop assistant. Help the customer, discuss prices and options. Stay in character. Do NOT correct grammar. Only say spoken words — never describe actions or gestures.",opening:"Hi! Welcome to the store. Is there anything I can help you find today?",keywords:["How much is this","Do you have this in","I'm looking for","Can I try it on","Is there a discount"]},
-  directions:{name:"Directions",system:"You are a friendly local helping a tourist with directions. Be clear and friendly. Do NOT correct grammar. Only say spoken words — never describe actions or gestures.",opening:"Hi! You look a bit lost — can I help? Where are you trying to get to?",keywords:["Turn left","Go straight","It's about","You'll see","Next to","Across from"]},
-  hotel:{name:"Hotel",system:"You are a professional hotel receptionist. Help the guest with check-in and answer questions. Stay in character. Do NOT correct grammar. Only say spoken words — never describe actions or gestures.",opening:"Good evening and welcome! Do you have a reservation? May I have your name please?",keywords:["I have a reservation","What time is checkout","Is breakfast included","Could I have a wake-up call","My room number is"]}
+  free:{name:"Free talk",cultural:null,task:null,taskCheck:null,
+    system:"You are a friendly English conversation partner. Topic: TOPIC. Reply 2-3 natural sentences, ask one follow-up. Do NOT correct grammar. Only say spoken words.",
+    opening:"Let's talk about TOPIC. What's on your mind?",
+    keywords:["actually","I think","in my opinion","for example","by the way"]},
+  restaurant:{name:"Restaurant",
+    cultural:"🇺🇸 American restaurants: servers introduce themselves, check on you mid-meal, and bring the check only when asked. Tipping 15–20% is expected.",
+    task:"Your mission: Order a main course AND a dessert. Ask for the bill when finished.",
+    taskCheck:TASK_CHECKS.restaurant,
+    system:"You are Jamie, a friendly waiter at a mid-range American restaurant called 'The Blue Plate'. Menu — MAINS: Grilled Salmon ($24), Ribeye Steak ($36), Pasta Primavera ($18), Chicken Burger ($16). DESSERTS: Chocolate Lava Cake ($9), New York Cheesecake ($8), Seasonal Sorbet ($7). Help the customer order. Stay in character. Do NOT correct grammar. Only say spoken words.",
+    opening:"Hi there! Welcome to The Blue Plate, I'm Jamie and I'll be taking care of you tonight. Can I start you off with something to drink, or would you like to hear today's specials?",
+    keywords:["I'd like to order","What do you recommend","Is this spicy","Can I have the bill","For dessert please"]},
+  interview:{name:"Job interview",
+    cultural:"🇺🇸 US interviews value the STAR method: Situation, Task, Action, Result. Be specific — generic answers seem weak.",
+    task:"Your mission: Answer at least 3 questions. Use specific examples in at least 2 answers.",
+    taskCheck:TASK_CHECKS.interview,
+    system:"You are a professional interviewer at a US tech company for a marketing coordinator role. Ask one behavioral question at a time. Be encouraging. Do NOT correct grammar. Only say spoken words.",
+    opening:"Thank you so much for coming in today! To start — could you tell me a little about yourself and why you're interested in this role?",
+    keywords:["For example","In my previous role","I managed","I achieved","The result was","Specifically"]},
+  shopping:{name:"Shopping",
+    cultural:"🇺🇸 In US stores, staff greet you but there's no pressure to buy. It's normal to ask about return policies, request discounts, or try items on.",
+    task:"Your mission: Find a specific item, ask about size and price, then decide to buy or decline.",
+    taskCheck:TASK_CHECKS.shopping,
+    system:"You are a helpful sales assistant at a clothing store in an American mall. Casual and smart-casual clothes, sizes XS–XXL, sale items 30–40% off. Stay in character. Do NOT correct grammar. Only say spoken words.",
+    opening:"Hey, welcome in! Feel free to look around. We've got new arrivals this week and a sale section at the back — up to 40% off. Is there anything specific I can help you find?",
+    keywords:["Do you have this in","How much is this","I'm looking for","Can I try it on","Is there a discount"]},
+  directions:{name:"Directions",
+    cultural:"🇺🇸 Americans use landmarks and block counts: 'Take a left at the light', 'It's about two blocks down', 'You can't miss it'.",
+    task:"Your mission: Ask for directions to Central Park, then repeat the key steps back to confirm.",
+    taskCheck:TASK_CHECKS.directions,
+    system:"You are a friendly local in Midtown Manhattan helping a tourist find Central Park. Give clear directions using streets and landmarks. Stay in character. Do NOT correct grammar. Only say spoken words.",
+    opening:"Oh hi! You look like you might need some help — are you trying to find your way around? Where are you trying to go?",
+    keywords:["How do I get to","Where is","Turn left","Go straight","About how far","So I should"]},
+  hotel:{name:"Hotel",
+    cultural:"🇺🇸 US hotel check-in requires photo ID and credit card. Staff are trained to be warm. It's perfectly normal to ask about every amenity.",
+    task:"Your mission: Complete check-in AND ask about at least 2 hotel services.",
+    taskCheck:TASK_CHECKS.hotel,
+    system:"You are Alex, a professional front desk receptionist at a 4-star hotel in San Francisco. Amenities: free Wi-Fi, gym, rooftop pool, breakfast buffet ($18/person), valet parking ($45/night), 24hr room service. Help the guest check in. Stay in character. Do NOT correct grammar. Only say spoken words.",
+    opening:"Good evening and welcome to The Grand Pacific! I'm Alex, happy to get you checked in. Do you have a reservation? If you give me your last name I'll pull that right up.",
+    keywords:["I have a reservation","My name is","Is Wi-Fi included","What time is checkout","Do you have a gym"]}
 };
 
 function selectMode(mode){
-  unlockAudio();
-  currentMode=mode;
+  unlockAudio();currentMode=mode;
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("mode-"+mode).classList.add("active");
-  var sc=SCENARIOS[mode];
-  showKeywords(sc.keywords);
-  if(mode!=="free"){
-    document.getElementById("ti").value="";
-    startSession(sc.name,sc.system,sc.opening);
-  }
+  var sc=SCENARIOS[mode];showKeywords(sc.keywords);
+  if(mode!=="free"){document.getElementById("ti").value="";startSession(sc.name,sc.system,sc.opening,sc);}
 }
 function showKeywords(kwArr){
   var box=document.getElementById("kwBox"),list=document.getElementById("kwList");
-  box.style.display="block"; list.innerHTML="";
+  box.style.display="block";list.innerHTML="";
   kwArr.forEach(function(k){
-    var s=document.createElement("span"); s.className="kw"; s.textContent=k;
-    s.onclick=function(){ if(s.classList.contains("used"))return; s.classList.add("used"); CUR=CUR?CUR+" "+k:k; document.getElementById("tb").textContent=CUR; };
+    var s=document.createElement("span");s.className="kw";s.textContent=k;
+    s.onclick=function(){if(s.classList.contains("used"))return;s.classList.add("used");CUR=CUR?CUR+" "+k:k;document.getElementById("tb").textContent=CUR;};
     list.appendChild(s);
   });
 }
@@ -451,161 +737,154 @@ function startWithCustom(){
   unlockAudio();
   var v=document.getElementById("ti").value.trim();
   if(!v){setst("Please enter a topic first.");return;}
-  var sc=SCENARIOS[currentMode||"free"];
-  showKeywords(sc.keywords);
+  var sc=SCENARIOS[currentMode||"free"];showKeywords(sc.keywords);
   var sys=sc.system.replace("TOPIC",v);
   var opening=currentMode&&currentMode!=="free"?sc.opening:"Let's talk about "+v+". What's on your mind?";
-  startSession(v,sys,opening);
+  startSession(v,sys,opening,sc);
 }
-function startSession(topic,sysPrompt,opening){
-  TOPIC=topic; SYSPR=sysPrompt; HIST=[]; UTTS=[]; ON=true;
+function startSession(topic,sysPrompt,opening,sc){
+  TOPIC=topic;SYSPR=sysPrompt;HIST=[];UTTS=[];CONF_SCORES=[];ON=true;
+  TASK_DONE=false;TASK_DEF=sc||null;LAST_CONF=null;
   document.getElementById("eb").disabled=false;
   document.getElementById("mb").disabled=false;
   document.getElementById("chat").innerHTML="";
   document.getElementById("smr").style.display="none";
+  if(sc&&sc.task)showTaskCard(sc);
   addMsg("ai",opening,true);
   unlockAudio();
-  setTimeout(function(){
-    speak(opening,function(){setst("Press mic to start speaking");});
-  }, 300);
+  setTimeout(function(){speak(opening,function(){setst("Press mic to start speaking");});},300);
+}
+
+// ── Task card ──
+function showTaskCard(sc){
+  var chat=document.getElementById("chat");
+  var card=document.createElement("div");card.className="task-card";card.id="taskCard";
+  var html="";
+  if(sc.cultural)html+='<div class="task-cultural">'+escHtml(sc.cultural)+'</div>';
+  html+='<div class="task-header"><span class="task-label">🎯 Mission</span></div>';
+  html+='<div class="task-desc">'+escHtml(sc.task)+'</div>';
+  html+='<div class="task-steps" id="taskSteps"></div>';
+  html+='<div class="task-complete-msg" id="taskCompleteMsg">✅ Mission complete! Great job!</div>';
+  card.innerHTML=html;
+  chat.appendChild(card);
+  var init=sc.taskCheck([]);
+  if(init&&init.steps){
+    document.getElementById("taskSteps").innerHTML=init.steps.map(function(s,i){return'<div class="task-step" id="tstep-'+i+'">⬜ '+escHtml(s.label)+'</div>';}).join("");
+  }
+}
+function updateTaskCard(){
+  if(!TASK_DEF||!TASK_DEF.taskCheck||TASK_DONE)return;
+  var result=TASK_DEF.taskCheck(UTTS);if(!result)return;
+  if(result.steps){result.steps.forEach(function(s,i){var el=document.getElementById("tstep-"+i);if(el){el.className="task-step"+(s.done?" done":"");el.textContent=(s.done?"✅ ":"⬜ ")+s.label;}});}
+  if(result.done&&!TASK_DONE){
+    TASK_DONE=true;
+    var card=document.getElementById("taskCard");if(card)card.classList.add("done");
+    var msg=document.getElementById("taskCompleteMsg");if(msg)msg.style.display="block";
+    showToast("🎉 Mission complete!");
+  }
 }
 
 // ── Chat helpers ──
 function setst(t){document.getElementById("st").textContent=t;}
-function addMsg(role,text,canSave){
+function addMsg(role,text,canSave,confidence){
   var chat=document.getElementById("chat");
-  var wrap=document.createElement("div"); wrap.className="msg"+(role==="user"?" user":"");
-  var av=document.createElement("div"); av.className="av "+(role==="ai"?"aiav":"uav"); av.textContent=role==="ai"?"AI":"Me";
-  var bb=document.createElement("div"); bb.className="bbl "+(role==="ai"?"aibbl":"ubbl"); bb.innerHTML=escHtml(text);
+  var wrap=document.createElement("div");wrap.className="msg"+(role==="user"?" user":"");
+  var av=document.createElement("div");av.className="av "+(role==="ai"?"aiav":"uav");av.textContent=role==="ai"?"AI":"Me";
+  var bb=document.createElement("div");bb.className="bbl "+(role==="ai"?"aibbl":"ubbl");bb.innerHTML=escHtml(text);
   if(role==="ai"&&canSave){
-    var sb=document.createElement("button"); sb.className="save-btn"; sb.title="Save this sentence"; sb.textContent="⭐";
+    var sb=document.createElement("button");sb.className="save-btn";sb.title="Save this sentence";sb.textContent="⭐";
     sb.onclick=function(){saveSentence(text,null,"AI expression");sb.textContent="✅";sb.disabled=true;};
     bb.appendChild(sb);
   }
-  wrap.appendChild(av); wrap.appendChild(bb);
-  chat.appendChild(wrap); chat.scrollTop=chat.scrollHeight;
+  wrap.appendChild(av);wrap.appendChild(bb);chat.appendChild(wrap);
+  if(role==="user"&&typeof confidence==="number"&&confidence>0&&confidence<0.85){
+    var row=document.createElement("div");row.className="conf-row";
+    var badge=document.createElement("span");
+    badge.className="conf-badge "+(confidence>=0.65?"conf-warn":"conf-low");
+    badge.textContent=confidence>=0.65?"⚠️ Some words may be unclear ("+Math.round(confidence*100)+"% clear)":"🔴 Hard to understand — try speaking slower ("+Math.round(confidence*100)+"% clear)";
+    row.appendChild(badge);chat.appendChild(row);
+  }
+  chat.scrollTop=chat.scrollHeight;
 }
 function showThinking(){
   var chat=document.getElementById("chat"),d=document.createElement("div");
-  d.id="think"; d.className="msg";
+  d.id="think";d.className="msg";
   d.innerHTML='<div class="av aiav">AI</div><div class="bbl aibbl"><span class="dot"></span><span class="dot d2"></span><span class="dot d3"></span></div>';
-  chat.appendChild(d); chat.scrollTop=chat.scrollHeight;
+  chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
 }
 function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 
 // ── TTS ──
-var AUDIO_UNLOCKED = false;
+var AUDIO_UNLOCKED=false,SHARED_CTX=null;
 function testTTS(){
-  unlockAudio();
-  var st = document.getElementById("st");
-  st.textContent = "Calling Google TTS...";
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({input:{text:"Hello this is a test."},voice:{languageCode:"en-US",name:"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3"}})
-  })
+  unlockAudio();var st=document.getElementById("st");st.textContent="Calling Google TTS...";
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:"Hello this is a test."},voice:{languageCode:"en-US",name:"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3"}})})
   .then(function(r){st.textContent="HTTP "+r.status;return r.json();})
   .then(function(d){
     if(!d.audioContent){st.textContent="No audio: "+JSON.stringify(d);return;}
-    st.textContent="Got audio ("+d.audioContent.length+" chars), playing...";
+    st.textContent="Got audio, playing...";
     var ctx=getAudioCtx();
-    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(audioBuf){
-      var src=ctx.createBufferSource();
-      src.buffer=audioBuf; src.connect(ctx.destination);
-      src.onended=function(){st.textContent="Test done!";};
-      ctx.resume().then(function(){src.start(0);});
-    },function(){st.textContent="Decode error — fallback";speakFallback("Hello this is a test.",null);});
-  })
-  .catch(function(e){st.textContent="Fetch error: "+e.message;});
+    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);src.onended=function(){st.textContent="Test done!";};ctx.resume().then(function(){src.start(0);});},function(){speakFallback("Hello this is a test.",null);});
+  }).catch(function(e){st.textContent="Error: "+e.message;});
 }
-var SHARED_CTX = null;
-function getAudioCtx(){
-  if(!SHARED_CTX) SHARED_CTX = new (window.AudioContext||window.webkitAudioContext)();
-  if(SHARED_CTX.state === "suspended") SHARED_CTX.resume();
-  return SHARED_CTX;
-}
+function getAudioCtx(){if(!SHARED_CTX)SHARED_CTX=new(window.AudioContext||window.webkitAudioContext)();if(SHARED_CTX.state==="suspended")SHARED_CTX.resume();return SHARED_CTX;}
 function unlockAudio(){
-  if(AUDIO_UNLOCKED) return;
-  var ctx = getAudioCtx();
-  var buf = ctx.createBuffer(1,1,22050);
-  var src = ctx.createBufferSource();
-  src.buffer=buf; src.connect(ctx.destination); src.start(0);
-  AUDIO_UNLOCKED = true;
+  if(AUDIO_UNLOCKED)return;var ctx=getAudioCtx();
+  var buf=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);src.start(0);AUDIO_UNLOCKED=true;
 }
-function base64ToArrayBuffer(b64){
-  var bin=atob(b64),len=bin.length,arr=new Uint8Array(len);
-  for(var i=0;i<len;i++) arr[i]=bin.charCodeAt(i);
-  return arr.buffer;
-}
+function base64ToArrayBuffer(b64){var bin=atob(b64),len=bin.length,arr=new Uint8Array(len);for(var i=0;i<len;i++)arr[i]=bin.charCodeAt(i);return arr.buffer;}
 function setSpeaking(val){
-  SPEAKING=val;
-  var mb=document.getElementById("mb");
+  SPEAKING=val;var mb=document.getElementById("mb");
   if(val){mb.classList.remove("listening");mb.classList.add("speaking");setst("AI is speaking...");}
   else{mb.classList.remove("speaking");setst("Press mic to respond");}
 }
 function speakFallback(text,onDone){
   if(!window.speechSynthesis){if(onDone)onDone();return;}
   window.speechSynthesis.cancel();
-  var utter=new SpeechSynthesisUtterance(text);
-  utter.lang="en-US";utter.rate=0.95;utter.pitch=1;
+  var utter=new SpeechSynthesisUtterance(text);utter.lang="en-US";utter.rate=0.95;
   var voices=window.speechSynthesis.getVoices();
-  var v=VOICE_GENDER==="male"
-    ?(voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Male")>-1;})||voices.find(function(v){return v.lang==="en-US";}))
-    :(voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Female")>-1;})||voices.find(function(v){return v.lang==="en-US";}))
-    ||voices.find(function(v){return v.lang.startsWith("en");});
-  if(v)utter.voice=v;
-  setSpeaking(true);
+  var v=VOICE_GENDER==="male"?(voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Male")>-1;})||voices.find(function(v){return v.lang==="en-US";}))||voices.find(function(v){return v.lang.startsWith("en");}):(voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Female")>-1;})||voices.find(function(v){return v.lang==="en-US";}))||voices.find(function(v){return v.lang.startsWith("en");});
+  if(v)utter.voice=v;setSpeaking(true);
   utter.onend=function(){setSpeaking(false);if(onDone)onDone();};
   utter.onerror=function(){setSpeaking(false);if(onDone)onDone();};
   window.speechSynthesis.speak(utter);
 }
 function speak(text,onDone){
   setSpeaking(true);
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      input:{text:text},
-      voice:{languageCode:"en-US",name:VOICE_GENDER==="male"?"en-US-Neural2-D":"en-US-Neural2-F"},
-      audioConfig:{audioEncoding:"MP3",speakingRate:0.95}
-    })
-  })
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:"en-US",name:VOICE_GENDER==="male"?"en-US-Neural2-D":"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3",speakingRate:0.95}})})
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
     var ctx=getAudioCtx();
-    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(audioBuf){
-      var src=ctx.createBufferSource();
-      src.buffer=audioBuf;
-      src.connect(ctx.destination);
-      var done=false;
-      var estMs=Math.max(3000,Math.round((text.split(" ").length/2.5)*1000)+1500);
-      var forceTimer=setTimeout(function(){
-        if(!done){done=true;try{src.stop();}catch(e){}setSpeaking(false);if(onDone)onDone();}
-      },estMs);
-      src.onended=function(){
-        if(!done){done=true;clearTimeout(forceTimer);setSpeaking(false);if(onDone)onDone();}
-      };
+    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
+      var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
+      var done=false,estMs=Math.max(3000,Math.round((text.split(" ").length/2.5)*1000)+1500);
+      var ft=setTimeout(function(){if(!done){done=true;try{src.stop();}catch(e){}setSpeaking(false);if(onDone)onDone();}},estMs);
+      src.onended=function(){if(!done){done=true;clearTimeout(ft);setSpeaking(false);if(onDone)onDone();}};
       ctx.resume().then(function(){src.start(0);});
-    },function(){
-      setSpeaking(false);speakFallback(text,onDone);
-    });
-  })
-  .catch(function(e){console.log("TTS error",e);setSpeaking(false);speakFallback(text,onDone);});
+    },function(){setSpeaking(false);speakFallback(text,onDone);});
+  }).catch(function(e){console.log("TTS error",e);setSpeaking(false);speakFallback(text,onDone);});
 }
 
 // ── STT ──
 function initRec(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){setst("Not supported. Use Chrome or Edge.");return false;}
-  RC=new SR(); RC.lang="en-US"; RC.continuous=true; RC.interimResults=true;
+  RC=new SR();RC.lang="en-US";RC.continuous=true;RC.interimResults=true;
   RC.onstart=function(){setst("Listening... speak now");};
   RC.onresult=function(e){
     var f="",n="";
-    for(var i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)f+=e.results[i][0].transcript;else n+=e.results[i][0].transcript;}
-    if(f) CUR=(CUR+" "+f).trim();
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal){
+        f+=e.results[i][0].transcript;
+        var c=e.results[i][0].confidence;
+        if(c>0)LAST_CONF=c;
+        CONF_SCORES.push({text:e.results[i][0].transcript.trim(),confidence:c});
+      }else{n+=e.results[i][0].transcript;}
+    }
+    if(f)CUR=(CUR+" "+f).trim();
     document.getElementById("tb").textContent=CUR||n||"Your speech will appear here...";
-    if(silenceTimer) clearTimeout(silenceTimer);
+    if(silenceTimer)clearTimeout(silenceTimer);
     if(CUR){silenceTimer=setTimeout(function(){if(CUR.trim()&&IR&&!SPEAKING)RC.stop();},2000);}
   };
   RC.onend=function(){IR=false;document.getElementById("mb").classList.remove("listening");if(CUR.trim()&&ON&&!SPEAKING)sendMsg();else if(!SPEAKING)setst("Press mic to respond");};
@@ -615,11 +894,10 @@ function initRec(){
 function toggleRec(){
   if(!ON){setst("Please select a scenario or topic first.");return;}
   if(SPEAKING)return;
-  unlockAudio();
-  if(!RC&&!initRec())return;
+  unlockAudio();if(!RC&&!initRec())return;
   if(IR){RC.stop();IR=false;}
   else{
-    CUR=""; document.getElementById("tb").textContent="Your speech will appear here...";
+    CUR="";LAST_CONF=null;document.getElementById("tb").textContent="Your speech will appear here...";
     try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");}
     catch(e){RC=null;initRec();try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");}catch(e2){setst("Cannot start mic. Reload.");}}
   }
@@ -629,14 +907,16 @@ function toggleRec(){
 function sendMsg(){
   if(!CUR.trim())return;
   document.querySelectorAll(".kw:not(.used)").forEach(function(k){if(CUR.toLowerCase().indexOf(k.textContent.toLowerCase())>-1)k.classList.add("used");});
-  var txt=CUR.trim(); UTTS.push(txt); addMsg("user",txt,false);
-  CUR=""; document.getElementById("tb").textContent="Your speech will appear here...";
-  setst("AI is thinking..."); HIST.push({role:"user",content:txt}); showThinking();
+  var txt=CUR.trim(),conf=LAST_CONF;
+  UTTS.push(txt);addMsg("user",txt,false,conf);
+  CUR="";LAST_CONF=null;document.getElementById("tb").textContent="Your speech will appear here...";
+  setst("AI is thinking...");HIST.push({role:"user",content:txt});showThinking();
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:150,system:SYSPR,messages:HIST})})
   .then(function(r){return r.json();})
   .then(function(d){
     var rep=d.content&&d.content[0]?d.content[0].text:"That's interesting! Can you tell me more?";
-    hideThinking(); addMsg("ai",rep,true); HIST.push({role:"assistant",content:rep});
+    hideThinking();addMsg("ai",rep,true);HIST.push({role:"assistant",content:rep});
+    updateTaskCard();
     speak(rep,function(){if(ON)setTimeout(function(){if(ON&&!IR&&!SPEAKING)toggleRec();},600);});
   })
   .catch(function(){hideThinking();addMsg("ai","Connection issue. Try again.",false);setst("Error. Tap mic to retry.");});
@@ -646,24 +926,28 @@ function sendMsg(){
 function endSess(){
   if(!UTTS.length){setst("Please have at least one exchange.");return;}
   window.speechSynthesis&&window.speechSynthesis.cancel();
-  ON=false; SPEAKING=false; IR=false;
-  if(RC)try{RC.stop();}catch(e){}
-  setst("Generating feedback...");
-  document.getElementById("mb").disabled=true;
-  document.getElementById("eb").disabled=true;
-  showThinking();
-  var prompt="Analyze these English utterances from a learner:\n"+UTTS.join("\n")+"\n\nReturn ONLY valid JSON, no markdown:\n{\"scores\":{\"grammar\":0,\"word_choice\":0,\"structure\":0,\"fluency\":0},\"corrections\":[{\"original\":\"x\",\"corrected\":\"x\",\"reason\":\"x\",\"error_type\":\"grammar\"}],\"improvements\":[{\"original\":\"x\",\"suggestion\":\"x\",\"note\":\"x\"}],\"strengths\":[\"x\"],\"overall_tip\":\"x\"}\nScores 0-10. Max 3 each. error_type: grammar/word_choice/structure/fluency. Use actual sentences.";
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})})
+  ON=false;SPEAKING=false;IR=false;if(RC)try{RC.stop();}catch(e){}
+  setst("Generating feedback...");document.getElementById("mb").disabled=true;document.getElementById("eb").disabled=true;showThinking();
+  var utteranceLines=UTTS.map(function(u,i){var cs=CONF_SCORES[i];return(cs&&cs.confidence>0&&cs.confidence<0.75)?u+" [speech clarity: "+Math.round(cs.confidence*100)+"%]":u;});
+  var prompt="Analyze these English utterances from a learner:\n"+utteranceLines.join("\n")+"\n\n"
+    +"Return ONLY valid JSON, no markdown:\n"
+    +'{"scores":{"grammar":0,"word_choice":0,"structure":0,"fluency":0},'
+    +'"corrections":[{"original":"x","corrected":"x","reason":"x","error_type":"grammar"}],'
+    +'"improvements":[{"original":"x","suggestion":"x","note":"x"}],'
+    +'"pronunciation":[{"word":"x","tip":"x"}],'
+    +'"strengths":["x"],"overall_tip":"x"}\n'
+    +"Scores 0-10. Max 3 corrections, 3 improvements. error_type: grammar/word_choice/structure/fluency. "
+    +"pronunciation: up to 3 specific words from the utterances a non-native speaker likely mispronounced, with a tip on how to say them correctly. Only include if there are real concerns. "
+    +"Use actual sentences from the learner. Do not invent examples.";
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})})
   .then(function(r){return r.json();})
   .then(function(d){
     var raw=d.content&&d.content[0]?d.content[0].text:"{}";
     var s=raw.indexOf("{"),e=raw.lastIndexOf("}");
     var fb=JSON.parse(s>=0&&e>=0?raw.substring(s,e+1):"{}");
     hideThinking();
-    // Save errors to DB
     if(currentUser&&fb.corrections&&fb.corrections.length){
-      var errs=fb.corrections.map(function(c){return{user_id:currentUser.id,error_type:c.error_type||"grammar",original:c.original,corrected:c.corrected,reason:c.reason||null,scenario:currentMode||null};});
-      dbInsert("session_errors",errs);
+      dbInsert("session_errors",fb.corrections.map(function(c){return{user_id:currentUser.id,error_type:c.error_type||"grammar",original:c.original,corrected:c.corrected,reason:c.reason||null,scenario:currentMode||null};}));
     }
     showFeedback(fb);
   })
@@ -671,45 +955,39 @@ function endSess(){
 }
 
 function showFeedback(fb){
-  var panel=document.getElementById("smr"); panel.style.display="block";
+  var panel=document.getElementById("smr");panel.style.display="block";
   var L={grammar:"Grammar",word_choice:"Word Choice",structure:"Structure",fluency:"Fluency"};
-  var sg=""; for(var k in fb.scores||{}){sg+='<div class="sc"><div class="scl">'+(L[k]||k)+'</div><div class="scn">'+fb.scores[k]+'<span style="font-size:13px;color:#999">/10</span></div></div>';}
+  var sg="";for(var k in fb.scores||{}){sg+='<div class="sc"><div class="scl">'+(L[k]||k)+'</div><div class="scn">'+fb.scores[k]+'<span style="font-size:13px;color:#999">/10</span></div></div>';}
   document.getElementById("sg").innerHTML=sg;
   var h="";
   if(fb.corrections&&fb.corrections.length){
     h+='<div class="fbh">Grammar corrections</div>';
-    fb.corrections.forEach(function(c){
-      h+='<div class="fbi ferr" style="padding-right:32px">'
-        +'<span class="orig">'+escHtml(c.original)+'</span> to <span class="fix">'+escHtml(c.corrected)+'</span><br><small>'+escHtml(c.reason||"")+'</small>'
-        +'<button class="fbi-save" title="Save" onclick="saveSentence(\''+escAttr(c.original)+'\',\''+escAttr(c.corrected)+'\',\''+escAttr(c.reason||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button>'
-        +'</div>';
-    });
+    fb.corrections.forEach(function(c){h+='<div class="fbi ferr" style="padding-right:32px"><span class="orig">'+escHtml(c.original)+'</span> → <span class="fix">'+escHtml(c.corrected)+'</span><br><small>'+escHtml(c.reason||"")+'</small><button class="fbi-save" onclick="saveSentence(\''+escAttr(c.original)+'\',\''+escAttr(c.corrected)+'\',\''+escAttr(c.reason||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button></div>';});
   }
   if(fb.improvements&&fb.improvements.length){
     h+='<div class="fbh">Suggestions</div>';
-    fb.improvements.forEach(function(i){
-      h+='<div class="fbi fimp" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
-        +'<div><span class="orig">'+escHtml(i.original)+'</span> to <span class="fix">'+escHtml(i.suggestion)+'</span><br><small>'+escHtml(i.note||"")+'</small></div>'
-        +'<button class="fbi-save" title="Save" onclick="saveSentence(\''+escAttr(i.original)+'\',\''+escAttr(i.suggestion)+'\',\''+escAttr(i.note||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button>'
-        +'</div>';
-    });
+    fb.improvements.forEach(function(i){h+='<div class="fbi fimp" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><span class="orig">'+escHtml(i.original)+'</span> → <span class="fix">'+escHtml(i.suggestion)+'</span><br><small>'+escHtml(i.note||"")+'</small></div><button class="fbi-save" onclick="saveSentence(\''+escAttr(i.original)+'\',\''+escAttr(i.suggestion)+'\',\''+escAttr(i.note||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button></div>';});
+  }
+  if(fb.pronunciation&&fb.pronunciation.length){
+    h+='<div class="fbh">Pronunciation to practice</div>';
+    fb.pronunciation.forEach(function(p){h+='<div class="fbi fpron"><strong>'+escHtml(p.word)+'</strong> — '+escHtml(p.tip)+'</div>';});
   }
   if(fb.strengths&&fb.strengths.length){h+='<div class="fbh">What you did well</div>';fb.strengths.forEach(function(s){h+='<div class="fbi fgd">'+escHtml(s)+'</div>';});}
-  if(fb.overall_tip) h+='<div class="tipbox"><strong>Tip:</strong> '+escHtml(fb.overall_tip)+'</div>';
+  if(fb.overall_tip)h+='<div class="tipbox"><strong>Tip:</strong> '+escHtml(fb.overall_tip)+'</div>';
   document.getElementById("fbc").innerHTML=h;
-  panel.scrollIntoView({behavior:"smooth"}); setst("Done - see feedback below!");
+  panel.scrollIntoView({behavior:"smooth"});setst("Done — see feedback below!");
   speak("Great practice session! Here is your feedback.",null);
 }
 
 function restart(){
   window.speechSynthesis&&window.speechSynthesis.cancel();
-  ON=false; HIST=[]; UTTS=[]; TOPIC=""; SYSPR=""; CUR=""; SPEAKING=false; IR=false; currentMode="";
+  ON=false;HIST=[];UTTS=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
+  TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;
   document.getElementById("ti").value="";
   document.getElementById("tb").textContent="Your speech will appear here...";
   document.getElementById("smr").style.display="none";
   document.getElementById("kwBox").style.display="none";
-  document.getElementById("mb").disabled=false;
-  document.getElementById("eb").disabled=false;
+  document.getElementById("mb").disabled=false;document.getElementById("eb").disabled=false;
   document.getElementById("mb").classList.remove("listening","speaking");
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("chat").innerHTML='<div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!</div></div>';
@@ -720,15 +998,11 @@ function restart(){
 function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function escAttr(s){return String(s||"").replace(/'/g,"\\'");}
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
-document.addEventListener("visibilitychange",function(){
-  if(document.visibilityState==="visible"&&SHARED_CTX&&SHARED_CTX.state==="suspended")SHARED_CTX.resume();
-});
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&SHARED_CTX&&SHARED_CTX.state==="suspended")SHARED_CTX.resume();});
 function showToast(msg){
-  var t=document.createElement("div");
-  t.textContent=msg;
+  var t=document.createElement("div");t.textContent=msg;
   t.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:9999;";
-  document.body.appendChild(t);
-  setTimeout(function(){t.remove();},2000);
+  document.body.appendChild(t);setTimeout(function(){t.remove();},2500);
 }
 </script>
 </body>
