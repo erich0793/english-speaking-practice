@@ -435,7 +435,7 @@ function practiceThisSentence(id){
   if(!r||!r.corrected)return;
   showTab("practice");
   var sys="You are an English speaking coach. The student is practicing this corrected phrase: \""+r.corrected+"\""
-    +(r.note?" (context: "+r.note+")")+"."
+    +(r.note?" (context: "+r.note+")":"")+"."
     +" Give the student 3 different real-life situations one at a time where they should naturally use this phrase or similar language."
     +" After each response, briefly note if they used the target language correctly, then present the next situation."
     +" Be warm and encouraging. Only say spoken words.";
