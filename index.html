@@ -355,9 +355,14 @@ function doLogin(){
   var u=document.getElementById("usernameInput").value.trim().toLowerCase();
   if(!u){alert("Please enter a username.");return;}
   dbGet("users","username=eq."+encodeURIComponent(u)).then(function(rows){
+    if(rows&&rows.error){alert("DB error: "+rows.message+"\n\nCode: "+rows.code);return;}
     if(rows&&rows.length>0){currentUser=rows[0];onLoginSuccess();}
-    else{dbInsert("users",{username:u}).then(function(rows2){if(rows2&&rows2.length>0){currentUser=rows2[0];onLoginSuccess();}else{alert("Could not create account. Try again.");}});}
-  });
+    else{dbInsert("users",{username:u}).then(function(rows2){
+      if(rows2&&rows2.error){alert("Insert error: "+rows2.message+"\n\nCode: "+rows2.code);return;}
+      if(rows2&&rows2.length>0){currentUser=rows2[0];onLoginSuccess();}
+      else{alert("Could not create account. Try again.");}
+    }).catch(function(e){alert("Insert failed: "+e.message);});}
+  }).catch(function(e){alert("Connection failed: "+e.message);});
 }
 function onLoginSuccess(){
   localStorage.setItem("ep_user",JSON.stringify(currentUser));
