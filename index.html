@@ -28,6 +28,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .voice-btn .vn{font-size:13px;color:#333}
 .voice-btn.selected .vn{color:#185FA5;font-weight:500}
 
+/* Level selection */
+.level-pick{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px}
+.level-btn{padding:14px 16px;border-radius:12px;border:1.5px solid #e0e0e0;background:#fff;cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;transition:all .15s}
+.level-btn:hover{border-color:#185FA5;background:#f8fbff}
+.level-btn.selected{border-color:#185FA5;background:#E6F1FB}
+.level-icon{font-size:28px;flex-shrink:0}
+.level-name{font-size:15px;font-weight:500;color:#1a1a1a;display:block}
+.level-desc{font-size:12px;color:#888;margin-top:2px;display:block}
+.level-bar{display:flex;align-items:center;justify-content:space-between;background:#f0f4ff;border-radius:8px;padding:6px 12px;margin-bottom:10px;font-size:12px}
+.level-bar-text{color:#333}
+.level-bar-change{color:#185FA5;cursor:pointer;font-weight:500}
+.level-bar-change:hover{text-decoration:underline}
+
 /* Top bar */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid #e0e0e0}
 .topbar h1{font-size:17px;font-weight:500}
@@ -261,6 +274,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
   </div>
 </div>
 
+<!-- LEVEL SCREEN -->
+<div class="screen" id="levelScreen">
+  <div class="login-wrap">
+    <div>
+      <h1>What's your English level?</h1>
+      <p style="margin-top:6px">We'll adjust the conversation to match you.</p>
+    </div>
+    <div class="level-pick">
+      <button class="level-btn" id="lvlBtnBeginner" onclick="selectLevel('beginner')">
+        <span class="level-icon">🌱</span>
+        <div><span class="level-name">Beginner</span><span class="level-desc">Simple words · slow speech · basic sentences</span></div>
+      </button>
+      <button class="level-btn" id="lvlBtnIntermediate" onclick="selectLevel('intermediate')">
+        <span class="level-icon">🌿</span>
+        <div><span class="level-name">Intermediate</span><span class="level-desc">Natural conversations · everyday vocabulary</span></div>
+      </button>
+      <button class="level-btn" id="lvlBtnAdvanced" onclick="selectLevel('advanced')">
+        <span class="level-icon">🌳</span>
+        <div><span class="level-name">Advanced</span><span class="level-desc">Idioms · complex sentences · native speed</span></div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- MAIN APP SCREEN -->
 <div class="screen" id="appScreen">
   <div class="topbar">
@@ -282,6 +319,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 
   <!-- PRACTICE TAB -->
   <div id="tabContentPractice">
+    <div class="level-bar" id="levelBar">
+      <span class="level-bar-text" id="levelBarText">Level: Intermediate 🌿</span>
+      <span class="level-bar-change" onclick="showLevelScreen()">Change level</span>
+    </div>
     <div class="daily" id="dailyBanner" onclick="useDailyTopic()">
       <span class="daily-label">Today's topic</span>
       <span class="daily-text" id="dailyText">Loading...</span>
@@ -384,6 +425,7 @@ var TASK_DONE=false,TASK_DEF=null;
 var SAVED_MAP={};
 var FC_CARDS=[],FC_INDEX=0,FC_FLIPPED=false,FC_KNOWN=[],FC_AGAIN=[],FC_ACTIVE=false;
 var SLOW_MODE=false;
+var LEVEL=localStorage.getItem("pref_level")||"";
 
 var LANG=localStorage.getItem("pref_lang")||"en";
 var UI_STRINGS={
@@ -522,8 +564,12 @@ function doLogin(){
 function onLoginSuccess(){
   localStorage.setItem("ep_user",JSON.stringify(currentUser));
   document.getElementById("loginScreen").classList.remove("active");
-  document.getElementById("appScreen").classList.add("active");
-  initApp();
+  if(!LEVEL){
+    document.getElementById("levelScreen").classList.add("active");
+  } else {
+    document.getElementById("appScreen").classList.add("active");
+    initApp();
+  }
 }
 function logout(){
   localStorage.removeItem("ep_user");currentUser=null;
@@ -540,6 +586,7 @@ window.onload=function(){
 function initApp(){
   document.getElementById("dailyText").textContent=getTodayTopic().text;
   applyLang();
+  updateLevelBar();
   if(currentUser&&currentUser.username===ADMIN_USERNAME){
     document.getElementById("tabAdmin").style.display="";
   }
@@ -1045,7 +1092,9 @@ function startWithCustom(){
   startSession(v,sys,opening,sc);
 }
 function startSession(topic,sysPrompt,opening,sc){
-  var finalPrompt=sysPrompt+(SLOW_MODE?" Use short simple sentences and basic vocabulary. Speak clearly with natural pauses. Avoid contractions and complex grammar.":"");
+  var levelPrompt=(LEVEL_CONFIG[LEVEL]?LEVEL_CONFIG[LEVEL].prompt:"");
+  var slowPrompt=SLOW_MODE?" Use short simple sentences and basic vocabulary. Speak clearly with natural pauses. Avoid contractions and complex grammar.":"";
+  var finalPrompt=sysPrompt+levelPrompt+slowPrompt;
   TOPIC=topic;SYSPR=finalPrompt;HIST=[];UTTS=[];CONF_SCORES=[];ON=true;
   TASK_DONE=false;TASK_DEF=sc||null;LAST_CONF=null;
   document.getElementById("eb").disabled=false;
@@ -1117,6 +1166,45 @@ function showThinking(){
 }
 function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 
+var LEVEL_CONFIG={
+  beginner:{
+    icon:"🌱",label:"Beginner",
+    prompt:" The learner is a complete beginner. Use only very simple words (A1-A2 level). Keep sentences under 8 words. Avoid idioms, phrasal verbs, and contractions. Be very patient and encouraging.",
+    slowDefault:true
+  },
+  intermediate:{
+    icon:"🌿",label:"Intermediate",
+    prompt:"",
+    slowDefault:false
+  },
+  advanced:{
+    icon:"🌳",label:"Advanced",
+    prompt:" The learner is advanced (C1-C2). Use natural native-speaker language including idioms and phrasal verbs. Challenge them with varied vocabulary and complex questions.",
+    slowDefault:false
+  }
+};
+function showLevelScreen(){
+  document.getElementById("appScreen").classList.remove("active");
+  document.getElementById("levelScreen").classList.add("active");
+  ["beginner","intermediate","advanced"].forEach(function(l){
+    var btn=document.getElementById("lvlBtn"+l.charAt(0).toUpperCase()+l.slice(1));
+    if(btn)btn.classList.toggle("selected",LEVEL===l);
+  });
+}
+function selectLevel(level){
+  LEVEL=level;localStorage.setItem("pref_level",level);
+  var cfg=LEVEL_CONFIG[level];
+  if(cfg.slowDefault&&!SLOW_MODE)toggleSlowMode();
+  else if(!cfg.slowDefault&&SLOW_MODE)toggleSlowMode();
+  updateLevelBar();
+  document.getElementById("levelScreen").classList.remove("active");
+  document.getElementById("appScreen").classList.add("active");
+  initApp();
+}
+function updateLevelBar(){
+  var cfg=LEVEL_CONFIG[LEVEL]||LEVEL_CONFIG.intermediate;
+  document.getElementById("levelBarText").textContent="Level: "+cfg.label+" "+cfg.icon;
+}
 function toggleSlowMode(){
   SLOW_MODE=!SLOW_MODE;
   var btn=document.getElementById("slowModeBtn");
