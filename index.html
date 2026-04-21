@@ -58,11 +58,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .daily-text{font-size:13px;flex:1}
 .daily-use{font-size:12px;color:#185FA5;white-space:nowrap}
 .mode-title{font-size:11px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
-.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:1rem}
-.mode-btn{padding:8px 4px;border-radius:8px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;text-align:center}
+.modes{display:flex;gap:6px;margin-bottom:1rem;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.modes::-webkit-scrollbar{display:none}
+.mode-btn{padding:10px 6px;border-radius:8px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;text-align:center;flex:0 0 72px;min-width:72px}
 .mode-btn.active{border-color:#185FA5;background:#E6F1FB}
-.mode-icon{font-size:18px;display:block;margin-bottom:2px}
-.mode-name{font-size:11px;color:#333}
+.mode-icon{font-size:20px;display:block;margin-bottom:3px}
+.mode-name{font-size:10px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mode-btn.active .mode-name{color:#185FA5;font-weight:500}
 .row{display:flex;gap:8px;margin-bottom:1rem}
 .row input{flex:1;font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid #ccc;background:#fff;outline:none}
@@ -350,17 +351,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
       <button class="mode-btn" id="mode-shopping" onclick="selectMode('shopping')"><span class="mode-icon">🛍️</span><span class="mode-name">Shopping</span></button>
       <button class="mode-btn" id="mode-directions" onclick="selectMode('directions')"><span class="mode-icon">🗺️</span><span class="mode-name">Directions</span></button>
       <button class="mode-btn" id="mode-hotel" onclick="selectMode('hotel')"><span class="mode-icon">🏨</span><span class="mode-name">Hotel</span></button>
+      <button class="mode-btn" id="mode-airport" onclick="selectMode('airport')"><span class="mode-icon">✈️</span><span class="mode-name">Airport</span></button>
+      <button class="mode-btn" id="mode-doctor" onclick="selectMode('doctor')"><span class="mode-icon">🏥</span><span class="mode-name">Doctor</span></button>
+      <button class="mode-btn" id="mode-cafe" onclick="selectMode('cafe')"><span class="mode-icon">☕</span><span class="mode-name">Café</span></button>
+      <button class="mode-btn" id="mode-phone" onclick="selectMode('phone')"><span class="mode-icon">📞</span><span class="mode-name">Phone call</span></button>
+      <button class="mode-btn" id="mode-bank" onclick="selectMode('bank')"><span class="mode-icon">🏦</span><span class="mode-name">Bank</span></button>
     </div>
     <div class="row">
       <input type="text" id="ti" placeholder="Or type your own topic...">
       <button class="abtn" onclick="startWithCustom()">Start</button>
-    </div>
-    <div class="kw-box" id="kwBox">
-      <div class="kw-title">Keyword hints — tap to insert</div>
-      <div class="kw-list" id="kwList"></div>
-    </div>
-    <div class="tags">
-      <span class="tag">Grammar</span><span class="tag">Word choice</span><span class="tag">Structure</span><span class="tag">Fluency</span>
     </div>
     <div class="chat" id="chat">
       <div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!</div></div>
@@ -369,7 +368,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     <div class="tb" id="tb">Your speech will appear here...</div>
     <p class="hint">🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop</p>
     <p style="text-align:center;margin-bottom:.5rem;display:flex;justify-content:center;gap:8px">
-      <button class="abtn" onclick="testTTS()" style="font-size:12px;padding:4px 10px">🔊 Test voice</button>
       <button class="abtn slow-btn" id="slowModeBtn" onclick="toggleSlowMode()" style="font-size:12px;padding:4px 10px">🐢 Slow mode</button>
     </p>
     <div class="ctrl">
@@ -448,13 +446,13 @@ var UI_STRINGS={
     daily_label:"Today's topic",daily_use:"Use it →",mode_title:"Choose a scenario",
     mode_free:"Free talk",mode_restaurant:"Restaurant",mode_interview:"Interview",
     mode_shopping:"Shopping",mode_directions:"Directions",mode_hotel:"Hotel",
+    mode_airport:"Airport",mode_doctor:"Doctor",mode_cafe:"Café",mode_phone:"Phone call",mode_bank:"Bank",
     topic_placeholder:"Or type your own topic...",btn_start:"Start",
-    kw_title:"Keyword hints — tap to insert",
-    tag_grammar:"Grammar",tag_word_choice:"Word choice",tag_structure:"Structure",tag_fluency:"Fluency",
+    status_mic:"Press mic to start speaking",
     chat_init:"Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!",
     status_init:"Select a scenario or topic to begin",speech_placeholder:"Your speech will appear here...",
     hint_text:"🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop",
-    btn_test_tts:"🔊 Test voice",btn_end:"End and get feedback",smr_title:"Session Feedback",
+    btn_end:"End and get feedback",smr_title:"Session Feedback",
     btn_restart:"Start a new session",note_browser:"Works best on Chrome or Edge browser",
     saved_title:"⭐ Saved Sentences",btn_flashcards:"📇 Flashcards",
     analysis_title:"📊 Weakness Analysis",foryou_title:"🎓 Made For You",
@@ -470,13 +468,13 @@ var UI_STRINGS={
     daily_label:"今日話題",daily_use:"開始 →",mode_title:"選擇情境",
     mode_free:"自由對話",mode_restaurant:"餐廳",mode_interview:"工作面試",
     mode_shopping:"購物",mode_directions:"問路",mode_hotel:"飯店",
+    mode_airport:"機場",mode_doctor:"看診",mode_cafe:"咖啡廳",mode_phone:"電話",mode_bank:"銀行",
     topic_placeholder:"或自行輸入話題...",btn_start:"開始",
-    kw_title:"關鍵字提示 — 點選插入",
-    tag_grammar:"文法",tag_word_choice:"用字",tag_structure:"句子結構",tag_fluency:"流暢度",
+    status_mic:"按麥克風開始說話",
     chat_init:"你好！選擇一個情境或輸入話題，然後按麥克風開始說話。我會用語音回覆！",
     status_init:"選擇情境或輸入話題開始練習",speech_placeholder:"你說的話會出現在這裡...",
     hint_text:"🔴 聆聽中 &nbsp;|&nbsp; 🟢 AI 回應中 &nbsp;|&nbsp; 停止說話後自動送出",
-    btn_test_tts:"🔊 測試語音",btn_end:"結束並取得回饋",smr_title:"本次練習回饋",
+    btn_end:"結束並取得回饋",smr_title:"本次練習回饋",
     btn_restart:"開始新的練習",note_browser:"建議使用 Chrome 或 Edge 瀏覽器",
     saved_title:"⭐ 收藏的句子",btn_flashcards:"📇 單字卡",
     analysis_title:"📊 弱點分析",foryou_title:"🎓 為你量身打造",
@@ -522,20 +520,13 @@ function applyLang(){
   document.querySelector(".daily-label").textContent=tr("daily_label");
   document.querySelector(".daily-use").textContent=tr("daily_use");
   document.querySelector(".mode-title").textContent=tr("mode_title");
-  document.querySelector("#mode-free .mode-name").textContent=tr("mode_free");
-  document.querySelector("#mode-restaurant .mode-name").textContent=tr("mode_restaurant");
-  document.querySelector("#mode-interview .mode-name").textContent=tr("mode_interview");
-  document.querySelector("#mode-shopping .mode-name").textContent=tr("mode_shopping");
-  document.querySelector("#mode-directions .mode-name").textContent=tr("mode_directions");
-  document.querySelector("#mode-hotel .mode-name").textContent=tr("mode_hotel");
+  ["free","restaurant","interview","shopping","directions","hotel","airport","doctor","cafe","phone","bank"].forEach(function(m){
+    var el=document.querySelector("#mode-"+m+" .mode-name");if(el)el.textContent=tr("mode_"+m);
+  });
   document.getElementById("ti").placeholder=tr("topic_placeholder");
   document.querySelector(".abtn[onclick='startWithCustom()']").textContent=tr("btn_start");
-  document.querySelector(".kw-title").textContent=tr("kw_title");
-  var tags=document.querySelectorAll(".tags .tag");
-  ["tag_grammar","tag_word_choice","tag_structure","tag_fluency"].forEach(function(k,i){if(tags[i])tags[i].textContent=tr(k);});
   if(!ON){setst(tr("status_init"));document.getElementById("tb").textContent=tr("speech_placeholder");}
   document.querySelector(".hint").innerHTML=tr("hint_text");
-  document.querySelector(".abtn[onclick='testTTS()']").textContent=tr("btn_test_tts");
   document.getElementById("eb").textContent=tr("btn_end");
   document.querySelector(".note").textContent=tr("note_browser");
   var smrH2=document.querySelector("#smr h2");if(smrH2)smrH2.textContent=tr("smr_title");
@@ -866,18 +857,18 @@ function loadUsageAdmin(){
     var html='<div class="usage-summary">';
     html+='<div class="usage-stat"><div class="us-val">'+Object.keys(users).length+'</div><div class="us-label">Users</div></div>';
     html+='<div class="usage-stat"><div class="us-val">'+(totalChat+totalFeedback)+'</div><div class="us-label">API Calls</div></div>';
-    html+='<div class="usage-stat"><div class="us-val usage-cost">$'+estCost.toFixed(3)+'</div><div class="us-label">Est. Total Cost</div></div>';
+    html+='<div class="usage-stat"><div class="us-val usage-cost">USD $'+estCost.toFixed(3)+'</div><div class="us-label">Est. Total Cost</div></div>';
     html+='</div>';
-    html+='<table class="usage-table"><thead><tr><th>User</th><th>Chat</th><th>Feedback</th><th>TTS chars</th><th>Est. Cost</th><th>Last active</th></tr></thead><tbody>';
+    html+='<table class="usage-table"><thead><tr><th>User</th><th>Chat</th><th>Feedback</th><th>TTS chars</th><th>Est. Cost (USD)</th><th>Last active</th></tr></thead><tbody>';
     var sorted=Object.keys(users).sort(function(a,b){return users[b].chat-users[a].chat;});
     sorted.forEach(function(u){
       var d=users[u];
       var cost=d.chat*0.003+d.feedback*0.008+d.ttsChars*0.000016;
       var last=d.last?new Date(d.last).toLocaleDateString("zh-TW",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
-      html+='<tr><td><strong>'+escHtml(u)+'</strong></td><td>'+d.chat+'</td><td>'+d.feedback+'</td><td>'+(d.ttsChars>0?d.ttsChars.toLocaleString():"0")+'</td><td class="usage-cost">$'+cost.toFixed(3)+'</td><td style="font-size:11px;color:#888">'+last+'</td></tr>';
+      html+='<tr><td><strong>'+escHtml(u)+'</strong></td><td>'+d.chat+'</td><td>'+d.feedback+'</td><td>'+(d.ttsChars>0?d.ttsChars.toLocaleString():"0")+'</td><td class="usage-cost">USD $'+cost.toFixed(3)+'</td><td style="font-size:11px;color:#888">'+last+'</td></tr>';
     });
     html+='</tbody></table>';
-    html+='<p style="font-size:11px;color:#aaa;margin-top:8px">Chat ~$0.003/call · Feedback ~$0.008/call · TTS $0.000016/char</p>';
+    html+='<p style="font-size:11px;color:#aaa;margin-top:8px">All costs in USD · Chat ~$0.003/call · Feedback ~$0.008/call · TTS $0.000016/char</p>';
     content.innerHTML=html;
   }).catch(function(){content.innerHTML='<div class="empty-msg">Failed to load data.</div>';});
 }
@@ -904,7 +895,7 @@ function getTodayTopic(){var d=new Date();return DAILY_TOPICS[(d.getFullYear()*3
 function useDailyTopic(){
   var t=getTodayTopic();
   document.getElementById("ti").value=t.text;
-  selectMode("free");showKeywords(t.keywords);
+  selectMode("free");
   startSession(t.text,SCENARIOS.free.system.replace("TOPIC",t.text),SCENARIOS.free.opening.replace("TOPIC",t.text),SCENARIOS.free);
 }
 
@@ -1202,6 +1193,262 @@ var SCENARIOS={
       {word:"elevator",zh:"電梯",example:"Where is the elevator?"},
       {word:"noise",zh:"噪音",example:"My room is a bit noisy. Can I change?"},
       {word:"extra pillow",zh:"額外的枕頭",example:"Could I get an extra pillow?"}
+    ]},
+  airport:{name:"Airport",
+    cultural:"🇺🇸 US airports: arrive 2 hrs early for domestic, 3 hrs international. TSA requires ID. Agents are professional but efficient — be clear and concise.",
+    task:"Your mission: Check in your bag AND ask at least one question about your flight.",
+    taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["bag","luggage","check","suitcase","carry"].some(function(w){return t.indexOf(w)>-1;});var s2=["gate","board","depart","delay","seat","time","when"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"Check in your bag",done:s1},{label:"Ask about your flight",done:s2}]};},
+    system:"You are a check-in agent at a US airport for SkyLine Airlines. The passenger has a flight to New York (FL 204, departing 3:45 PM, gate B12). Baggage allowance: 1 free checked bag up to 50 lbs, carry-on included. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
+    opening:"Good afternoon! Welcome to SkyLine Airlines check-in. May I see your passport or ID and booking confirmation, please?",
+    keywords:["I'd like to check in","My flight number is","I have one bag to check","Is my flight on time","Which gate"],
+    phrases:[
+      {en:"I'd like to check in for my flight.",zh:"我想辦理登機手續。"},
+      {en:"Here is my passport and booking confirmation.",zh:"這是我的護照和訂位確認單。"},
+      {en:"I have one bag to check.",zh:"我有一件行李要托運。"},
+      {en:"Is my flight on time?",zh:"我的班機準時嗎？"},
+      {en:"Which gate should I go to?",zh:"我應該去哪個登機門？"},
+      {en:"How much is the baggage fee?",zh:"行李費用是多少？"},
+      {en:"Can I choose my seat?",zh:"我可以選擇座位嗎？"},
+      {en:"Is there an aisle seat available?",zh:"有走道座位嗎？"},
+      {en:"When does boarding start?",zh:"什麼時候開始登機？"},
+      {en:"Where is the security checkpoint?",zh:"安全檢查在哪裡？"}
+    ],
+    vocab:[
+      {word:"check-in",zh:"辦理報到",example:"I'd like to check in for my flight."},
+      {word:"boarding pass",zh:"登機證",example:"Here is my boarding pass."},
+      {word:"passport",zh:"護照",example:"May I see your passport?"},
+      {word:"luggage",zh:"行李",example:"I have two pieces of luggage."},
+      {word:"carry-on",zh:"手提行李",example:"This is my carry-on bag."},
+      {word:"checked bag",zh:"托運行李",example:"I'd like to check one bag."},
+      {word:"overweight",zh:"超重",example:"My bag is slightly overweight."},
+      {word:"gate",zh:"登機門",example:"Which gate is my flight at?"},
+      {word:"departure",zh:"出發",example:"What is the departure time?"},
+      {word:"delay",zh:"誤點",example:"Is there a delay?"},
+      {word:"connection",zh:"轉機",example:"I have a tight connection."},
+      {word:"aisle",zh:"走道",example:"I prefer an aisle seat."},
+      {word:"window seat",zh:"靠窗座位",example:"Can I get a window seat?"},
+      {word:"boarding",zh:"登機",example:"When does boarding begin?"},
+      {word:"security",zh:"安全檢查",example:"Where is the security checkpoint?"},
+      {word:"terminal",zh:"航廈",example:"Which terminal is my flight in?"},
+      {word:"customs",zh:"海關",example:"Do I need to go through customs?"},
+      {word:"immigration",zh:"移民局",example:"Where is immigration?"},
+      {word:"declaration",zh:"申報",example:"Do I need to fill out a customs declaration?"},
+      {word:"layover",zh:"中途停留",example:"I have a two-hour layover in Tokyo."},
+      {word:"upgrade",zh:"升等",example:"Is an upgrade available?"},
+      {word:"domestic",zh:"國內線",example:"Is this a domestic flight?"},
+      {word:"international",zh:"國際線",example:"I'm on an international flight."},
+      {word:"economy class",zh:"經濟艙",example:"I'm flying economy class."},
+      {word:"business class",zh:"商務艙",example:"I upgraded to business class."},
+      {word:"overhead bin",zh:"頭頂行李艙",example:"There's space in the overhead bin."},
+      {word:"seat belt",zh:"安全帶",example:"Please fasten your seat belt."},
+      {word:"turbulence",zh:"亂流",example:"We may experience some turbulence."},
+      {word:"landing",zh:"降落",example:"We will be landing in 30 minutes."},
+      {word:"arrival",zh:"抵達",example:"What is the arrival time?"},
+      {word:"baggage claim",zh:"行李提領處",example:"Baggage claim is on Level 1."}
+    ]},
+  doctor:{name:"Doctor",
+    cultural:"🇺🇸 US doctor visits: describe symptoms clearly, ask questions freely. Doctors expect patients to be involved. Insurance info is often needed at reception.",
+    task:"Your mission: Describe your symptoms AND ask the doctor at least one question about your condition.",
+    taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["pain","hurt","headache","fever","cough","sore","feel","symptom","sick","nausea"].some(function(w){return t.indexOf(w)>-1;});var s2=["serious","medicine","treatment","long","recover","test","medication","should","recommend","worry"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"Describe your symptoms",done:s1},{label:"Ask the doctor a question",done:s2}]};},
+    system:"You are Dr. Smith, a friendly general practitioner at a US clinic. The patient has an appointment. Ask about symptoms, duration, severity, and give clear, reassuring advice. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
+    opening:"Hi there, come on in! I'm Dr. Smith. So, what seems to be the problem today — what brings you in?",
+    keywords:["I've been having","It started","The pain is","I feel","Is it serious","What should I do"],
+    phrases:[
+      {en:"I've been having a headache for two days.",zh:"我頭痛已經兩天了。"},
+      {en:"I have a sore throat and a slight fever.",zh:"我喉嚨痛，而且有點發燒。"},
+      {en:"The pain is on the right side of my stomach.",zh:"疼痛在我胃的右側。"},
+      {en:"It started about three days ago.",zh:"大概三天前開始的。"},
+      {en:"The pain is about a six out of ten.",zh:"疼痛大約是十分之六。"},
+      {en:"I also feel tired all the time.",zh:"我也一直感到很疲倦。"},
+      {en:"Is this something serious?",zh:"這很嚴重嗎？"},
+      {en:"What medication do you recommend?",zh:"你建議什麼藥？"},
+      {en:"Do I need any tests?",zh:"我需要做任何檢查嗎？"},
+      {en:"How long will it take to recover?",zh:"需要多久才能康復？"}
+    ],
+    vocab:[
+      {word:"symptom",zh:"症狀",example:"What symptoms are you experiencing?"},
+      {word:"fever",zh:"發燒",example:"I have a low-grade fever."},
+      {word:"headache",zh:"頭痛",example:"I've had a headache since yesterday."},
+      {word:"sore throat",zh:"喉嚨痛",example:"I have a sore throat."},
+      {word:"nausea",zh:"噁心",example:"I feel nauseous in the morning."},
+      {word:"dizziness",zh:"頭暈",example:"I've been experiencing dizziness."},
+      {word:"fatigue",zh:"疲倦",example:"I feel extreme fatigue lately."},
+      {word:"cough",zh:"咳嗽",example:"I have a dry cough."},
+      {word:"prescription",zh:"處方箋",example:"I need a prescription for this medicine."},
+      {word:"diagnosis",zh:"診斷",example:"What is your diagnosis?"},
+      {word:"treatment",zh:"治療",example:"What treatment do you recommend?"},
+      {word:"medication",zh:"藥物",example:"What medication should I take?"},
+      {word:"allergy",zh:"過敏",example:"I'm allergic to penicillin."},
+      {word:"blood pressure",zh:"血壓",example:"My blood pressure is a bit high."},
+      {word:"chronic",zh:"慢性的",example:"I have a chronic back problem."},
+      {word:"acute",zh:"急性的",example:"This seems like an acute condition."},
+      {word:"mild",zh:"輕微的",example:"The pain is mild."},
+      {word:"severe",zh:"嚴重的",example:"The pain is quite severe."},
+      {word:"inflammation",zh:"發炎",example:"There is some inflammation."},
+      {word:"blood test",zh:"血液檢查",example:"I recommend a blood test."},
+      {word:"X-ray",zh:"X光",example:"We'll need to take an X-ray."},
+      {word:"follow up",zh:"回診",example:"Please follow up in one week."},
+      {word:"side effect",zh:"副作用",example:"This medicine may have side effects."},
+      {word:"dosage",zh:"劑量",example:"Take two tablets twice a day."},
+      {word:"insurance",zh:"保險",example:"Do you accept my insurance?"},
+      {word:"recovery",zh:"康復",example:"Recovery should take about a week."},
+      {word:"rest",zh:"休息",example:"You should rest for a few days."},
+      {word:"hydration",zh:"補水",example:"Make sure to stay hydrated."},
+      {word:"referral",zh:"轉診",example:"I'm giving you a referral to a specialist."},
+      {word:"physical exam",zh:"身體檢查",example:"Let me do a quick physical exam."}
+    ]},
+  cafe:{name:"Café",
+    cultural:"🇺🇸 US cafés: orders are usually at the counter. Baristas often ask your name for the order. Tipping ~$1 per drink is common. Soy/oat milk swaps are standard.",
+    task:"Your mission: Order a customized drink AND a food item.",
+    taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["latte","coffee","tea","cappuccino","cold brew","matcha","drink","espresso"].some(function(w){return t.indexOf(w)>-1;});var s2=["muffin","bagel","sandwich","pastry","croissant","food","avocado","toast","eat"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"Order a drink",done:s1},{label:"Order a food item",done:s2}]};},
+    system:"You are Jordan, a barista at a cozy coffee shop called 'Morning Bloom'. Drinks: Drip Coffee ($3.5), Latte ($5.5), Cappuccino ($5), Matcha Latte ($5.5), Cold Brew ($5). Milk options: whole, skim, oat, soy, almond. Food: blueberry muffin ($3.5), avocado toast ($9), croissant ($4). Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
+    opening:"Hey, welcome to Morning Bloom! What can I get started for you today?",
+    keywords:["Can I get a","Oat milk please","What size","For here or to go","Can I also get"],
+    phrases:[
+      {en:"Can I get a medium latte, please?",zh:"我可以要一杯中杯拿鐵嗎？"},
+      {en:"Could I have that with oat milk?",zh:"可以用燕麥奶嗎？"},
+      {en:"Can I get an extra shot of espresso?",zh:"可以多加一份濃縮咖啡嗎？"},
+      {en:"What size do you have?",zh:"你們有什麼杯型？"},
+      {en:"Is the avocado toast good?",zh:"酪梨吐司好吃嗎？"},
+      {en:"I'll also have a blueberry muffin.",zh:"我也要一個藍莓馬芬。"},
+      {en:"For here, please.",zh:"在這裡吃。"},
+      {en:"What's your name for the order?",zh:"請問您貴姓？"},
+      {en:"My name is Alex.",zh:"我叫 Alex。"},
+      {en:"Can I pay by card?",zh:"可以刷卡嗎？"}
+    ],
+    vocab:[
+      {word:"barista",zh:"咖啡師",example:"The barista made a beautiful latte."},
+      {word:"espresso",zh:"濃縮咖啡",example:"Can I get an extra shot of espresso?"},
+      {word:"latte",zh:"拿鐵",example:"I'd like a vanilla latte."},
+      {word:"cappuccino",zh:"卡布奇諾",example:"I'll have a cappuccino."},
+      {word:"cold brew",zh:"冷萃咖啡",example:"Is the cold brew strong?"},
+      {word:"decaf",zh:"無咖啡因",example:"Can I get that decaf?"},
+      {word:"oat milk",zh:"燕麥奶",example:"I'd like oat milk instead."},
+      {word:"almond milk",zh:"杏仁奶",example:"Do you have almond milk?"},
+      {word:"size",zh:"杯型",example:"What sizes do you have?"},
+      {word:"small",zh:"小杯",example:"I'll have a small, please."},
+      {word:"medium",zh:"中杯",example:"A medium latte, please."},
+      {word:"large",zh:"大杯",example:"Can I get the large size?"},
+      {word:"shot",zh:"一份濃縮",example:"Can I get an extra shot?"},
+      {word:"foam",zh:"奶泡",example:"Light foam, please."},
+      {word:"iced",zh:"冰的",example:"Can I get that iced?"},
+      {word:"hot",zh:"熱的",example:"I'd prefer it hot."},
+      {word:"sweetener",zh:"甜味劑",example:"Do you have any sweetener?"},
+      {word:"syrup",zh:"糖漿",example:"Can I add vanilla syrup?"},
+      {word:"to go",zh:"外帶",example:"This is to go, please."},
+      {word:"for here",zh:"內用",example:"For here, thank you."},
+      {word:"muffin",zh:"馬芬",example:"I'll take a blueberry muffin."},
+      {word:"croissant",zh:"可頌",example:"Is the croissant fresh?"},
+      {word:"pastry",zh:"點心",example:"What pastries do you have today?"},
+      {word:"gluten-free",zh:"無麩質",example:"Do you have gluten-free options?"},
+      {word:"vegan",zh:"純素",example:"Is the muffin vegan?"},
+      {word:"loyalty card",zh:"集點卡",example:"Do you have a loyalty card?"},
+      {word:"receipt",zh:"收據",example:"Can I have a receipt?"},
+      {word:"cashless",zh:"無現金",example:"Is this a cashless café?"},
+      {word:"Wi-Fi",zh:"無線網路",example:"What's the Wi-Fi password?"},
+      {word:"cozy",zh:"舒適的",example:"This café is really cozy."}
+    ]},
+  phone:{name:"Phone call",
+    cultural:"🇺🇸 US phone etiquette: identify yourself when calling, be direct about your purpose, and confirm action items before hanging up. Hold music is common.",
+    task:"Your mission: State your reason for calling AND confirm the next steps before ending the call.",
+    taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["calling","problem","issue","appointment","schedule","repair","order","help"].some(function(w){return t.indexOf(w)>-1;});var s2=["confirm","send","email","reference","number","thank","bye","goodbye","done","great"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"State the reason for your call",done:s1},{label:"Confirm next steps before ending",done:s2}]};},
+    system:"You are Chris, a customer service representative at QuickFix Home Services. Handle the customer's call professionally — schedule appointments, resolve issues, or answer questions. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
+    opening:"Thank you for calling QuickFix Home Services, this is Chris speaking. How can I help you today?",
+    keywords:["I'm calling about","I'd like to schedule","My reference number is","Could you confirm","Is there anything else"],
+    phrases:[
+      {en:"Hi, I'm calling about my appointment.",zh:"嗨，我打電話來是關於我的預約。"},
+      {en:"I'd like to schedule a repair.",zh:"我想預約維修服務。"},
+      {en:"Could I speak to someone in customer service?",zh:"我可以和客服人員說話嗎？"},
+      {en:"I'm having a problem with my order.",zh:"我的訂單有問題。"},
+      {en:"My reference number is 4-5-2-7.",zh:"我的參考編號是 4527。"},
+      {en:"Could you repeat that, please?",zh:"可以請你再說一遍嗎？"},
+      {en:"I'm sorry, I didn't catch that.",zh:"抱歉，我沒聽清楚。"},
+      {en:"Could you speak a little slower?",zh:"可以說慢一點嗎？"},
+      {en:"Could you send me a confirmation email?",zh:"可以寄確認信給我嗎？"},
+      {en:"Thank you so much for your help.",zh:"非常感謝你的幫助。"}
+    ],
+    vocab:[
+      {word:"hold",zh:"等候",example:"Please hold for a moment."},
+      {word:"transfer",zh:"轉接",example:"I'll transfer you to the right department."},
+      {word:"extension",zh:"分機",example:"Please dial extension 204."},
+      {word:"reference number",zh:"參考編號",example:"What is your reference number?"},
+      {word:"callback",zh:"回撥",example:"Can I arrange a callback?"},
+      {word:"voicemail",zh:"語音信箱",example:"Please leave a voicemail."},
+      {word:"representative",zh:"客服人員",example:"I'd like to speak with a representative."},
+      {word:"complaint",zh:"投訴",example:"I'd like to file a complaint."},
+      {word:"appointment",zh:"預約",example:"I need to schedule an appointment."},
+      {word:"cancel",zh:"取消",example:"I'd like to cancel my order."},
+      {word:"reschedule",zh:"改期",example:"Can we reschedule the appointment?"},
+      {word:"confirm",zh:"確認",example:"Could you confirm the details?"},
+      {word:"urgent",zh:"緊急",example:"This is quite urgent."},
+      {word:"refund",zh:"退款",example:"I'd like to request a refund."},
+      {word:"policy",zh:"政策",example:"What is your cancellation policy?"},
+      {word:"available",zh:"有空的",example:"Is a technician available on Friday?"},
+      {word:"estimate",zh:"估價",example:"Can you give me an estimate?"},
+      {word:"charge",zh:"收費",example:"What will the charge be?"},
+      {word:"department",zh:"部門",example:"Which department handles this?"},
+      {word:"supervisor",zh:"主管",example:"I'd like to speak with a supervisor."},
+      {word:"resolved",zh:"已解決",example:"Is the issue resolved?"},
+      {word:"follow up",zh:"後續追蹤",example:"I'll follow up by email."},
+      {word:"issue",zh:"問題",example:"I'm having an issue with my account."},
+      {word:"account",zh:"帳號",example:"May I have your account number?"},
+      {word:"address",zh:"地址",example:"Let me confirm your address."},
+      {word:"zip code",zh:"郵遞區號",example:"What is your zip code?"},
+      {word:"confirmation",zh:"確認",example:"You'll receive a confirmation email."},
+      {word:"business hours",zh:"營業時間",example:"What are your business hours?"},
+      {word:"automated",zh:"自動化的",example:"You've reached our automated system."},
+      {word:"speak to",zh:"和...說話",example:"I'd like to speak to a real person."}
+    ]},
+  bank:{name:"Bank",
+    cultural:"🇺🇸 US banks: tellers are friendly and professional. Always bring a photo ID. Common tasks include deposits, withdrawals, account inquiries, and wire transfers.",
+    task:"Your mission: Complete one banking transaction AND ask about at least one bank service.",
+    taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["deposit","withdraw","transfer","balance","open","account","check"].some(function(w){return t.indexOf(w)>-1;});var s2=["fee","interest","saving","loan","credit","service","rate","minimum","offer"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"Complete a banking transaction",done:s1},{label:"Ask about a bank service",done:s2}]};},
+    system:"You are Morgan, a friendly bank teller at First National Bank. Services: checking accounts, savings accounts, wire transfers, personal loans, credit cards. Help the customer with their request. Always ask for ID. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
+    opening:"Good morning! Welcome to First National Bank. How can I assist you today?",
+    keywords:["I'd like to deposit","I'd like to withdraw","What's my balance","Do you offer","I'd like to open"],
+    phrases:[
+      {en:"I'd like to deposit some cash.",zh:"我想存入一些現金。"},
+      {en:"I'd like to withdraw $200 from my account.",zh:"我想從帳戶提領 200 元。"},
+      {en:"Could you tell me my current balance?",zh:"可以告訴我目前的帳戶餘額嗎？"},
+      {en:"I'd like to transfer money to another account.",zh:"我想把錢轉到另一個帳戶。"},
+      {en:"Do you offer savings accounts with good interest rates?",zh:"你們有利率好的儲蓄帳戶嗎？"},
+      {en:"I'd like to open a new checking account.",zh:"我想開一個新的活期帳戶。"},
+      {en:"Is there a monthly fee for this account?",zh:"這個帳戶有月費嗎？"},
+      {en:"I forgot my PIN. How can I reset it?",zh:"我忘記密碼了，要怎麼重設？"},
+      {en:"Here is my ID.",zh:"這是我的身分證件。"},
+      {en:"Could I have a receipt for this transaction?",zh:"可以給我這筆交易的收據嗎？"}
+    ],
+    vocab:[
+      {word:"deposit",zh:"存款",example:"I'd like to make a deposit."},
+      {word:"withdrawal",zh:"提款",example:"I need to make a withdrawal."},
+      {word:"balance",zh:"餘額",example:"What is my account balance?"},
+      {word:"transfer",zh:"轉帳",example:"I'd like to transfer $500."},
+      {word:"checking account",zh:"活期帳戶",example:"I have a checking account."},
+      {word:"savings account",zh:"儲蓄帳戶",example:"I'd like to open a savings account."},
+      {word:"interest rate",zh:"利率",example:"What is the current interest rate?"},
+      {word:"PIN",zh:"密碼",example:"Please enter your PIN."},
+      {word:"teller",zh:"行員",example:"Please see the teller at window 3."},
+      {word:"transaction",zh:"交易",example:"I need to dispute a transaction."},
+      {word:"statement",zh:"對帳單",example:"Can I get a paper statement?"},
+      {word:"fee",zh:"手續費",example:"Is there a transaction fee?"},
+      {word:"wire transfer",zh:"電匯",example:"I'd like to send a wire transfer."},
+      {word:"loan",zh:"貸款",example:"I'm interested in a personal loan."},
+      {word:"credit card",zh:"信用卡",example:"I'd like to apply for a credit card."},
+      {word:"debit card",zh:"金融卡",example:"Can I use a debit card?"},
+      {word:"ATM",zh:"提款機",example:"Where is the nearest ATM?"},
+      {word:"branch",zh:"分行",example:"Which branch should I visit?"},
+      {word:"account number",zh:"帳號",example:"What is your account number?"},
+      {word:"routing number",zh:"路由號碼",example:"I need the bank's routing number."},
+      {word:"overdraft",zh:"透支",example:"I have an overdraft protection plan."},
+      {word:"mortgage",zh:"房貸",example:"I'd like information on mortgage rates."},
+      {word:"minimum balance",zh:"最低存款",example:"Is there a minimum balance required?"},
+      {word:"direct deposit",zh:"直接存入",example:"I want to set up direct deposit."},
+      {word:"exchange rate",zh:"匯率",example:"What is today's exchange rate?"},
+      {word:"signature",zh:"簽名",example:"Please sign on the line."},
+      {word:"identification",zh:"身分證明",example:"Can I see your identification?"},
+      {word:"secure",zh:"安全的",example:"Your account is fully secure."},
+      {word:"authorization",zh:"授權",example:"This requires your authorization."},
+      {word:"financial advisor",zh:"財務顧問",example:"Would you like to speak with a financial advisor?"}
     ]}
 };
 
@@ -1209,7 +1456,7 @@ function selectMode(mode){
   unlockAudio();currentMode=mode;
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("mode-"+mode).classList.add("active");
-  var sc=SCENARIOS[mode];showKeywords(sc.keywords);
+  var sc=SCENARIOS[mode];
   if(mode!=="free"){
     document.getElementById("ti").value="";
     if(sc.phrases){showPhraseReview(sc);}
@@ -1304,7 +1551,7 @@ function startWithCustom(){
   unlockAudio();
   var v=document.getElementById("ti").value.trim();
   if(!v){setst("Please enter a topic first.");return;}
-  var sc=SCENARIOS[currentMode||"free"];showKeywords(sc.keywords);
+  var sc=SCENARIOS[currentMode||"free"];
   var sys=sc.system.replace("TOPIC",v);
   var opening=currentMode&&currentMode!=="free"?sc.opening:"Let's talk about "+v+". What's on your mind?";
   startSession(v,sys,opening,sc);
@@ -1322,7 +1569,7 @@ function startSession(topic,sysPrompt,opening,sc){
   if(sc&&sc.task)showTaskCard(sc);
   addMsg("ai",opening,true);
   unlockAudio();
-  setTimeout(function(){speak(opening,function(){setst("Press mic to start speaking");});},300);
+  setTimeout(function(){speak(opening,function(){setst(tr("status_mic"));});},300);
 }
 
 // ── Task card ──
@@ -1625,7 +1872,6 @@ function restart(){
   document.getElementById("ti").value="";
   document.getElementById("tb").textContent=tr("speech_placeholder");
   document.getElementById("smr").style.display="none";
-  document.getElementById("kwBox").style.display="none";
   document.getElementById("mb").disabled=false;document.getElementById("eb").disabled=false;
   document.getElementById("mb").classList.remove("listening","speaking");
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
