@@ -230,6 +230,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 
 .note{font-size:12px;color:#aaa;text-align:center;margin-top:1rem}
 
+/* Vocabulary review */
+.vocab-section{border-top:1px solid #eee;margin-top:12px;padding-top:10px}
+.vocab-toggle-btn{width:100%;background:none;border:none;padding:2px 0;font-size:13px;color:#185FA5;cursor:pointer;text-align:left;font-weight:500}
+.vocab-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px}
+.vocab-chip{font-size:13px;padding:4px 10px;border-radius:20px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;color:#333;transition:all .15s;user-select:none}
+.vocab-chip:hover{border-color:#185FA5;color:#185FA5}
+.vocab-chip.active{border-color:#185FA5;background:#E6F1FB;color:#185FA5}
+.vocab-detail-panel{background:#f0f6ff;border:1px solid #c8dff7;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.vocab-detail-panel strong{font-size:15px;color:#1a1a1a}
+.vocab-zh-tag{font-size:13px;color:#666;margin-left:8px}
+.vocab-ex{font-size:13px;color:#185FA5;margin-top:5px;font-style:italic}
+.vocab-more-btn{font-size:12px;padding:4px 14px;border-radius:20px;border:1px solid #185FA5;background:#fff;color:#185FA5;cursor:pointer;display:none}
+.vocab-more-btn:hover{background:#E6F1FB}
+
 /* Slow mode button */
 .slow-btn{border:1px solid #e0e0e0;background:#fff;color:#333}
 .slow-btn.active{border-color:#E8A020;background:#FFF4E0;color:#7A4200;font-weight:500}
@@ -952,6 +966,38 @@ var SCENARIOS={
       {en:"Could I get some more water, please?",zh:"可以再給我一些水嗎？"},
       {en:"Could I get the bill, please?",zh:"可以給我帳單嗎？"},
       {en:"Do you accept credit cards?",zh:"你們接受信用卡嗎？"}
+    ],
+    vocab:[
+      {word:"reserve",zh:"預訂",example:"I'd like to reserve a table for two."},
+      {word:"menu",zh:"菜單",example:"Could I see the menu, please?"},
+      {word:"order",zh:"點餐",example:"Are you ready to order?"},
+      {word:"recommend",zh:"推薦",example:"What do you recommend?"},
+      {word:"bill",zh:"帳單",example:"Could we have the bill, please?"},
+      {word:"refill",zh:"續杯",example:"Could I get a refill on my water?"},
+      {word:"spicy",zh:"辣的",example:"Is this dish very spicy?"},
+      {word:"mild",zh:"不辣的",example:"Do you have a milder version?"},
+      {word:"appetizer",zh:"開胃菜",example:"I'll start with the soup as an appetizer."},
+      {word:"entrée",zh:"主菜",example:"For my entrée, I'd like the salmon."},
+      {word:"dessert",zh:"甜點",example:"What desserts do you have?"},
+      {word:"beverage",zh:"飲料",example:"What beverages are available?"},
+      {word:"specials",zh:"今日特餐",example:"What are today's specials?"},
+      {word:"substitute",zh:"替換",example:"Can I substitute fries with a salad?"},
+      {word:"allergy",zh:"過敏",example:"I have a nut allergy."},
+      {word:"vegetarian",zh:"素食",example:"Do you have vegetarian options?"},
+      {word:"gluten-free",zh:"無麩質",example:"Do you have any gluten-free dishes?"},
+      {word:"well-done",zh:"全熟",example:"I'd like my steak well-done."},
+      {word:"medium",zh:"五分熟",example:"I'll have the steak medium, please."},
+      {word:"portion",zh:"份量",example:"Are the portions large here?"},
+      {word:"takeout",zh:"外帶",example:"Can I get this to go?"},
+      {word:"ingredient",zh:"食材",example:"What are the main ingredients in this dish?"},
+      {word:"side dish",zh:"配菜",example:"What side dishes come with this?"},
+      {word:"gratuity",zh:"小費",example:"Is gratuity included in the bill?"},
+      {word:"rare",zh:"三分熟",example:"I like my steak rare."},
+      {word:"complimentary",zh:"免費提供的",example:"Is the bread complimentary?"},
+      {word:"vegan",zh:"全素",example:"Is this dish vegan-friendly?"},
+      {word:"dressing",zh:"醬料",example:"What dressings do you have for the salad?"},
+      {word:"receipt",zh:"收據",example:"May I have a receipt?"},
+      {word:"seasoning",zh:"調味料",example:"Can I get extra seasoning on the side?"}
     ]},
   interview:{name:"Job interview",
     cultural:"🇺🇸 US interviews value the STAR method: Situation, Task, Action, Result. Be specific — generic answers seem weak.",
@@ -971,6 +1017,38 @@ var SCENARIOS={
       {en:"What does a typical day look like in this position?",zh:"這個職位的典型工作日是什麼樣的？"},
       {en:"I'd love to know more about the team structure.",zh:"我很想了解更多關於團隊結構的資訊。"},
       {en:"When can I expect to hear back from you?",zh:"我什麼時候可以收到您的回覆？"}
+    ],
+    vocab:[
+      {word:"experience",zh:"經驗",example:"I have three years of experience in marketing."},
+      {word:"responsibility",zh:"職責",example:"My main responsibility was managing social media."},
+      {word:"achievement",zh:"成就",example:"My biggest achievement was launching a new product line."},
+      {word:"challenge",zh:"挑戰",example:"The biggest challenge I faced was a tight deadline."},
+      {word:"teamwork",zh:"團隊合作",example:"I believe strong teamwork is key to success."},
+      {word:"initiative",zh:"主動性",example:"I took the initiative to redesign the process."},
+      {word:"deadline",zh:"截止日期",example:"I always meet my deadlines."},
+      {word:"collaborate",zh:"合作",example:"I collaborated closely with the design team."},
+      {word:"leadership",zh:"領導力",example:"I had the opportunity to demonstrate leadership."},
+      {word:"motivate",zh:"激勵",example:"I motivated my team by setting clear goals."},
+      {word:"accomplish",zh:"完成",example:"I accomplished a 20% increase in sales."},
+      {word:"contribute",zh:"貢獻",example:"I was able to contribute to the company's growth."},
+      {word:"prioritize",zh:"排列優先順序",example:"I learned to prioritize tasks under pressure."},
+      {word:"implement",zh:"執行",example:"I implemented a new tracking system."},
+      {word:"analyze",zh:"分析",example:"I analyzed the data to find key trends."},
+      {word:"strength",zh:"優點",example:"My greatest strength is attention to detail."},
+      {word:"weakness",zh:"弱點",example:"I'm working on improving my public speaking."},
+      {word:"goal",zh:"目標",example:"My long-term goal is to lead a marketing team."},
+      {word:"outcome",zh:"結果",example:"The outcome exceeded our expectations."},
+      {word:"feedback",zh:"回饋",example:"I always welcome constructive feedback."},
+      {word:"adapt",zh:"適應",example:"I adapt quickly to new environments."},
+      {word:"efficient",zh:"有效率的",example:"I found a more efficient way to manage projects."},
+      {word:"proactive",zh:"主動積極的",example:"I'm a proactive person who looks for solutions."},
+      {word:"passionate",zh:"有熱情的",example:"I'm passionate about digital marketing."},
+      {word:"coordinate",zh:"協調",example:"I coordinated between multiple departments."},
+      {word:"negotiate",zh:"協商",example:"I negotiated a better deal with suppliers."},
+      {word:"evaluate",zh:"評估",example:"I regularly evaluate campaign performance."},
+      {word:"innovative",zh:"創新的",example:"I introduced an innovative approach to the problem."},
+      {word:"strategic",zh:"有策略的",example:"I take a strategic approach to planning."},
+      {word:"detail-oriented",zh:"注重細節的",example:"I'm very detail-oriented in my work."}
     ]},
   shopping:{name:"Shopping",
     cultural:"🇺🇸 In US stores, staff greet you but there's no pressure to buy. It's normal to ask about return policies, request discounts, or try items on.",
@@ -990,6 +1068,38 @@ var SCENARIOS={
       {en:"This is a bit too expensive. Do you have anything cheaper?",zh:"這個有點貴，有沒有便宜一點的？"},
       {en:"I'll take it.",zh:"我要買這件。"},
       {en:"What's your return policy?",zh:"你們的退換貨政策是什麼？"}
+    ],
+    vocab:[
+      {word:"browse",zh:"隨便看看",example:"I'm just browsing, thanks."},
+      {word:"fitting room",zh:"試衣間",example:"Can I use the fitting room?"},
+      {word:"try on",zh:"試穿",example:"Could I try this on?"},
+      {word:"size",zh:"尺寸",example:"Do you have this in a medium?"},
+      {word:"material",zh:"材質",example:"What material is this made of?"},
+      {word:"style",zh:"款式",example:"Do you have other styles available?"},
+      {word:"casual",zh:"休閒的",example:"I'm looking for something casual."},
+      {word:"discount",zh:"折扣",example:"Is there a discount on this item?"},
+      {word:"sale",zh:"特賣",example:"Are these items on sale?"},
+      {word:"clearance",zh:"出清",example:"Where is the clearance section?"},
+      {word:"exchange",zh:"換貨",example:"Can I exchange this for a different size?"},
+      {word:"refund",zh:"退款",example:"I'd like to request a refund."},
+      {word:"receipt",zh:"收據",example:"Do I need a receipt to return this?"},
+      {word:"in stock",zh:"有庫存",example:"Is this in stock?"},
+      {word:"out of stock",zh:"缺貨",example:"I'm afraid this is out of stock."},
+      {word:"available",zh:"有提供的",example:"Is this available in other colors?"},
+      {word:"affordable",zh:"負擔得起的",example:"I'm looking for something affordable."},
+      {word:"brand",zh:"品牌",example:"Is this a well-known brand?"},
+      {word:"durable",zh:"耐用的",example:"Is this fabric durable?"},
+      {word:"trendy",zh:"流行的",example:"This style looks very trendy."},
+      {word:"bargain",zh:"划算的商品",example:"That's a great bargain!"},
+      {word:"warranty",zh:"保固",example:"Does this come with a warranty?"},
+      {word:"fabric",zh:"布料",example:"I prefer cotton fabric."},
+      {word:"limited",zh:"限量的",example:"This is a limited edition item."},
+      {word:"formal",zh:"正式的",example:"I need something more formal for work."},
+      {word:"accessory",zh:"配件",example:"I'm also looking for a matching accessory."},
+      {word:"credit card",zh:"信用卡",example:"Do you accept credit cards?"},
+      {word:"cash",zh:"現金",example:"Can I pay in cash?"},
+      {word:"price tag",zh:"標價",example:"The price tag says $45."},
+      {word:"fitting",zh:"合身的",example:"This fits perfectly!"}
     ]},
   directions:{name:"Directions",
     cultural:"🇺🇸 Americans use landmarks and block counts: 'Take a left at the light', 'It's about two blocks down', 'You can't miss it'.",
@@ -1009,6 +1119,38 @@ var SCENARIOS={
       {en:"It's on the right side of the street.",zh:"它在街道的右邊。"},
       {en:"You can't miss it.",zh:"你一定看得到的。"},
       {en:"So I should turn left, then go straight — is that right?",zh:"所以我要左轉，然後直走，對嗎？"}
+    ],
+    vocab:[
+      {word:"intersection",zh:"十字路口",example:"Turn left at the next intersection."},
+      {word:"block",zh:"街區",example:"Go straight for about two blocks."},
+      {word:"landmark",zh:"地標",example:"The library is a good landmark to look for."},
+      {word:"turn",zh:"轉彎",example:"Turn right at the traffic light."},
+      {word:"straight",zh:"直走",example:"Go straight down this street."},
+      {word:"corner",zh:"轉角",example:"It's just around the corner."},
+      {word:"traffic light",zh:"紅綠燈",example:"Stop at the traffic light."},
+      {word:"crosswalk",zh:"斑馬線",example:"Cross at the crosswalk."},
+      {word:"avenue",zh:"大道",example:"Walk along Fifth Avenue."},
+      {word:"block away",zh:"幾個街區遠",example:"It's about two blocks away."},
+      {word:"opposite",zh:"對面",example:"It's opposite the post office."},
+      {word:"adjacent",zh:"相鄰的",example:"The park is adjacent to the museum."},
+      {word:"nearby",zh:"附近",example:"Is there a subway station nearby?"},
+      {word:"distance",zh:"距離",example:"What's the distance from here?"},
+      {word:"walking distance",zh:"步行距離",example:"Is it within walking distance?"},
+      {word:"subway",zh:"地鐵",example:"Should I take the subway?"},
+      {word:"bus stop",zh:"公車站",example:"The bus stop is right there."},
+      {word:"downtown",zh:"市中心",example:"Central Park is in the middle of downtown."},
+      {word:"exit",zh:"出口",example:"Take exit 5 on the highway."},
+      {word:"entrance",zh:"入口",example:"The main entrance is on 5th Avenue."},
+      {word:"shortcut",zh:"捷徑",example:"I know a shortcut through the park."},
+      {word:"lost",zh:"迷路了",example:"I think I'm lost. Can you help?"},
+      {word:"heading",zh:"朝向",example:"You're heading in the right direction."},
+      {word:"pass",zh:"經過",example:"You'll pass a big church on your left."},
+      {word:"approximately",zh:"大約",example:"It's approximately a 10-minute walk."},
+      {word:"north",zh:"北",example:"Head north on Broadway."},
+      {word:"south",zh:"南",example:"Walk south for three blocks."},
+      {word:"east",zh:"東",example:"The park entrance is to the east."},
+      {word:"west",zh:"西",example:"Turn west at the fountain."},
+      {word:"you can't miss it",zh:"你一定看得到",example:"It's a huge building. You can't miss it."}
     ]},
   hotel:{name:"Hotel",
     cultural:"🇺🇸 US hotel check-in requires photo ID and credit card. Staff are trained to be warm. It's perfectly normal to ask about every amenity.",
@@ -1028,6 +1170,38 @@ var SCENARIOS={
       {en:"What floor is my room on?",zh:"我的房間在幾樓？"},
       {en:"Could I get a wake-up call at 7 AM?",zh:"可以幫我安排早上七點的叫醒服務嗎？"},
       {en:"Is room service available?",zh:"有提供客房服務嗎？"}
+    ],
+    vocab:[
+      {word:"reservation",zh:"訂房",example:"I have a reservation under Chen."},
+      {word:"check-in",zh:"辦理入住",example:"I'd like to check in, please."},
+      {word:"check-out",zh:"退房",example:"What time is check-out?"},
+      {word:"lobby",zh:"大廳",example:"Please meet me in the lobby."},
+      {word:"front desk",zh:"前台",example:"Please go to the front desk for your key."},
+      {word:"room key",zh:"房卡",example:"Here is your room key."},
+      {word:"amenity",zh:"設施",example:"What amenities does the hotel offer?"},
+      {word:"complimentary",zh:"免費提供的",example:"Is breakfast complimentary?"},
+      {word:"housekeeping",zh:"客房清潔",example:"Can I request housekeeping in the morning?"},
+      {word:"concierge",zh:"服務台",example:"Ask the concierge for restaurant recommendations."},
+      {word:"valet",zh:"代客停車",example:"Is valet parking available?"},
+      {word:"room service",zh:"客房服務",example:"I'd like to order room service."},
+      {word:"wake-up call",zh:"叫醒服務",example:"Could I get a wake-up call at 7 AM?"},
+      {word:"late checkout",zh:"延遲退房",example:"Can I request a late checkout?"},
+      {word:"suite",zh:"套房",example:"I reserved a suite."},
+      {word:"ocean view",zh:"海景",example:"Do you have a room with an ocean view?"},
+      {word:"balcony",zh:"陽台",example:"Does the room have a balcony?"},
+      {word:"minibar",zh:"迷你吧",example:"Is the minibar included in the room rate?"},
+      {word:"laundry",zh:"洗衣服務",example:"Do you offer laundry service?"},
+      {word:"gym",zh:"健身房",example:"Where is the gym located?"},
+      {word:"pool",zh:"游泳池",example:"Is the rooftop pool open now?"},
+      {word:"Wi-Fi",zh:"無線網路",example:"Is Wi-Fi included in the room rate?"},
+      {word:"confirmation",zh:"確認",example:"Here is my booking confirmation."},
+      {word:"upgrade",zh:"升級",example:"Is an upgrade available?"},
+      {word:"double room",zh:"雙人房",example:"I booked a double room."},
+      {word:"single room",zh:"單人房",example:"I'd prefer a single room."},
+      {word:"floor",zh:"樓層",example:"What floor is my room on?"},
+      {word:"elevator",zh:"電梯",example:"Where is the elevator?"},
+      {word:"noise",zh:"噪音",example:"My room is a bit noisy. Can I change?"},
+      {word:"extra pillow",zh:"額外的枕頭",example:"Could I get an extra pillow?"}
     ]}
 };
 
@@ -1057,13 +1231,57 @@ function showPhraseReview(sc){
     html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div></label>';
   });
   html+='</div>';
+  if(sc.vocab&&sc.vocab.length){
+    html+='<div class="vocab-section"><button class="vocab-toggle-btn" onclick="toggleVocabSection()">📚 Common Vocabulary ▼</button>';
+    html+='<div id="vocabContent" style="display:none"><div class="vocab-chips" id="vocabChips"></div><div class="vocab-detail-panel" id="vocabDetailPanel" style="display:none"></div><div style="text-align:center;margin-top:4px"><button class="vocab-more-btn" id="vocabMoreBtn" onclick="loadMoreVocab()">More vocabulary →</button></div></div></div>';
+  }
   var prog0=tr("pr_progress").replace("%1","0").replace("%2",sc.phrases.length);
   html+='<div class="phrase-progress" id="phraseProgress">'+escHtml(prog0)+'</div>';
   html+='<button class="phrase-start-btn" onclick="startSession(\''+escHtml(sc.name)+'\',SCENARIOS[currentMode].system,SCENARIOS[currentMode].opening,SCENARIOS[currentMode])">'+escHtml(tr("pr_start"))+'</button>';
   html+='<div class="phrase-skip" onclick="startSession(\''+escHtml(sc.name)+'\',SCENARIOS[currentMode].system,SCENARIOS[currentMode].opening,SCENARIOS[currentMode])">'+escHtml(tr("pr_skip"))+'</div>';
   card.innerHTML=html;
+  currentVocabSc=sc;vocabPage=0;currentVocabIdx=-1;
   chat.appendChild(card);
 }
+var vocabPage=0,currentVocabSc=null,currentVocabIdx=-1;
+function toggleVocabSection(){
+  var content=document.getElementById("vocabContent");
+  var btn=document.querySelector(".vocab-toggle-btn");
+  if(!content||!btn)return;
+  var isOpen=content.style.display!=="none";
+  content.style.display=isOpen?"none":"block";
+  btn.textContent=isOpen?"📚 Common Vocabulary ▼":"📚 Common Vocabulary ▲";
+  if(!isOpen)renderVocabPage();
+}
+function renderVocabPage(){
+  if(!currentVocabSc||!currentVocabSc.vocab)return;
+  var start=vocabPage*20;
+  var words=currentVocabSc.vocab.slice(start,start+20);
+  var chipsEl=document.getElementById("vocabChips");
+  var detailEl=document.getElementById("vocabDetailPanel");
+  if(!chipsEl)return;
+  if(detailEl){detailEl.style.display="none";detailEl.innerHTML="";}
+  currentVocabIdx=-1;
+  chipsEl.innerHTML="";
+  words.forEach(function(v,i){
+    var chip=document.createElement("span");
+    chip.className="vocab-chip";chip.textContent=v.word;
+    chip.onclick=function(){showVocabDetail(v,start+i,chip);};
+    chipsEl.appendChild(chip);
+  });
+  var moreBtn=document.getElementById("vocabMoreBtn");
+  if(moreBtn)moreBtn.style.display=(start+20<currentVocabSc.vocab.length)?"inline-block":"none";
+}
+function showVocabDetail(v,idx,chipEl){
+  var detailEl=document.getElementById("vocabDetailPanel");
+  if(!detailEl)return;
+  document.querySelectorAll(".vocab-chip").forEach(function(c){c.classList.remove("active");});
+  if(currentVocabIdx===idx){detailEl.style.display="none";currentVocabIdx=-1;return;}
+  chipEl.classList.add("active");currentVocabIdx=idx;
+  detailEl.style.display="block";
+  detailEl.innerHTML='<strong>'+escHtml(v.word)+'</strong><span class="vocab-zh-tag">'+escHtml(v.zh)+'</span><div class="vocab-ex">"'+escHtml(v.example)+'"</div>';
+}
+function loadMoreVocab(){vocabPage++;renderVocabPage();}
 function phraseCbChange(cb,idx){
   var card=document.querySelector(".phrase-review-card");if(!card)return;
   var cbs=card.querySelectorAll(".phrase-cb");
@@ -1348,7 +1566,8 @@ function endSess(){
     +'"strengths":["x"],"overall_tip":"x"}\n'
     +"Scores 0-10. Max 3 corrections, 3 improvements. error_type: grammar/word_choice/structure/fluency. "
     +"pronunciation: up to 3 specific words from the utterances a non-native speaker likely mispronounced, with a tip on how to say them correctly. Only include if there are real concerns. "
-    +"Use actual sentences from the learner. Do not invent examples.";
+    +"Use actual sentences from the learner. Do not invent examples. "
+    +"IMPORTANT: This is spoken English practice. Do NOT flag corrections that are only about punctuation (missing commas, periods, question marks, capitalization). Only flag errors that affect spoken meaning: wrong words, wrong grammar, wrong verb tense, wrong word order.";
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})})
   .then(function(r){return r.json();})
   .then(function(d){
@@ -1365,7 +1584,16 @@ function endSess(){
   .catch(function(){hideThinking();setst("Feedback failed. Try again.");ON=true;document.getElementById("mb").disabled=false;document.getElementById("eb").disabled=false;});
 }
 
+var PUNCT_KEYWORDS=/\b(comma|period|punctuation|question mark|exclamation|capitali|full stop|apostrophe|semicolon|colon)\b/i;
+function isPunctuationOnly(c){
+  if(!c.reason)return false;
+  if(!PUNCT_KEYWORDS.test(c.reason))return false;
+  var orig=(c.original||"").replace(/[.,!?;:'"]/g,"").trim();
+  var fix=(c.corrected||"").replace(/[.,!?;:'"]/g,"").trim();
+  return orig.toLowerCase()===fix.toLowerCase();
+}
 function showFeedback(fb){
+  if(fb.corrections)fb.corrections=fb.corrections.filter(function(c){return!isPunctuationOnly(c);});
   var panel=document.getElementById("smr");panel.style.display="block";
   var L={grammar:tr("fb_score_grammar"),word_choice:tr("fb_score_word"),structure:tr("fb_score_structure"),fluency:tr("fb_score_fluency")};
   var sg="";for(var k in fb.scores||{}){sg+='<div class="sc"><div class="scl">'+(L[k]||k)+'</div><div class="scn">'+fb.scores[k]+'<span style="font-size:13px;color:#999">/10</span></div></div>';}
