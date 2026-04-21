@@ -103,6 +103,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .task-step.done{color:#27500A;font-weight:500}
 .task-complete-msg{font-size:12px;color:#27500A;font-weight:500;text-align:center;padding:5px;background:#d4edcc;border-radius:6px;margin-top:6px;display:none}
 
+/* Phrase review */
+.phrase-review-card{background:#fff;border:1.5px solid #185FA5;border-radius:12px;padding:14px 16px;width:100%;margin-bottom:12px}
+.phrase-review-header{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.phrase-review-label{font-size:12px;font-weight:600;color:#185FA5;background:#E6F1FB;padding:2px 10px;border-radius:20px}
+.phrase-review-sub{font-size:12px;color:#555;margin-bottom:10px;line-height:1.5}
+.phrase-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.phrase-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid #e8e8e8;cursor:pointer;transition:background .15s}
+.phrase-item:hover{background:#f8f8f8}
+.phrase-item.checked{background:#EAF3DE;border-color:#8ec74a}
+.phrase-cb{margin-top:3px;flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:#185FA5}
+.phrase-text{flex:1}
+.phrase-en{font-size:14px;color:#1a1a1a;line-height:1.4}
+.phrase-zh{font-size:12px;color:#888;margin-top:2px}
+.phrase-progress{font-size:12px;color:#666;text-align:center;margin-bottom:10px}
+.phrase-start-btn{width:100%;padding:11px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-size:15px;cursor:pointer;margin-bottom:8px}
+.phrase-start-btn:hover{background:#0C447C}
+.phrase-skip{text-align:center;font-size:13px;color:#999;cursor:pointer;padding:4px}
+.phrase-skip:hover{color:#555}
+
 /* Confidence badge */
 .conf-row{display:flex;justify-content:flex-end;padding-right:4px;margin-top:-4px}
 .conf-badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:10px}
@@ -231,7 +250,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
   <div class="topbar">
     <h1>English Practice</h1>
     <div class="topbar-btns">
-      <button class="icon-btn" onclick="logout()" style="color:#A32D2D">Logout</button>
+      <button class="icon-btn" id="langToggle" onclick="toggleLang()">中文</button>
+      <button class="icon-btn" id="logoutBtn" onclick="logout()" style="color:#A32D2D">Logout</button>
     </div>
   </div>
 
@@ -336,6 +356,112 @@ var TASK_DONE=false,TASK_DEF=null;
 var SAVED_MAP={};
 var FC_CARDS=[],FC_INDEX=0,FC_FLIPPED=false,FC_KNOWN=[],FC_AGAIN=[],FC_ACTIVE=false;
 
+var LANG=localStorage.getItem("pref_lang")||"en";
+var UI_STRINGS={
+  en:{app_title:"English Practice",btn_lang:"中文",btn_logout:"Logout",
+    tab_practice:"Practice",tab_saved:"⭐ Saved",tab_analysis:"📊 Analysis",tab_foryou:"🎓 For You",
+    daily_label:"Today's topic",daily_use:"Use it →",mode_title:"Choose a scenario",
+    mode_free:"Free talk",mode_restaurant:"Restaurant",mode_interview:"Interview",
+    mode_shopping:"Shopping",mode_directions:"Directions",mode_hotel:"Hotel",
+    topic_placeholder:"Or type your own topic...",btn_start:"Start",
+    kw_title:"Keyword hints — tap to insert",
+    tag_grammar:"Grammar",tag_word_choice:"Word choice",tag_structure:"Structure",tag_fluency:"Fluency",
+    chat_init:"Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!",
+    status_init:"Select a scenario or topic to begin",speech_placeholder:"Your speech will appear here...",
+    hint_text:"🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop",
+    btn_test_tts:"🔊 Test voice",btn_end:"End and get feedback",smr_title:"Session Feedback",
+    btn_restart:"Start a new session",note_browser:"Works best on Chrome or Edge browser",
+    saved_title:"⭐ Saved Sentences",btn_flashcards:"📇 Flashcards",
+    analysis_title:"📊 Weakness Analysis",foryou_title:"🎓 Made For You",
+    fb_corrections:"Grammar corrections",fb_suggestions:"Suggestions",
+    fb_pronunciation:"Pronunciation to practice",fb_strengths:"What you did well",fb_tip:"Tip:",
+    fb_score_grammar:"Grammar",fb_score_word:"Word Choice",fb_score_structure:"Structure",fb_score_fluency:"Fluency",
+    toast_mission:"🎉 Mission complete!",
+    pr_header:"📖 Review Common Phrases",
+    pr_sub:"Here are phrases you may use in this scenario. Read through them before starting!",
+    pr_progress:"Reviewed %1 / %2 phrases",pr_start:"Start Conversation",pr_skip:"Skip, start now"},
+  zh:{app_title:"英語口說練習",btn_lang:"EN",btn_logout:"登出",
+    tab_practice:"練習",tab_saved:"⭐ 收藏",tab_analysis:"📊 分析",tab_foryou:"🎓 為你量身",
+    daily_label:"今日話題",daily_use:"開始 →",mode_title:"選擇情境",
+    mode_free:"自由對話",mode_restaurant:"餐廳",mode_interview:"工作面試",
+    mode_shopping:"購物",mode_directions:"問路",mode_hotel:"飯店",
+    topic_placeholder:"或自行輸入話題...",btn_start:"開始",
+    kw_title:"關鍵字提示 — 點選插入",
+    tag_grammar:"文法",tag_word_choice:"用字",tag_structure:"句子結構",tag_fluency:"流暢度",
+    chat_init:"你好！選擇一個情境或輸入話題，然後按麥克風開始說話。我會用語音回覆！",
+    status_init:"選擇情境或輸入話題開始練習",speech_placeholder:"你說的話會出現在這裡...",
+    hint_text:"🔴 聆聽中 &nbsp;|&nbsp; 🟢 AI 回應中 &nbsp;|&nbsp; 停止說話後自動送出",
+    btn_test_tts:"🔊 測試語音",btn_end:"結束並取得回饋",smr_title:"本次練習回饋",
+    btn_restart:"開始新的練習",note_browser:"建議使用 Chrome 或 Edge 瀏覽器",
+    saved_title:"⭐ 收藏的句子",btn_flashcards:"📇 單字卡",
+    analysis_title:"📊 弱點分析",foryou_title:"🎓 為你量身打造",
+    fb_corrections:"文法修正",fb_suggestions:"建議",
+    fb_pronunciation:"發音練習",fb_strengths:"你做得好的地方",fb_tip:"小提示：",
+    fb_score_grammar:"文法",fb_score_word:"用字",fb_score_structure:"句子結構",fb_score_fluency:"流暢度",
+    toast_mission:"🎉 任務完成！",
+    pr_header:"📖 先複習常用句子",
+    pr_sub:"以下是這個情境常會用到的句子，先看熟再開始對話更有自信！",
+    pr_progress:"已複習 %1 / %2 句",pr_start:"開始對話",pr_skip:"略過，直接開始"}
+};
+var ST_ZH={
+  "Please enter a topic first.":"請先輸入話題。",
+  "Press mic to start speaking":"按麥克風開始說話",
+  "Listening... speak now":"聆聽中⋯⋯請說話",
+  "AI is speaking...":"AI 正在說話⋯⋯",
+  "Press mic to respond":"按麥克風回應",
+  "Not supported. Use Chrome or Edge.":"不支援此功能，請使用 Chrome 或 Edge。",
+  "Please select a scenario or topic first.":"請先選擇情境或輸入話題。",
+  "Cannot start mic. Reload.":"無法啟動麥克風，請重新載入。",
+  "AI is thinking...":"AI 思考中⋯⋯",
+  "Error. Tap mic to retry.":"發生錯誤，請再試一次。",
+  "Please have at least one exchange.":"請至少完成一次對話再結束。",
+  "Generating feedback...":"產生回饋中⋯⋯",
+  "Feedback failed. Try again.":"回饋失敗，請再試一次。",
+  "Done — see feedback below!":"完成！請查看下方回饋。",
+  "Calling Google TTS...":"正在呼叫 Google TTS⋯⋯",
+  "Got audio, playing...":"收到音訊，播放中⋯⋯",
+  "Test done!":"測試完成！",
+  "Select a scenario or topic to begin":"選擇情境或輸入話題開始練習",
+  "Connection issue. Try again.":"連線問題，請再試一次。"
+};
+function tr(k){return(UI_STRINGS[LANG]&&UI_STRINGS[LANG][k]!==undefined)?UI_STRINGS[LANG][k]:((UI_STRINGS.en&&UI_STRINGS.en[k]!==undefined)?UI_STRINGS.en[k]:k);}
+function toggleLang(){LANG=LANG==="zh"?"en":"zh";localStorage.setItem("pref_lang",LANG);applyLang();}
+function applyLang(){
+  document.querySelector(".topbar h1").textContent=tr("app_title");
+  document.getElementById("langToggle").textContent=tr("btn_lang");
+  document.getElementById("logoutBtn").textContent=tr("btn_logout");
+  document.getElementById("tabPractice").textContent=tr("tab_practice");
+  document.getElementById("tabSaved").textContent=tr("tab_saved");
+  document.getElementById("tabWeak").textContent=tr("tab_analysis");
+  document.getElementById("tabForyou").textContent=tr("tab_foryou");
+  document.querySelector(".daily-label").textContent=tr("daily_label");
+  document.querySelector(".daily-use").textContent=tr("daily_use");
+  document.querySelector(".mode-title").textContent=tr("mode_title");
+  document.querySelector("#mode-free .mode-name").textContent=tr("mode_free");
+  document.querySelector("#mode-restaurant .mode-name").textContent=tr("mode_restaurant");
+  document.querySelector("#mode-interview .mode-name").textContent=tr("mode_interview");
+  document.querySelector("#mode-shopping .mode-name").textContent=tr("mode_shopping");
+  document.querySelector("#mode-directions .mode-name").textContent=tr("mode_directions");
+  document.querySelector("#mode-hotel .mode-name").textContent=tr("mode_hotel");
+  document.getElementById("ti").placeholder=tr("topic_placeholder");
+  document.querySelector(".abtn[onclick='startWithCustom()']").textContent=tr("btn_start");
+  document.querySelector(".kw-title").textContent=tr("kw_title");
+  var tags=document.querySelectorAll(".tags .tag");
+  ["tag_grammar","tag_word_choice","tag_structure","tag_fluency"].forEach(function(k,i){if(tags[i])tags[i].textContent=tr(k);});
+  if(!ON){setst(tr("status_init"));document.getElementById("tb").textContent=tr("speech_placeholder");}
+  document.querySelector(".hint").innerHTML=tr("hint_text");
+  document.querySelector(".abtn[onclick='testTTS()']").textContent=tr("btn_test_tts");
+  document.getElementById("eb").textContent=tr("btn_end");
+  document.querySelector(".note").textContent=tr("note_browser");
+  var smrH2=document.querySelector("#smr h2");if(smrH2)smrH2.textContent=tr("smr_title");
+  document.querySelector(".rbtn").textContent=tr("btn_restart");
+  var savedH2=document.querySelector("#tabContentSaved h2");if(savedH2)savedH2.textContent=tr("saved_title");
+  document.getElementById("fcToggleBtn").textContent=tr("btn_flashcards");
+  var weakH2=document.querySelector("#tabContentWeak h2");if(weakH2)weakH2.textContent=tr("analysis_title");
+  var foryouH2=document.querySelector("#tabContentForyou h2");if(foryouH2)foryouH2.textContent=tr("foryou_title");
+  if(!ON){var chat=document.getElementById("chat");var aiMsg=chat.querySelector(".aibbl");if(aiMsg&&!aiMsg.querySelector(".save-btn"))aiMsg.textContent=tr("chat_init");}
+}
+
 // ── Supabase ──
 function dbGet(table,filters){
   var url=SUPA_URL+"/rest/v1/"+table+"?order=created_at.desc";
@@ -382,7 +508,7 @@ window.onload=function(){
   if(saved){try{currentUser=JSON.parse(saved);onLoginSuccess();}catch(e){}}
   if(window.speechSynthesis){window.speechSynthesis.getVoices();window.speechSynthesis.onvoiceschanged=function(){window.speechSynthesis.getVoices();};}
 };
-function initApp(){document.getElementById("dailyText").textContent=getTodayTopic().text;}
+function initApp(){document.getElementById("dailyText").textContent=getTodayTopic().text;applyLang();}
 
 // ── Tabs ──
 function showTab(tab){
@@ -691,35 +817,95 @@ var SCENARIOS={
     taskCheck:TASK_CHECKS.restaurant,
     system:"You are Jamie, a friendly waiter at a mid-range American restaurant called 'The Blue Plate'. Menu — MAINS: Grilled Salmon ($24), Ribeye Steak ($36), Pasta Primavera ($18), Chicken Burger ($16). DESSERTS: Chocolate Lava Cake ($9), New York Cheesecake ($8), Seasonal Sorbet ($7). Help the customer order. Stay in character. Do NOT correct grammar. Only say spoken words.",
     opening:"Hi there! Welcome to The Blue Plate, I'm Jamie and I'll be taking care of you tonight. Can I start you off with something to drink, or would you like to hear today's specials?",
-    keywords:["I'd like to order","What do you recommend","Is this spicy","Can I have the bill","For dessert please"]},
+    keywords:["I'd like to order","What do you recommend","Is this spicy","Can I have the bill","For dessert please"],
+    phrases:[
+      {en:"Could I get a table for two?",zh:"我可以要一張兩人桌嗎？"},
+      {en:"Could I see the menu, please?",zh:"可以給我看菜單嗎？"},
+      {en:"What do you recommend?",zh:"你有什麼推薦的嗎？"},
+      {en:"I'd like to order the grilled salmon.",zh:"我想點烤鮭魚。"},
+      {en:"Is this dish spicy?",zh:"這道菜辣嗎？"},
+      {en:"Could I substitute the fries with a salad?",zh:"可以把薯條換成沙拉嗎？"},
+      {en:"For dessert, I'll have the chocolate lava cake.",zh:"甜點我要巧克力熔岩蛋糕。"},
+      {en:"Could I get some more water, please?",zh:"可以再給我一些水嗎？"},
+      {en:"Could I get the bill, please?",zh:"可以給我帳單嗎？"},
+      {en:"Do you accept credit cards?",zh:"你們接受信用卡嗎？"}
+    ]},
   interview:{name:"Job interview",
     cultural:"🇺🇸 US interviews value the STAR method: Situation, Task, Action, Result. Be specific — generic answers seem weak.",
     task:"Your mission: Answer at least 3 questions. Use specific examples in at least 2 answers.",
     taskCheck:TASK_CHECKS.interview,
     system:"You are a professional interviewer at a US tech company for a marketing coordinator role. Ask one behavioral question at a time. Be encouraging. Do NOT correct grammar. Only say spoken words.",
     opening:"Thank you so much for coming in today! To start — could you tell me a little about yourself and why you're interested in this role?",
-    keywords:["For example","In my previous role","I managed","I achieved","The result was","Specifically"]},
+    keywords:["For example","In my previous role","I managed","I achieved","The result was","Specifically"],
+    phrases:[
+      {en:"Thank you for having me.",zh:"謝謝您的邀請。"},
+      {en:"I have three years of experience in marketing.",zh:"我有三年的行銷經驗。"},
+      {en:"In my previous role, I was responsible for...",zh:"在我上一份工作，我負責..."},
+      {en:"For example, I once managed a campaign that...",zh:"舉例來說，我曾經負責一個活動..."},
+      {en:"The result was a 20% increase in sales.",zh:"結果是業績提升了 20%。"},
+      {en:"I'm a quick learner and I adapt well to new environments.",zh:"我學習能力很強，也能快速適應新環境。"},
+      {en:"I'm particularly interested in this role because...",zh:"我對這個職位特別感興趣，因為..."},
+      {en:"What does a typical day look like in this position?",zh:"這個職位的典型工作日是什麼樣的？"},
+      {en:"I'd love to know more about the team structure.",zh:"我很想了解更多關於團隊結構的資訊。"},
+      {en:"When can I expect to hear back from you?",zh:"我什麼時候可以收到您的回覆？"}
+    ]},
   shopping:{name:"Shopping",
     cultural:"🇺🇸 In US stores, staff greet you but there's no pressure to buy. It's normal to ask about return policies, request discounts, or try items on.",
     task:"Your mission: Find a specific item, ask about size and price, then decide to buy or decline.",
     taskCheck:TASK_CHECKS.shopping,
     system:"You are a helpful sales assistant at a clothing store in an American mall. Casual and smart-casual clothes, sizes XS–XXL, sale items 30–40% off. Stay in character. Do NOT correct grammar. Only say spoken words.",
     opening:"Hey, welcome in! Feel free to look around. We've got new arrivals this week and a sale section at the back — up to 40% off. Is there anything specific I can help you find?",
-    keywords:["Do you have this in","How much is this","I'm looking for","Can I try it on","Is there a discount"]},
+    keywords:["Do you have this in","How much is this","I'm looking for","Can I try it on","Is there a discount"],
+    phrases:[
+      {en:"Excuse me, could you help me?",zh:"不好意思，你可以幫我嗎？"},
+      {en:"I'm looking for a casual jacket.",zh:"我在找一件休閒外套。"},
+      {en:"Do you have this in a medium?",zh:"這件有中號嗎？"},
+      {en:"Do you have this in other colors?",zh:"這件有其他顏色嗎？"},
+      {en:"How much is this?",zh:"這個多少錢？"},
+      {en:"Can I try this on?",zh:"我可以試穿這件嗎？"},
+      {en:"Is there a discount on this item?",zh:"這件商品有折扣嗎？"},
+      {en:"This is a bit too expensive. Do you have anything cheaper?",zh:"這個有點貴，有沒有便宜一點的？"},
+      {en:"I'll take it.",zh:"我要買這件。"},
+      {en:"What's your return policy?",zh:"你們的退換貨政策是什麼？"}
+    ]},
   directions:{name:"Directions",
     cultural:"🇺🇸 Americans use landmarks and block counts: 'Take a left at the light', 'It's about two blocks down', 'You can't miss it'.",
     task:"Your mission: Ask for directions to Central Park, then repeat the key steps back to confirm.",
     taskCheck:TASK_CHECKS.directions,
     system:"You are a friendly local in Midtown Manhattan helping a tourist find Central Park. Give clear directions using streets and landmarks. Stay in character. Do NOT correct grammar. Only say spoken words.",
     opening:"Oh hi! You look like you might need some help — are you trying to find your way around? Where are you trying to go?",
-    keywords:["How do I get to","Where is","Turn left","Go straight","About how far","So I should"]},
+    keywords:["How do I get to","Where is","Turn left","Go straight","About how far","So I should"],
+    phrases:[
+      {en:"Excuse me, could you help me?",zh:"不好意思，你可以幫我嗎？"},
+      {en:"How do I get to Central Park from here?",zh:"從這裡怎麼去中央公園？"},
+      {en:"Is it within walking distance?",zh:"走路的距離到得了嗎？"},
+      {en:"How long does it take to walk there?",zh:"走路過去要多久？"},
+      {en:"Should I take the subway?",zh:"我應該搭地鐵嗎？"},
+      {en:"Turn left at the traffic light.",zh:"在紅綠燈那裡左轉。"},
+      {en:"Go straight for about two blocks.",zh:"直走大約兩個街區。"},
+      {en:"It's on the right side of the street.",zh:"它在街道的右邊。"},
+      {en:"You can't miss it.",zh:"你一定看得到的。"},
+      {en:"So I should turn left, then go straight — is that right?",zh:"所以我要左轉，然後直走，對嗎？"}
+    ]},
   hotel:{name:"Hotel",
     cultural:"🇺🇸 US hotel check-in requires photo ID and credit card. Staff are trained to be warm. It's perfectly normal to ask about every amenity.",
     task:"Your mission: Complete check-in AND ask about at least 2 hotel services.",
     taskCheck:TASK_CHECKS.hotel,
     system:"You are Alex, a professional front desk receptionist at a 4-star hotel in San Francisco. Amenities: free Wi-Fi, gym, rooftop pool, breakfast buffet ($18/person), valet parking ($45/night), 24hr room service. Help the guest check in. Stay in character. Do NOT correct grammar. Only say spoken words.",
     opening:"Good evening and welcome to The Grand Pacific! I'm Alex, happy to get you checked in. Do you have a reservation? If you give me your last name I'll pull that right up.",
-    keywords:["I have a reservation","My name is","Is Wi-Fi included","What time is checkout","Do you have a gym"]}
+    keywords:["I have a reservation","My name is","Is Wi-Fi included","What time is checkout","Do you have a gym"],
+    phrases:[
+      {en:"I have a reservation under the name Chen.",zh:"我有訂房，名字是陳。"},
+      {en:"Could I check in, please?",zh:"我可以辦理入住嗎？"},
+      {en:"What time is check-out?",zh:"退房時間是幾點？"},
+      {en:"Is Wi-Fi included in the room rate?",zh:"Wi-Fi 包含在房費裡嗎？"},
+      {en:"Is breakfast included?",zh:"有包含早餐嗎？"},
+      {en:"Does the hotel have a gym?",zh:"飯店有健身房嗎？"},
+      {en:"Is there a pool?",zh:"有游泳池嗎？"},
+      {en:"What floor is my room on?",zh:"我的房間在幾樓？"},
+      {en:"Could I get a wake-up call at 7 AM?",zh:"可以幫我安排早上七點的叫醒服務嗎？"},
+      {en:"Is room service available?",zh:"有提供客房服務嗎？"}
+    ]}
 };
 
 function selectMode(mode){
@@ -727,7 +913,42 @@ function selectMode(mode){
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("mode-"+mode).classList.add("active");
   var sc=SCENARIOS[mode];showKeywords(sc.keywords);
-  if(mode!=="free"){document.getElementById("ti").value="";startSession(sc.name,sc.system,sc.opening,sc);}
+  if(mode!=="free"){
+    document.getElementById("ti").value="";
+    if(sc.phrases){showPhraseReview(sc);}
+    else{startSession(sc.name,sc.system,sc.opening,sc);}
+  }
+}
+function showPhraseReview(sc){
+  ON=false;
+  document.getElementById("chat").innerHTML="";
+  document.getElementById("smr").style.display="none";
+  document.getElementById("mb").disabled=true;
+  document.getElementById("eb").disabled=true;
+  var chat=document.getElementById("chat");
+  var card=document.createElement("div");card.className="phrase-review-card";
+  var html='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
+  html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
+  html+='<div class="phrase-list">';
+  sc.phrases.forEach(function(p,i){
+    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div></label>';
+  });
+  html+='</div>';
+  var prog0=tr("pr_progress").replace("%1","0").replace("%2",sc.phrases.length);
+  html+='<div class="phrase-progress" id="phraseProgress">'+escHtml(prog0)+'</div>';
+  html+='<button class="phrase-start-btn" onclick="startSession(\''+escHtml(sc.name)+'\',SCENARIOS[currentMode].system,SCENARIOS[currentMode].opening,SCENARIOS[currentMode])">'+escHtml(tr("pr_start"))+'</button>';
+  html+='<div class="phrase-skip" onclick="startSession(\''+escHtml(sc.name)+'\',SCENARIOS[currentMode].system,SCENARIOS[currentMode].opening,SCENARIOS[currentMode])">'+escHtml(tr("pr_skip"))+'</div>';
+  card.innerHTML=html;
+  chat.appendChild(card);
+}
+function phraseCbChange(cb,idx){
+  var card=document.querySelector(".phrase-review-card");if(!card)return;
+  var cbs=card.querySelectorAll(".phrase-cb");
+  var checked=0;cbs.forEach(function(c){if(c.checked)checked++;});
+  var prog=document.getElementById("phraseProgress");
+  if(prog)prog.textContent=tr("pr_progress").replace("%1",checked).replace("%2",cbs.length);
+  var item=cb.closest(".phrase-item");
+  if(item){item.classList.toggle("checked",cb.checked);}
 }
 function showKeywords(kwArr){
   var box=document.getElementById("kwBox"),list=document.getElementById("kwList");
@@ -785,12 +1006,12 @@ function updateTaskCard(){
     TASK_DONE=true;
     var card=document.getElementById("taskCard");if(card)card.classList.add("done");
     var msg=document.getElementById("taskCompleteMsg");if(msg)msg.style.display="block";
-    showToast("🎉 Mission complete!");
+    showToast(tr("toast_mission"));
   }
 }
 
 // ── Chat helpers ──
-function setst(t){document.getElementById("st").textContent=t;}
+function setst(msg){if(LANG==="zh"&&ST_ZH[msg])msg=ST_ZH[msg];document.getElementById("st").textContent=msg;}
 function addMsg(role,text,canSave,confidence){
   var chat=document.getElementById("chat");
   var wrap=document.createElement("div");wrap.className="msg"+(role==="user"?" user":"");
@@ -822,15 +1043,15 @@ function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 // ── TTS ──
 var AUDIO_UNLOCKED=false,SHARED_CTX=null;
 function testTTS(){
-  unlockAudio();var st=document.getElementById("st");st.textContent="Calling Google TTS...";
+  unlockAudio();setst("Calling Google TTS...");
   fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:"Hello this is a test."},voice:{languageCode:"en-US",name:"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3"}})})
-  .then(function(r){st.textContent="HTTP "+r.status;return r.json();})
+  .then(function(r){setst("HTTP "+r.status);return r.json();})
   .then(function(d){
-    if(!d.audioContent){st.textContent="No audio: "+JSON.stringify(d);return;}
-    st.textContent="Got audio, playing...";
+    if(!d.audioContent){setst("No audio: "+JSON.stringify(d));return;}
+    setst("Got audio, playing...");
     var ctx=getAudioCtx();
-    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);src.onended=function(){st.textContent="Test done!";};ctx.resume().then(function(){src.start(0);});},function(){speakFallback("Hello this is a test.",null);});
-  }).catch(function(e){st.textContent="Error: "+e.message;});
+    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);src.onended=function(){setst("Test done!");};ctx.resume().then(function(){src.start(0);});},function(){speakFallback("Hello this is a test.",null);});
+  }).catch(function(e){setst("Error: "+e.message);});
 }
 function getAudioCtx(){if(!SHARED_CTX)SHARED_CTX=new(window.AudioContext||window.webkitAudioContext)();if(SHARED_CTX.state==="suspended")SHARED_CTX.resume();return SHARED_CTX;}
 function unlockAudio(){
@@ -888,7 +1109,7 @@ function initRec(){
       }else{n+=e.results[i][0].transcript;}
     }
     if(f)CUR=(CUR+" "+f).trim();
-    document.getElementById("tb").textContent=CUR||n||"Your speech will appear here...";
+    document.getElementById("tb").textContent=CUR||n||tr("speech_placeholder");
     if(silenceTimer)clearTimeout(silenceTimer);
     if(CUR){silenceTimer=setTimeout(function(){if(CUR.trim()&&IR&&!SPEAKING)RC.stop();},2000);}
   };
@@ -902,7 +1123,7 @@ function toggleRec(){
   unlockAudio();if(!RC&&!initRec())return;
   if(IR){RC.stop();IR=false;}
   else{
-    CUR="";LAST_CONF=null;document.getElementById("tb").textContent="Your speech will appear here...";
+    CUR="";LAST_CONF=null;document.getElementById("tb").textContent=tr("speech_placeholder");
     try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");}
     catch(e){RC=null;initRec();try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");}catch(e2){setst("Cannot start mic. Reload.");}}
   }
@@ -914,7 +1135,7 @@ function sendMsg(){
   document.querySelectorAll(".kw:not(.used)").forEach(function(k){if(CUR.toLowerCase().indexOf(k.textContent.toLowerCase())>-1)k.classList.add("used");});
   var txt=CUR.trim(),conf=LAST_CONF;
   UTTS.push(txt);addMsg("user",txt,false,conf);
-  CUR="";LAST_CONF=null;document.getElementById("tb").textContent="Your speech will appear here...";
+  CUR="";LAST_CONF=null;document.getElementById("tb").textContent=tr("speech_placeholder");
   setst("AI is thinking...");HIST.push({role:"user",content:txt});showThinking();
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:150,system:SYSPR,messages:HIST})})
   .then(function(r){return r.json();})
@@ -961,24 +1182,24 @@ function endSess(){
 
 function showFeedback(fb){
   var panel=document.getElementById("smr");panel.style.display="block";
-  var L={grammar:"Grammar",word_choice:"Word Choice",structure:"Structure",fluency:"Fluency"};
+  var L={grammar:tr("fb_score_grammar"),word_choice:tr("fb_score_word"),structure:tr("fb_score_structure"),fluency:tr("fb_score_fluency")};
   var sg="";for(var k in fb.scores||{}){sg+='<div class="sc"><div class="scl">'+(L[k]||k)+'</div><div class="scn">'+fb.scores[k]+'<span style="font-size:13px;color:#999">/10</span></div></div>';}
   document.getElementById("sg").innerHTML=sg;
   var h="";
   if(fb.corrections&&fb.corrections.length){
-    h+='<div class="fbh">Grammar corrections</div>';
+    h+='<div class="fbh">'+tr("fb_corrections")+'</div>';
     fb.corrections.forEach(function(c){h+='<div class="fbi ferr" style="padding-right:32px"><span class="orig">'+escHtml(c.original)+'</span> → <span class="fix">'+escHtml(c.corrected)+'</span><br><small>'+escHtml(c.reason||"")+'</small><button class="fbi-save" onclick="saveSentence(\''+escAttr(c.original)+'\',\''+escAttr(c.corrected)+'\',\''+escAttr(c.reason||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button></div>';});
   }
   if(fb.improvements&&fb.improvements.length){
-    h+='<div class="fbh">Suggestions</div>';
+    h+='<div class="fbh">'+tr("fb_suggestions")+'</div>';
     fb.improvements.forEach(function(i){h+='<div class="fbi fimp" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><span class="orig">'+escHtml(i.original)+'</span> → <span class="fix">'+escHtml(i.suggestion)+'</span><br><small>'+escHtml(i.note||"")+'</small></div><button class="fbi-save" onclick="saveSentence(\''+escAttr(i.original)+'\',\''+escAttr(i.suggestion)+'\',\''+escAttr(i.note||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button></div>';});
   }
   if(fb.pronunciation&&fb.pronunciation.length){
-    h+='<div class="fbh">Pronunciation to practice</div>';
+    h+='<div class="fbh">'+tr("fb_pronunciation")+'</div>';
     fb.pronunciation.forEach(function(p){h+='<div class="fbi fpron"><strong>'+escHtml(p.word)+'</strong> — '+escHtml(p.tip)+'</div>';});
   }
-  if(fb.strengths&&fb.strengths.length){h+='<div class="fbh">What you did well</div>';fb.strengths.forEach(function(s){h+='<div class="fbi fgd">'+escHtml(s)+'</div>';});}
-  if(fb.overall_tip)h+='<div class="tipbox"><strong>Tip:</strong> '+escHtml(fb.overall_tip)+'</div>';
+  if(fb.strengths&&fb.strengths.length){h+='<div class="fbh">'+tr("fb_strengths")+'</div>';fb.strengths.forEach(function(s){h+='<div class="fbi fgd">'+escHtml(s)+'</div>';});}
+  if(fb.overall_tip)h+='<div class="tipbox"><strong>'+tr("fb_tip")+'</strong> '+escHtml(fb.overall_tip)+'</div>';
   document.getElementById("fbc").innerHTML=h;
   panel.scrollIntoView({behavior:"smooth"});setst("Done — see feedback below!");
   speak("Great practice session! Here is your feedback.",null);
@@ -989,14 +1210,14 @@ function restart(){
   ON=false;HIST=[];UTTS=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
   TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;
   document.getElementById("ti").value="";
-  document.getElementById("tb").textContent="Your speech will appear here...";
+  document.getElementById("tb").textContent=tr("speech_placeholder");
   document.getElementById("smr").style.display="none";
   document.getElementById("kwBox").style.display="none";
   document.getElementById("mb").disabled=false;document.getElementById("eb").disabled=false;
   document.getElementById("mb").classList.remove("listening","speaking");
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
-  document.getElementById("chat").innerHTML='<div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!</div></div>';
-  setst("Select a scenario or topic to begin");
+  document.getElementById("chat").innerHTML='<div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">'+escHtml(tr("chat_init"))+'</div></div>';
+  setst(tr("status_init"));
 }
 
 // ── Utils ──
