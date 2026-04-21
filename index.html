@@ -216,6 +216,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .fy-empty{text-align:center;padding:2rem 1rem;color:#aaa;font-size:14px}
 
 .note{font-size:12px;color:#aaa;text-align:center;margin-top:1rem}
+
+/* Admin usage table */
+.usage-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
+.usage-stat{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:10px 12px;text-align:center}
+.usage-stat .us-val{font-size:20px;font-weight:600;color:#185FA5}
+.usage-stat .us-label{font-size:11px;color:#888;margin-top:2px}
+.usage-table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e0e0e0}
+.usage-table th{background:#f5f5f5;padding:8px 10px;text-align:left;font-size:11px;color:#666;font-weight:500;border-bottom:1px solid #e0e0e0}
+.usage-table td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
+.usage-table tr:last-child td{border-bottom:none}
+.usage-table tr:hover td{background:#fafafa}
+.usage-cost{color:#185FA5;font-weight:500}
 </style>
 </head>
 <body>
@@ -261,6 +273,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     <button class="tab" id="tabSaved" onclick="showTab('saved')">⭐ Saved</button>
     <button class="tab" id="tabWeak" onclick="showTab('weak')">📊 Analysis</button>
     <button class="tab" id="tabForyou" onclick="showTab('foryou')">🎓 For You</button>
+    <button class="tab" id="tabAdmin" onclick="showTab('admin')" style="display:none">🔑 Admin</button>
   </div>
 
   <!-- PRACTICE TAB -->
@@ -341,9 +354,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     <h2 style="font-size:15px;font-weight:500;margin-bottom:1rem">🎓 Made For You</h2>
     <div id="foryouContent"><div class="empty-msg">Complete at least one session to get your personalized lesson.</div></div>
   </div>
+
+  <!-- ADMIN TAB -->
+  <div id="tabContentAdmin" style="display:none">
+    <h2 style="font-size:15px;font-weight:500;margin-bottom:4px">🔑 Usage Dashboard</h2>
+    <p style="font-size:12px;color:#888;margin-bottom:1rem">Cost estimates are approximate.</p>
+    <div id="adminContent"><div class="empty-msg">Loading...</div></div>
+  </div>
 </div>
 
 <script>
+var ADMIN_USERNAME="erich0793";
 var PROXY="https://xujxibajkncuubgwfgkq.supabase.co/functions/v1/claude-proxy";
 var SUPA_URL="https://xujxibajkncuubgwfgkq.supabase.co";
 var SUPA_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1anhpYmFqa25jdXViZ3dmZ2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzczMTAsImV4cCI6MjA5MTgxMzMxMH0.n10WhHlcgl7gbK9hG9v3op2LgTVRoUkqQeTPGj0t3zA";
@@ -508,11 +529,17 @@ window.onload=function(){
   if(saved){try{currentUser=JSON.parse(saved);onLoginSuccess();}catch(e){}}
   if(window.speechSynthesis){window.speechSynthesis.getVoices();window.speechSynthesis.onvoiceschanged=function(){window.speechSynthesis.getVoices();};}
 };
-function initApp(){document.getElementById("dailyText").textContent=getTodayTopic().text;applyLang();}
+function initApp(){
+  document.getElementById("dailyText").textContent=getTodayTopic().text;
+  applyLang();
+  if(currentUser&&currentUser.username===ADMIN_USERNAME){
+    document.getElementById("tabAdmin").style.display="";
+  }
+}
 
 // ── Tabs ──
 function showTab(tab){
-  ["practice","saved","weak","foryou"].forEach(function(t){
+  ["practice","saved","weak","foryou","admin"].forEach(function(t){
     var c=document.getElementById("tabContent"+t.charAt(0).toUpperCase()+t.slice(1));
     if(c)c.style.display=t===tab?"block":"none";
     var b=document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1));
@@ -521,6 +548,11 @@ function showTab(tab){
   if(tab==="saved")loadSaved();
   if(tab==="weak")loadWeakness();
   if(tab==="foryou")loadForYou();
+  if(tab==="admin")loadUsageAdmin();
+}
+function logUsage(type,chars){
+  if(!currentUser)return;
+  dbInsert("usage_logs",{user_id:currentUser.id,username:currentUser.username,type:type,scenario:currentMode||null,chars:chars||null});
 }
 
 // ── Saved sentences ──
@@ -743,6 +775,42 @@ function startMadeForYouLesson(topTypes){
     task:"Complete at least 5 exchanges to finish the lesson.",
     taskCheck:function(utts){return{done:utts.length>=5,steps:[{label:"Complete 5 exchanges ("+Math.min(utts.length,5)+"/5 done)",done:utts.length>=5}]};}
   });
+}
+
+function loadUsageAdmin(){
+  var content=document.getElementById("adminContent");
+  content.innerHTML='<div class="empty-msg">Loading...</div>';
+  dbGet("usage_logs","order=created_at.desc&limit=2000").then(function(rows){
+    if(!rows||!rows.length){content.innerHTML='<div class="empty-msg">No usage data yet.</div>';return;}
+    var users={};
+    rows.forEach(function(r){
+      var u=r.username||"unknown";
+      if(!users[u])users[u]={chat:0,feedback:0,ttsChars:0,last:""};
+      if(r.type==="claude_chat")users[u].chat++;
+      else if(r.type==="claude_feedback")users[u].feedback++;
+      else if(r.type==="tts")users[u].ttsChars+=(r.chars||0);
+      if(!users[u].last||r.created_at>users[u].last)users[u].last=r.created_at;
+    });
+    var totalChat=0,totalFeedback=0,totalTtsChars=0;
+    Object.values(users).forEach(function(u){totalChat+=u.chat;totalFeedback+=u.feedback;totalTtsChars+=u.ttsChars;});
+    var estCost=totalChat*0.003+totalFeedback*0.008+totalTtsChars*0.000016;
+    var html='<div class="usage-summary">';
+    html+='<div class="usage-stat"><div class="us-val">'+Object.keys(users).length+'</div><div class="us-label">Users</div></div>';
+    html+='<div class="usage-stat"><div class="us-val">'+(totalChat+totalFeedback)+'</div><div class="us-label">API Calls</div></div>';
+    html+='<div class="usage-stat"><div class="us-val usage-cost">$'+estCost.toFixed(3)+'</div><div class="us-label">Est. Total Cost</div></div>';
+    html+='</div>';
+    html+='<table class="usage-table"><thead><tr><th>User</th><th>Chat</th><th>Feedback</th><th>TTS chars</th><th>Est. Cost</th><th>Last active</th></tr></thead><tbody>';
+    var sorted=Object.keys(users).sort(function(a,b){return users[b].chat-users[a].chat;});
+    sorted.forEach(function(u){
+      var d=users[u];
+      var cost=d.chat*0.003+d.feedback*0.008+d.ttsChars*0.000016;
+      var last=d.last?new Date(d.last).toLocaleDateString("zh-TW",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+      html+='<tr><td><strong>'+escHtml(u)+'</strong></td><td>'+d.chat+'</td><td>'+d.feedback+'</td><td>'+(d.ttsChars>0?d.ttsChars.toLocaleString():"0")+'</td><td class="usage-cost">$'+cost.toFixed(3)+'</td><td style="font-size:11px;color:#888">'+last+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    html+='<p style="font-size:11px;color:#aaa;margin-top:8px">Chat ~$0.003/call · Feedback ~$0.008/call · TTS $0.000016/char</p>';
+    content.innerHTML=html;
+  }).catch(function(){content.innerHTML='<div class="empty-msg">Failed to load data.</div>';});
 }
 
 // ── Daily topics ──
@@ -1081,6 +1149,7 @@ function speak(text,onDone){
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
+    logUsage("tts",text.length);
     var ctx=getAudioCtx();
     ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
       var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
@@ -1142,6 +1211,7 @@ function sendMsg(){
   .then(function(d){
     var rep=d.content&&d.content[0]?d.content[0].text:"That's interesting! Can you tell me more?";
     hideThinking();addMsg("ai",rep,true);HIST.push({role:"assistant",content:rep});
+    logUsage("claude_chat");
     updateTaskCard();
     speak(rep,function(){if(ON)setTimeout(function(){if(ON&&!IR&&!SPEAKING)toggleRec();},600);});
   })
@@ -1172,6 +1242,7 @@ function endSess(){
     var s=raw.indexOf("{"),e=raw.lastIndexOf("}");
     var fb=JSON.parse(s>=0&&e>=0?raw.substring(s,e+1):"{}");
     hideThinking();
+    logUsage("claude_feedback");
     if(currentUser&&fb.corrections&&fb.corrections.length){
       dbInsert("session_errors",fb.corrections.map(function(c){return{user_id:currentUser.id,error_type:c.error_type||"grammar",original:c.original,corrected:c.corrected,reason:c.reason||null,scenario:currentMode||null};}));
     }
