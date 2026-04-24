@@ -133,8 +133,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .phrase-progress{font-size:12px;color:#666;text-align:center;margin-bottom:10px}
 .phrase-start-btn{width:100%;padding:11px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-size:15px;cursor:pointer;margin-bottom:8px}
 .phrase-start-btn:hover{background:#0C447C}
-.phrase-skip{text-align:center;font-size:13px;color:#999;cursor:pointer;padding:4px}
-.phrase-skip:hover{color:#555}
+.phrase-skip{display:block;width:100%;padding:11px;border-radius:8px;border:1.5px solid #185FA5;background:#fff;color:#185FA5;font-size:15px;font-weight:500;cursor:pointer;text-align:center;margin-bottom:10px}
+.phrase-skip:hover{background:#E6F1FB}
 
 /* Confidence badge */
 .conf-row{display:flex;justify-content:flex-end;padding-right:4px;margin-top:-4px}
@@ -953,7 +953,14 @@ function generateTopicScenario(topic,onSuccess,onError){
   if(GENERATING_SCENARIO)return;
   GENERATING_SCENARIO=true;
   showTopicLoading();
-  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. Make them practical and directly useful for talking about this specific topic.';
+  var levelKey=LEVEL||"intermediate";
+  var levelHints={
+    beginner:"The learner is a BEGINNER (A1-A2). Phrases must be short and simple (under 10 words). Vocabulary must be basic everyday words. Opening question must be very simple and direct.",
+    intermediate:"The learner is INTERMEDIATE (B1-B2). Use natural conversational phrases and common everyday vocabulary.",
+    advanced:"The learner is ADVANCED (C1-C2). Include idioms, phrasal verbs, and sophisticated expressions in phrases and vocabulary. Opening can be nuanced."
+  };
+  var levelHint=levelHints[levelKey]||levelHints.intermediate;
+  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nLearner level: '+levelHint+'\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "opening": "A natural English opening question to start this specific conversation (1 sentence, level-appropriate, in English regardless of topic language)",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     model:"claude-sonnet-4-20250514",max_tokens:2000,
     messages:[{role:"user",content:prompt}]
@@ -966,7 +973,7 @@ function generateTopicScenario(topic,onSuccess,onError){
     if(!sc.phrases||!sc.vocab||!sc.phrases.length)throw new Error("invalid");
     sc.name=topic;
     sc.system=SCENARIOS.free.system;
-    sc.opening="Let's talk about TOPIC. What's on your mind?";
+    sc.opening=sc.opening||"Let's talk about TOPIC. What's on your mind?";
     sc.taskCheck=null;
     onSuccess(sc);
   }).catch(function(e){
@@ -1594,7 +1601,7 @@ function showPhraseReview(sc){
   var chat=document.getElementById("chat");
   var card=document.createElement("div");card.className="phrase-review-card";
   var html='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
-  html+='<div class="phrase-skip" onclick="startFromPhraseReview()">'+escHtml(tr("pr_skip"))+'</div>';
+  html+='<button type="button" class="phrase-skip" onclick="startFromPhraseReview()">'+escHtml(tr("pr_skip"))+'</button>';
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
@@ -1728,11 +1735,15 @@ function showTaskCard(sc){
   var chat=document.getElementById("chat");
   var card=document.createElement("div");card.className="task-card";card.id="taskCard";
   var html="";
-  if(sc.cultural)html+='<div class="task-cultural">'+escHtml(sc.cultural)+'</div>';
-  html+='<div class="task-header"><span class="task-label">🎯 Mission</span></div>';
-  html+='<div class="task-desc">'+escHtml(sc.task)+'</div>';
+  var tcCultural=LANG==="zh"?(sc.cultural_zh||sc.cultural):sc.cultural;
+  var tcTask=LANG==="zh"?(sc.task_zh||sc.task):sc.task;
+  var tcLabel=LANG==="zh"?"🎯 任務":"🎯 Mission";
+  var tcDone=LANG==="zh"?"✅ 任務完成！做得很好！":"✅ Mission complete! Great job!";
+  if(tcCultural)html+='<div class="task-cultural">'+escHtml(tcCultural)+'</div>';
+  html+='<div class="task-header"><span class="task-label">'+tcLabel+'</span></div>';
+  html+='<div class="task-desc">'+escHtml(tcTask)+'</div>';
   html+='<div class="task-steps" id="taskSteps"></div>';
-  html+='<div class="task-complete-msg" id="taskCompleteMsg">✅ Mission complete! Great job!</div>';
+  html+='<div class="task-complete-msg" id="taskCompleteMsg">'+escHtml(tcDone)+'</div>';
   card.innerHTML=html;
   chat.appendChild(card);
   if(sc.taskCheck){
