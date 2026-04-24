@@ -131,10 +131,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .phrase-en{font-size:14px;color:#1a1a1a;line-height:1.4}
 .phrase-zh{font-size:12px;color:#888;margin-top:2px}
 .phrase-progress{font-size:12px;color:#666;text-align:center;margin-bottom:10px}
-.phrase-start-btn{width:100%;padding:11px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-size:15px;cursor:pointer;margin-bottom:8px}
+.phrase-start-btn{flex:1;padding:11px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-size:14px;cursor:pointer;margin-bottom:8px}
 .phrase-start-btn:hover{background:#0C447C}
 .phrase-skip{display:block;width:100%;padding:11px;border-radius:8px;border:1.5px solid #185FA5;background:#fff;color:#185FA5;font-size:15px;font-weight:500;cursor:pointer;text-align:center;margin-bottom:10px}
 .phrase-skip:hover{background:#E6F1FB}
+.start-choice{display:flex;gap:8px;margin-top:0}
 
 /* Confidence badge */
 .conf-row{display:flex;justify-content:flex-end;padding-right:4px;margin-top:-4px}
@@ -488,7 +489,8 @@ var UI_STRINGS={
     toast_mission:"🎉 Mission complete!",
     pr_header:"📖 Review Common Phrases",
     pr_sub:"Here are phrases you may use in this scenario. Read through them before starting!",
-    pr_progress:"Reviewed %1 / %2 phrases",pr_start:"Start Conversation",pr_skip:"Skip, start now",pr_vocab_title:"📚 Common Vocabulary",pr_vocab_more:"More vocabulary →"},
+    pr_progress:"Reviewed %1 / %2 phrases",pr_start_i:"🙋 I'll start",pr_start_ai:"🤖 AI starts",pr_skip:"Skip, start now",pr_vocab_title:"📚 Common Vocabulary",pr_vocab_more:"More vocabulary →",
+    fy_empty:"Complete at least one session to get your personalized lesson.",fy_go_practice:"Go to Practice →",fy_lesson_title:"Your Personalized Lesson",fy_lesson_sub:"Based on %1 errors across your sessions, we'll focus on:",fy_lesson_btn:"Start Lesson →"},
   zh:{app_title:"英語口說練習",btn_lang:"EN",btn_logout:"登出",
     level_change:"更改程度",level_title:"你的英文程度是？",level_sub:"我們會根據你的程度調整對話。",
     tab_practice:"練習",tab_saved:"⭐ 收藏",tab_analysis:"📊 分析",tab_foryou:"🎓 為你量身",
@@ -511,7 +513,8 @@ var UI_STRINGS={
     toast_mission:"🎉 任務完成！",
     pr_header:"📖 先複習常用句子",
     pr_sub:"以下是這個情境常會用到的句子，先看熟再開始對話更有自信！",
-    pr_progress:"已複習 %1 / %2 句",pr_start:"開始對話",pr_skip:"略過，直接開始",pr_vocab_title:"📚 常用單字",pr_vocab_more:"更多單字 →"}
+    pr_progress:"已複習 %1 / %2 句",pr_start_i:"🙋 我先說",pr_start_ai:"🤖 AI先說",pr_skip:"略過，直接開始",pr_vocab_title:"📚 常用單字",pr_vocab_more:"更多單字 →",
+    fy_empty:"完成至少一個練習課程來獲得你的專屬課程。",fy_go_practice:"去練習 →",fy_lesson_title:"你的專屬課程",fy_lesson_sub:"根據你 %1 次錯誤，我們將專注練習：",fy_lesson_btn:"開始課程 →"}
 };
 var ST_ZH={
   "Please enter a topic first.":"請先輸入話題。",
@@ -780,10 +783,10 @@ function retryMissed(){
 
 // ── Weakness analysis ──
 var ERROR_PATTERNS={
-  grammar:{label:"Grammar",color:"c-grammar",tip:"Articles (a/an/the), verb tenses, subject-verb agreement, prepositions.",advice:"Practice: 'I went' not 'I go yesterday'; 'an apple' not 'a apple'."},
-  word_choice:{label:"Word Choice",color:"c-word_choice",tip:"Using an imprecise or wrong word; formal/informal mismatch.",advice:"Read aloud to build vocabulary. Note which words you mix up most often."},
-  structure:{label:"Sentence Structure",color:"c-structure",tip:"Word order, run-on sentences, missing connectors.",advice:"Keep sentences short. Use 'because', 'so', 'but' to link ideas clearly."},
-  fluency:{label:"Fluency",color:"c-fluency",tip:"Filler words (um, uh), long pauses, restarting mid-sentence.",advice:"It's better to pause silently than say 'um'. Slow down and breathe."}
+  grammar:{label:"Grammar",label_zh:"文法",color:"c-grammar",tip:"Articles (a/an/the), verb tenses, subject-verb agreement, prepositions.",advice:"Practice: 'I went' not 'I go yesterday'; 'an apple' not 'a apple'."},
+  word_choice:{label:"Word Choice",label_zh:"用字選擇",color:"c-word_choice",tip:"Using an imprecise or wrong word; formal/informal mismatch.",advice:"Read aloud to build vocabulary. Note which words you mix up most often."},
+  structure:{label:"Sentence Structure",label_zh:"句子結構",color:"c-structure",tip:"Word order, run-on sentences, missing connectors.",advice:"Keep sentences short. Use 'because', 'so', 'but' to link ideas clearly."},
+  fluency:{label:"Fluency",label_zh:"流暢度",color:"c-fluency",tip:"Filler words (um, uh), long pauses, restarting mid-sentence.",advice:"It's better to pause silently than say 'um'. Slow down and breathe."}
 };
 function loadWeakness(){
   if(!currentUser)return;
@@ -827,7 +830,7 @@ function loadForYou(){
   var content=document.getElementById("foryouContent");
   dbGet("session_errors","user_id=eq."+currentUser.id+"&limit=200").then(function(rows){
     if(!rows||!rows.length){
-      content.innerHTML='<div class="fy-empty">Complete at least one session to get your personalized lesson.<br><br><button class="lesson-btn" onclick="showTab(\'practice\')">Go to Practice →</button></div>';
+      content.innerHTML='<div class="fy-empty">'+escHtml(tr("fy_empty"))+'<br><br><button class="lesson-btn" onclick="showTab(\'practice\')">'+escHtml(tr("fy_go_practice"))+'</button></div>';
       return;
     }
     var types={};
@@ -838,12 +841,12 @@ function loadForYou(){
     var html='<div class="fy-section">';
     html+='<div class="lesson-card">';
     html+='<div class="lesson-icon">🎓</div>';
-    html+='<div class="lesson-title">Your Personalized Lesson</div>';
-    html+='<div class="lesson-sub">Based on '+total+' errors across your sessions, we\'ll focus on:</div>';
+    html+='<div class="lesson-title">'+escHtml(tr("fy_lesson_title"))+'</div>';
+    html+='<div class="lesson-sub">'+escHtml(tr("fy_lesson_sub").replace("%1",total))+'</div>';
     html+='<ul class="lesson-targets">';
-    top.forEach(function(t){var pat=ERROR_PATTERNS[t];html+='<li>'+(pat?pat.label:capitalize(t))+' ('+types[t].count+'×)</li>';});
+    top.forEach(function(t){var pat=ERROR_PATTERNS[t];var label=pat?(LANG==="zh"?(pat.label_zh||pat.label):pat.label):capitalize(t);html+='<li>'+escHtml(label)+' ('+types[t].count+'×)</li>';});
     html+='</ul>';
-    html+='<button class="lesson-btn" onclick=\'startMadeForYouLesson('+JSON.stringify(top)+')\'>Start Lesson →</button>';
+    html+='<button class="lesson-btn" onclick=\'startMadeForYouLesson('+JSON.stringify(top)+')\'>'+escHtml(tr("fy_lesson_btn"))+'</button>';
     html+='</div></div>';
     content.innerHTML=html;
   });
@@ -859,10 +862,15 @@ function startMadeForYouLesson(topTypes){
   var opening="Hi! I've looked at your practice history and I know exactly what to work on. Let's have a natural conversation — no pressure, just talk! To start: what did you do this past weekend?";
   showTab("practice");
   currentMode="lesson";
+  var lessonTask=LANG==="zh"?"完成至少 5 次對話來結束課程。":"Complete at least 5 exchanges to finish the lesson.";
   startSession("Made For You Lesson",sys,opening,{
     cultural:null,
-    task:"Complete at least 5 exchanges to finish the lesson.",
-    taskCheck:function(utts){return{done:utts.length>=5,steps:[{label:"Complete 5 exchanges ("+Math.min(utts.length,5)+"/5 done)",done:utts.length>=5}]};}
+    task:lessonTask,
+    taskCheck:function(utts){
+      var n=Math.min(utts.length,5);
+      var label=LANG==="zh"?"完成 5 次對話（"+n+"/5 已完成）":"Complete 5 exchanges ("+n+"/5 done)";
+      return{done:utts.length>=5,steps:[{label:label,done:utts.length>=5}]};
+    }
   });
 }
 
@@ -1600,8 +1608,8 @@ function showPhraseReview(sc){
   document.getElementById("eb").disabled=true;
   var chat=document.getElementById("chat");
   var card=document.createElement("div");card.className="phrase-review-card";
-  var html='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
-  html+='<button type="button" class="phrase-skip" onclick="startFromPhraseReview()">'+escHtml(tr("pr_skip"))+'</button>';
+  var html='<button type="button" class="phrase-skip" onclick="startFromPhraseReview(\'ai\')">'+escHtml(tr("pr_skip"))+'</button>';
+  html+='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
@@ -1622,7 +1630,10 @@ function showPhraseReview(sc){
   if(taskText)html+='<div class="pr-mission"><span class="pr-mission-label">'+missionLabel+'</span>'+escHtml(taskText)+'</div>';
   var prog0=tr("pr_progress").replace("%1","0").replace("%2",sc.phrases.length);
   html+='<div class="phrase-progress" id="phraseProgress">'+escHtml(prog0)+'</div>';
-  html+='<button class="phrase-start-btn" onclick="startFromPhraseReview()">'+escHtml(tr("pr_start"))+'</button>';
+  html+='<div class="start-choice">';
+  html+='<button class="phrase-start-btn" onclick="startFromPhraseReview(\'user\')">'+escHtml(tr("pr_start_i"))+'</button>';
+  html+='<button class="phrase-start-btn" onclick="startFromPhraseReview(\'ai\')">'+escHtml(tr("pr_start_ai"))+'</button>';
+  html+='</div>';
   card.innerHTML=html;
   currentVocabSc=sc;vocabPage=0;currentVocabIdx=-1;
   chat.appendChild(card);
@@ -1714,7 +1725,8 @@ function startWithCustom(){
     startSession(v,sc.system.replace("TOPIC",v),"Let's talk about "+v+". What's on your mind?",sc);
   });
 }
-function startSession(topic,sysPrompt,opening,sc){
+function startSession(topic,sysPrompt,opening,sc,firstSpeaker){
+  firstSpeaker=firstSpeaker||"ai";
   var levelPrompt=(LEVEL_CONFIG[LEVEL]?LEVEL_CONFIG[LEVEL].prompt:"");
   var slowPrompt=SLOW_MODE?" Use short simple sentences and basic vocabulary. Speak clearly with natural pauses. Avoid contractions and complex grammar.":"";
   var finalPrompt=sysPrompt+levelPrompt+slowPrompt;
@@ -1725,9 +1737,13 @@ function startSession(topic,sysPrompt,opening,sc){
   document.getElementById("chat").innerHTML="";
   document.getElementById("smr").style.display="none";
   if(sc&&sc.task)showTaskCard(sc);
-  addMsg("ai",opening,true);
   unlockAudio();
-  setTimeout(function(){speak(opening,function(){setst(tr("status_mic"));});},300);
+  if(firstSpeaker==="user"){
+    setst(tr("status_mic"));
+  } else {
+    addMsg("ai",opening,true);
+    setTimeout(function(){speak(opening,function(){setst(tr("status_mic"));});},300);
+  }
 }
 
 // ── Task card ──
@@ -2102,14 +2118,15 @@ function saveVocabItem(btn,zh,word,ex){
   btn.classList.add("saved");btn.disabled=true;
 }
 
-function startFromPhraseReview(){
+function startFromPhraseReview(firstSpeaker){
+  firstSpeaker=firstSpeaker||"ai";
   var sc=PENDING_SC||SCENARIOS[currentMode];
   PENDING_SC=null;
   var topic=PENDING_TOPIC||document.getElementById("ti").value.trim()||sc.name;
   var sys=(sc.system||SCENARIOS.free.system).replace("TOPIC",topic);
   var opening=(sc.opening||"Let's talk about TOPIC. What's on your mind?").replace("TOPIC",topic);
   PENDING_TOPIC="";
-  startSession(topic,sys,opening,sc);
+  startSession(topic,sys,opening,sc,firstSpeaker);
 }
 </script>
 </body>
