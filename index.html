@@ -177,20 +177,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .practice-btn:hover{background:#E6F1FB}
 .empty-msg{text-align:center;color:#aaa;font-size:14px;padding:2rem 0}
 
-/* Flashcard */
-.fc-progress{font-size:12px;color:#999;text-align:center;margin-bottom:.5rem}
-.fc-card{background:#fff;border:1px solid #e0e0e0;border-radius:14px;padding:1.5rem;min-height:170px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;margin-bottom:.75rem;transition:box-shadow .15s}
-.fc-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
-.fc-prompt{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.75rem}
-.fc-sentence{font-size:18px;color:#A32D2D;text-decoration:line-through;line-height:1.5}
-.fc-tap{font-size:12px;color:#bbb;margin-top:.75rem}
-.fc-correct{font-size:17px;color:#27500A;font-weight:500;line-height:1.5;margin-bottom:.5rem}
-.fc-note{font-size:13px;color:#666;margin-bottom:.5rem}
-.fc-tag{font-size:11px;padding:2px 10px;border-radius:20px;background:#E6F1FB;color:#0C447C;display:inline-block}
-.fc-actions{display:flex;gap:8px}
-.fc-again{flex:1;padding:10px;border-radius:8px;border:1px solid #E24B4A;background:#FCEBEB;color:#A32D2D;cursor:pointer;font-size:13px}
-.fc-know{flex:1;padding:10px;border-radius:8px;border:1px solid #639922;background:#EAF3DE;color:#27500A;cursor:pointer;font-size:13px;font-weight:500}
-.fc-done-box{text-align:center;padding:1.5rem;background:#fff;border-radius:12px;border:1px solid #e0e0e0}
+/* Saved sections */
+.saved-section-header{font-size:11px;font-weight:600;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;padding:4px 0;margin-top:14px;margin-bottom:8px;border-bottom:1px solid #e8f0fc}
+.saved-section-header:first-child{margin-top:0}
+.saved-item-speak{font-size:15px;background:none;border:none;cursor:pointer;padding:3px 5px;opacity:.45;flex-shrink:0}
+.saved-item-speak:hover{opacity:1}
+.vocab-item-word{font-size:14px;font-weight:500;color:#1a1a1a}
+.vocab-item-zh{font-size:12px;color:#888;margin-top:1px}
+.vocab-item-ex{font-size:12px;color:#666;margin-top:5px;font-style:italic}
 
 /* Weakness / Analysis */
 .weakness-section{margin-bottom:1.5rem}
@@ -217,13 +211,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .ex-item.c-fluency{color:#4a2d6b;background:#f5f0ff;border-color:#9B5DE5}
 
 /* For You tab */
-.fy-section{margin-bottom:1.5rem}
-.fy-section h3{font-size:14px;font-weight:500;margin-bottom:.75rem;color:#1a1a1a}
-.lesson-card{background:#fff;border:1.5px solid #185FA5;border-radius:12px;padding:1.25rem;text-align:center}
-.lesson-icon{font-size:36px;margin-bottom:.5rem}
-.lesson-title{font-size:16px;font-weight:600;margin-bottom:4px}
-.lesson-sub{font-size:13px;color:#666;margin-bottom:1rem}
-.lesson-targets{list-style:none;text-align:left;display:inline-block;margin-bottom:1rem}
+.fy-section{margin-bottom:1.25rem}
+.fy-section-title{font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.fy-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.fy-bar-label{min-width:72px;color:#333;flex-shrink:0}
+.fy-bar-track{flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+.fy-bar-fill{height:100%;border-radius:4px;background:#185FA5;transition:width .4s}
+.fy-bar-count{color:#888;flex-shrink:0;min-width:28px;text-align:right}
+.fy-error-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px 12px;margin-bottom:6px;position:relative}
+.fy-error-orig{font-size:12px;color:#999;text-decoration:line-through;margin-bottom:3px}
+.fy-error-fix{font-size:13px;color:#1a1a1a;font-weight:500}
+.fy-error-reason{font-size:11px;color:#888;margin-top:3px;line-height:1.4}
+.fy-error-speak{position:absolute;top:8px;right:10px;font-size:14px;background:none;border:none;cursor:pointer;opacity:.4}
+.fy-error-speak:hover{opacity:1}
+.fy-drill-btns{display:flex;flex-wrap:wrap;gap:8px}
+.fy-drill-btn{flex:1;min-width:calc(50% - 4px);padding:10px 8px;border-radius:8px;border:1.5px solid #185FA5;background:#fff;color:#185FA5;font-size:12px;font-weight:500;cursor:pointer;text-align:center}
+.fy-drill-btn:hover{background:#E6F1FB}
+.lesson-card{background:#fff;border:1.5px solid #185FA5;border-radius:12px;padding:1rem 1.25rem;text-align:center}
+.lesson-icon{font-size:32px;margin-bottom:.4rem}
+.lesson-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.lesson-sub{font-size:12px;color:#666;margin-bottom:.75rem}
+.lesson-targets{list-style:none;text-align:left;display:inline-block;margin-bottom:.75rem}
 .lesson-targets li{font-size:13px;padding:3px 0;color:#333}
 .lesson-targets li::before{content:"→ ";color:#185FA5;font-weight:600}
 .lesson-btn{padding:10px 24px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-size:14px;cursor:pointer;font-weight:500}
@@ -414,18 +422,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 
   <!-- SAVED TAB -->
   <div id="tabContentSaved" style="display:none">
-    <div class="saved-header">
-      <h2 style="font-size:15px;font-weight:500">⭐ Saved Sentences</h2>
-      <button class="abtn" id="fcToggleBtn" onclick="toggleFlashcards()" style="font-size:12px;padding:6px 12px">📇 Flashcards</button>
+    <h2 style="font-size:15px;font-weight:500;margin-bottom:1rem" id="savedTabTitle">⭐ 收藏</h2>
+    <div id="savedList">
+      <div class="empty-msg">No saved sentences yet.<br>Tap ⭐ on any message to save it.</div>
     </div>
-    <!-- Saved list view -->
-    <div id="savedListArea">
-      <div class="saved-list" id="savedList">
-        <div class="empty-msg">No saved sentences yet.<br>Tap ⭐ on any message to save it.</div>
-      </div>
-    </div>
-    <!-- Flashcard view (hidden by default) -->
-    <div id="flashcardArea" style="display:none"></div>
   </div>
 
   <!-- ANALYSIS TAB -->
@@ -460,7 +460,6 @@ var silenceTimer=null,currentMode="";
 var CONF_SCORES=[],LAST_CONF=null;
 var TASK_DONE=false,TASK_DEF=null;
 var SAVED_MAP={};
-var FC_CARDS=[],FC_INDEX=0,FC_FLIPPED=false,FC_KNOWN=[],FC_AGAIN=[],FC_ACTIVE=false;
 var SLOW_MODE=false;
 var LEVEL=localStorage.getItem("pref_level")||"";
 var PENDING_TOPIC="";var PENDING_SC=null;var GENERATING_SCENARIO=false;
@@ -562,7 +561,6 @@ function applyLang(){
   var smrH2=document.querySelector("#smr h2");if(smrH2)smrH2.textContent=tr("smr_title");
   document.querySelector(".rbtn").textContent=tr("btn_restart");
   var savedH2=document.querySelector("#tabContentSaved h2");if(savedH2)savedH2.textContent=tr("saved_title");
-  document.getElementById("fcToggleBtn").textContent=tr("btn_flashcards");
   var weakH2=document.querySelector("#tabContentWeak h2");if(weakH2)weakH2.textContent=tr("analysis_title");
   var foryouH2=document.querySelector("#tabContentForyou h2");if(foryouH2)foryouH2.textContent=tr("foryou_title");
   if(!ON){var chat=document.getElementById("chat");var aiMsg=chat.querySelector(".aibbl");if(aiMsg&&!aiMsg.querySelector(".save-btn"))aiMsg.textContent=tr("chat_init");}
@@ -653,132 +651,108 @@ function loadSaved(){
   dbGet("saved_sentences","user_id=eq."+currentUser.id).then(function(rows){
     SAVED_MAP={};
     var list=document.getElementById("savedList");
-    if(!rows||!rows.length){list.innerHTML='<div class="empty-msg">No saved sentences yet.<br>Tap ⭐ on any message to save it.</div>';return;}
-    // Cache for offline flashcards
-    localStorage.setItem("ep_saved_"+currentUser.id,JSON.stringify(rows));
+    var titleEl=document.getElementById("savedTabTitle");
+    if(titleEl)titleEl.textContent=LANG==="zh"?"⭐ 收藏":"⭐ Saved";
+    if(!rows||!rows.length){list.innerHTML='<div class="empty-msg">'+(LANG==="zh"?"還沒有收藏內容。<br>點 ⭐ 可收藏句子或單字。":"No saved sentences yet.<br>Tap ⭐ on any message to save it.")+'</div>';return;}
     rows.forEach(function(r){SAVED_MAP[r.id]=r;});
-    list.innerHTML=rows.map(function(r){
-      return '<div class="saved-item" id="si-'+r.id+'">'
-        +'<div class="orig-text">'+escHtml(r.original)+'</div>'
-        +(r.corrected?'<div class="fix-text">✓ '+escHtml(r.corrected)+'</div>':'')
-        +(r.note?'<div class="note-text">'+escHtml(r.note)+'</div>':'')
-        +'<div class="meta">'
-        +(r.scenario?'<span class="scenario-tag">'+escHtml(r.scenario)+'</span>':'<span></span>')
-        +'<div class="item-actions">'
-        +(r.corrected?'<button class="practice-btn" onclick="practiceThisSentence(\''+r.id+'\')">🔄 Practice</button>':'')
-        +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">Remove</button>'
-        +'</div></div></div>';
-    }).join("");
+    var isZh=/[一-鿿]/;
+    var vocabRows=rows.filter(function(r){return r.corrected&&isZh.test(r.original);});
+    var sentRows=rows.filter(function(r){return !isZh.test(r.original);});
+    var html="";
+    var practiceLabel=LANG==="zh"?"🔄 練習":"🔄 Practice";
+    var removeLabel=LANG==="zh"?"刪除":"Remove";
+    // Sentences section
+    var sentTitle=LANG==="zh"?"📝 收藏的句子":"📝 Saved Sentences";
+    if(sentRows.length){
+      html+='<div class="saved-section-header">'+escHtml(sentTitle)+'</div>';
+      html+=sentRows.map(function(r){
+        var speakTarget=r.corrected||r.original;
+        return '<div class="saved-item" id="si-'+r.id+'">'
+          +'<div style="display:flex;align-items:flex-start;gap:6px">'
+          +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(speakTarget)+'\')">🔊</button>'
+          +'<div style="flex:1">'
+          +'<div class="orig-text">'+escHtml(r.original)+'</div>'
+          +(r.corrected?'<div class="fix-text">✓ '+escHtml(r.corrected)+'</div>':'')
+          +(r.note?'<div class="note-text">'+escHtml(r.note)+'</div>':'')
+          +'</div></div>'
+          +'<div class="meta">'
+          +(r.scenario?'<span class="scenario-tag">'+escHtml(r.scenario)+'</span>':'<span></span>')
+          +'<div class="item-actions">'
+          +'<button class="practice-btn" onclick="practiceThisSentence(\''+r.id+'\')">'+escHtml(practiceLabel)+'</button>'
+          +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">'+escHtml(removeLabel)+'</button>'
+          +'</div></div></div>';
+      }).join("");
+    }
+    // Vocab section
+    var vocabTitle=LANG==="zh"?"📚 收藏的單字":"📚 Saved Vocabulary";
+    if(vocabRows.length){
+      html+='<div class="saved-section-header">'+escHtml(vocabTitle)+'</div>';
+      html+=vocabRows.map(function(r){
+        return '<div class="saved-item" id="si-'+r.id+'">'
+          +'<div style="display:flex;align-items:flex-start;gap:6px">'
+          +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(r.corrected)+'\')">🔊</button>'
+          +'<div style="flex:1">'
+          +'<div class="vocab-item-word">'+escHtml(r.corrected)+'</div>'
+          +'<div class="vocab-item-zh">'+escHtml(r.original)+'</div>'
+          +(r.note?'<div class="vocab-item-ex">'+escHtml(r.note)+'</div>':'')
+          +'</div></div>'
+          +'<div class="meta"><span></span>'
+          +'<div class="item-actions">'
+          +'<button class="practice-btn" onclick="practiceThisSentence(\''+r.id+'\')">'+escHtml(practiceLabel)+'</button>'
+          +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">'+escHtml(removeLabel)+'</button>'
+          +'</div></div></div>';
+      }).join("");
+    }
+    if(!html)html='<div class="empty-msg">'+(LANG==="zh"?"還沒有收藏內容。":"No saved content yet.")+'</div>';
+    list.innerHTML=html;
   });
 }
 function saveSentence(original,corrected,note){
   if(!currentUser)return;
-  dbInsert("saved_sentences",{user_id:currentUser.id,original:original,corrected:corrected||null,note:note||null,scenario:currentMode||null}).then(function(){showToast("Saved!");});
+  dbInsert("saved_sentences",{user_id:currentUser.id,original:original,corrected:corrected||null,note:note||null,scenario:currentMode||null}).then(function(){showToast(LANG==="zh"?"已收藏！":"Saved!");});
 }
 function deleteSaved(id){
   dbDelete("saved_sentences",id).then(function(){var el=document.getElementById("si-"+id);if(el)el.remove();});
 }
 
-// ── Practice a saved sentence ──
+// ── Practice a saved sentence/word ──
 function practiceThisSentence(id){
   var r=SAVED_MAP[id];
-  if(!r||!r.corrected)return;
+  if(!r)return;
+  var isVocab=/[一-鿿]/.test(r.original)&&r.corrected;
+  var target=r.corrected||(isVocab?null:r.original);
+  if(!target)return;
   showTab("practice");
-  var sys="You are an English speaking coach. The student is practicing this corrected phrase: \""+r.corrected+"\""
-    +(r.note?" (context: "+r.note+")":"")+"."
-    +" Give the student 3 different real-life situations one at a time where they should naturally use this phrase or similar language."
-    +" After each response, briefly note if they used the target language correctly, then present the next situation."
-    +" Be warm and encouraging. Only say spoken words.";
-  var opening="Let's practice this phrase: \""+r.corrected+"\" — I'll give you real situations to use it. Here's the first: Imagine you're at a coffee shop and the barista gave you the wrong order. What would you say?";
   currentMode="practice";
-  startSession("Sentence Practice",sys,opening,{
-    cultural:null,
-    task:'Use the phrase in 3 different situations.',
-    taskCheck:function(utts){return{done:utts.length>=3,steps:[{label:"Complete 3 practice situations ("+Math.min(utts.length,3)+"/3)",done:utts.length>=3}]};}
-  });
-}
-
-// ── Flashcards ──
-function toggleFlashcards(){
-  FC_ACTIVE=!FC_ACTIVE;
-  document.getElementById("savedListArea").style.display=FC_ACTIVE?"none":"block";
-  document.getElementById("flashcardArea").style.display=FC_ACTIVE?"block":"none";
-  document.getElementById("fcToggleBtn").textContent=FC_ACTIVE?"← Back to list":"📇 Flashcards";
-  if(FC_ACTIVE)loadFlashcardData();
-}
-function loadFlashcardData(){
-  var area=document.getElementById("flashcardArea");
-  area.innerHTML='<div class="empty-msg">Loading...</div>';
-  // Try offline cache first
-  var cacheKey="ep_saved_"+(currentUser?currentUser.id:"");
-  var cached=localStorage.getItem(cacheKey);
-  if(cached){
-    try{
-      var cards=JSON.parse(cached).filter(function(r){return r.corrected;});
-      if(cards.length){initFlashcards(cards);return;}
-    }catch(e){}
-  }
-  if(!currentUser){area.innerHTML='<div class="empty-msg">Please log in.</div>';return;}
-  dbGet("saved_sentences","user_id=eq."+currentUser.id).then(function(rows){
-    var cards=(rows||[]).filter(function(r){return r.corrected;});
-    if(rows)localStorage.setItem(cacheKey,JSON.stringify(rows));
-    initFlashcards(cards);
-  });
-}
-function initFlashcards(cards){
-  if(!cards.length){
-    document.getElementById("flashcardArea").innerHTML='<div class="empty-msg">No saved corrections yet. Save some sentences from your sessions first!</div>';
-    return;
-  }
-  FC_CARDS=cards.slice().sort(function(){return Math.random()-.5;});
-  FC_INDEX=0;FC_FLIPPED=false;FC_KNOWN=[];FC_AGAIN=[];
-  renderFC();
-}
-function renderFC(){
-  var area=document.getElementById("flashcardArea");
-  if(FC_INDEX>=FC_CARDS.length){
-    area.innerHTML='<div class="fc-done-box">'
-      +'<div style="font-size:32px;margin-bottom:8px">🎉</div>'
-      +'<div style="font-size:16px;font-weight:500;margin-bottom:4px">Round complete!</div>'
-      +'<div style="font-size:13px;color:#666;margin-bottom:1rem">Got it: <strong>'+FC_KNOWN.length+'</strong> &nbsp;|&nbsp; Need practice: <strong>'+FC_AGAIN.length+'</strong></div>'
-      +(FC_AGAIN.length?'<button class="lesson-btn" style="margin-bottom:8px;display:block;width:100%" onclick="retryMissed()">Retry '+FC_AGAIN.length+' missed cards</button>':'')
-      +'<button class="abtn" style="width:100%" onclick="initFlashcards(FC_CARDS.concat(FC_KNOWN).concat(FC_AGAIN))">Shuffle & restart</button>'
-      +'</div>';
-    return;
-  }
-  var c=FC_CARDS[FC_INDEX];
-  area.innerHTML='<div class="fc-progress">'+(FC_INDEX+1)+' / '+FC_CARDS.length+'</div>'
-    +'<div class="fc-card" id="fcCard" onclick="flipFC()">'
-    +'<div id="fcFront">'
-    +'<div class="fc-prompt">What is the correct version?</div>'
-    +'<div class="fc-sentence">'+escHtml(c.original)+'</div>'
-    +'<div class="fc-tap">Tap to reveal</div>'
-    +'</div>'
-    +'<div id="fcBack" style="display:none">'
-    +'<div class="fc-correct">'+escHtml(c.corrected)+'</div>'
-    +(c.note?'<div class="fc-note">'+escHtml(c.note)+'</div>':'')
-    +(c.scenario?'<div class="fc-tag">'+escHtml(c.scenario)+'</div>':'')
-    +'</div>'
-    +'</div>'
-    +'<div id="fcActions" style="display:none" class="fc-actions">'
-    +'<button class="fc-again" onclick="markFC(false)">↩ Need practice</button>'
-    +'<button class="fc-know" onclick="markFC(true)">✓ Got it</button>'
+  document.getElementById("chat").innerHTML='<div class="phrase-review-card" style="text-align:center;padding:2rem">'
+    +'<div style="font-size:24px;margin-bottom:8px">⚙️</div>'
+    +'<div style="font-size:13px;color:#666">'+escHtml(LANG==="zh"?"正在準備練習情境…":"Preparing practice scenario…")+'</div>'
     +'</div>';
-  FC_FLIPPED=false;
-}
-function flipFC(){
-  if(FC_FLIPPED)return;
-  FC_FLIPPED=true;
-  document.getElementById("fcFront").style.display="none";
-  document.getElementById("fcBack").style.display="block";
-  document.getElementById("fcActions").style.display="flex";
-}
-function markFC(known){
-  if(known)FC_KNOWN.push(FC_CARDS[FC_INDEX]);else FC_AGAIN.push(FC_CARDS[FC_INDEX]);
-  FC_INDEX++;renderFC();
-}
-function retryMissed(){
-  FC_CARDS=FC_AGAIN.slice();FC_INDEX=0;FC_FLIPPED=false;FC_KNOWN=[];FC_AGAIN=[];renderFC();
+  document.getElementById("mb").disabled=true;document.getElementById("eb").disabled=true;
+  document.getElementById("smr").style.display="none";
+  var promptForOpening=isVocab
+    ?'You are an English speaking coach. Generate ONE natural spoken question (1-2 sentences) that puts a learner in a realistic situation where they must use the English word "'+target+'" in their reply. Give only the question, nothing else.'
+    :'You are an English speaking coach. Generate ONE natural spoken scenario question (1-2 sentences) that puts a learner in a realistic situation where they would naturally say the phrase "'+target+'". Give only the question, nothing else.';
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    model:"claude-sonnet-4-20250514",max_tokens:120,
+    messages:[{role:"user",content:promptForOpening}]
+  })}).then(function(resp){return resp.json();}).then(function(d){
+    var scenario=(d.content&&d.content[0]&&d.content[0].text)||"";
+    scenario=scenario.trim().replace(/^["']|["']$/g,"");
+    var sys=isVocab
+      ?'You are an encouraging English speaking coach. The student is practicing the word "'+target+'" (Chinese meaning: '+r.original+'). Give 3 different real-life situations one at a time — each should naturally invite the student to use the word "'+target+'" in their response. After each response, briefly confirm if they used the word correctly and naturally. Only say spoken words. One situation at a time.'
+      :'You are an encouraging English speaking coach. The student is practicing the phrase: "'+target+'". Give 3 different real-life situations one at a time where saying this phrase would fit naturally. After each response, note if they used the target phrase. Only say spoken words. One situation at a time.';
+    var opening=(isVocab?'Let\'s practice the word "'+target+'"! Here\'s your first situation: ':'Let\'s practice the phrase: "'+target+'"! Here\'s your first situation: ')+scenario;
+    var taskLbl=LANG==="zh"?"在 3 個不同情境中使用目標"+(isVocab?"單字":"句子"):"Use the "+(isVocab?"word":"phrase")+" in 3 different situations.";
+    startSession(isVocab?"Word Practice":"Phrase Practice",sys,opening,{
+      cultural:null,task:taskLbl,
+      taskCheck:function(utts){var n=Math.min(utts.length,3);var lbl=LANG==="zh"?"完成 3 個練習情境（"+n+"/3）":"Complete 3 practice situations ("+n+"/3)";return{done:utts.length>=3,steps:[{label:lbl,done:utts.length>=3}]};}
+    });
+  }).catch(function(){
+    var sys='You are an encouraging English speaking coach. The student is practicing the '+(isVocab?'word "'+target+'"':'phrase "'+target+'"')+'. Give 3 real-life situations one at a time. Only say spoken words.';
+    var opening='Let\'s practice '+(isVocab?'the word "'+target+'"':'the phrase "'+target+'"')+'! Tell me about a recent situation where you might have used it.';
+    startSession("Practice",sys,opening,{cultural:null,task:"Complete 3 situations.",taskCheck:function(u){var n=Math.min(u.length,3);return{done:u.length>=3,steps:[{label:"3 situations ("+n+"/3)",done:u.length>=3}]};}});
+  });
 }
 
 // ── Weakness analysis ──
@@ -828,27 +802,90 @@ function loadWeakness(){
 function loadForYou(){
   if(!currentUser)return;
   var content=document.getElementById("foryouContent");
-  dbGet("session_errors","user_id=eq."+currentUser.id+"&limit=200").then(function(rows){
+  dbGet("session_errors","user_id=eq."+currentUser.id+"&order=created_at.desc&limit=200").then(function(rows){
     if(!rows||!rows.length){
       content.innerHTML='<div class="fy-empty">'+escHtml(tr("fy_empty"))+'<br><br><button class="lesson-btn" onclick="showTab(\'practice\')">'+escHtml(tr("fy_go_practice"))+'</button></div>';
       return;
     }
-    var types={};
-    rows.forEach(function(r){var t=r.error_type||"grammar";if(!types[t])types[t]={count:0,examples:[]};types[t].count++;if(types[t].examples.length<3)types[t].examples.push(r.original);});
+    var types={};var recentExamples=[];
+    rows.forEach(function(r){
+      var t=r.error_type||"grammar";
+      if(!types[t])types[t]={count:0};
+      types[t].count++;
+      if(recentExamples.length<3&&r.corrected)recentExamples.push(r);
+    });
     var sorted=Object.keys(types).sort(function(a,b){return types[b].count-types[a].count;});
     var top=sorted.slice(0,3);
     var total=rows.length;
-    var html='<div class="fy-section">';
+    var html="";
+
+    // Section 1: error frequency bars
+    var s1Title=LANG==="zh"?"📊 錯誤分佈":"📊 Error Frequency";
+    html+='<div class="fy-section"><div class="fy-section-title">'+escHtml(s1Title)+'</div>';
+    sorted.slice(0,4).forEach(function(t){
+      var pat=ERROR_PATTERNS[t];
+      var label=pat?(LANG==="zh"?(pat.label_zh||pat.label):pat.label):capitalize(t);
+      var pct=Math.round(types[t].count/total*100);
+      var color=pat?pat.color.replace("c-",""):"888";
+      var fillColor=pat?({grammar:"#E24B4A",word_choice:"#EF9F27",structure:"#185FA5",fluency:"#9B5DE5"}[t]||"#888"):"#888";
+      html+='<div class="fy-bar-row"><span class="fy-bar-label">'+escHtml(label)+'</span>'
+        +'<div class="fy-bar-track"><div class="fy-bar-fill" style="width:'+pct+'%;background:'+fillColor+'"></div></div>'
+        +'<span class="fy-bar-count">'+types[t].count+'×</span></div>';
+    });
+    html+='</div>';
+
+    // Section 2: recent mistakes
+    if(recentExamples.length){
+      var s2Title=LANG==="zh"?"📝 最近的錯誤":"📝 Recent Mistakes";
+      html+='<div class="fy-section"><div class="fy-section-title">'+escHtml(s2Title)+'</div>';
+      recentExamples.forEach(function(r){
+        html+='<div class="fy-error-card">'
+          +'<button type="button" class="fy-error-speak" onclick="speakText(\''+escAttr(r.corrected)+'\')">🔊</button>'
+          +'<div class="fy-error-orig">'+escHtml(r.original)+'</div>'
+          +'<div class="fy-error-fix">✓ '+escHtml(r.corrected)+'</div>'
+          +(r.reason?'<div class="fy-error-reason">'+escHtml(r.reason)+'</div>':'')
+          +'</div>';
+      });
+      html+='</div>';
+    }
+
+    // Section 3: targeted drills
+    var s3Title=LANG==="zh"?"🎯 針對性練習":"🎯 Targeted Practice";
+    html+='<div class="fy-section"><div class="fy-section-title">'+escHtml(s3Title)+'</div><div class="fy-drill-btns">';
+    top.forEach(function(t){
+      var pat=ERROR_PATTERNS[t];
+      var label=pat?(LANG==="zh"?(pat.label_zh||pat.label):pat.label):capitalize(t);
+      var drillLabel=LANG==="zh"?label+" 練習":label+" Drill";
+      html+='<button class="fy-drill-btn" onclick=\'startFocusedLesson("'+t+'")\'>'+escHtml(drillLabel)+'</button>';
+    });
+    html+='</div></div>';
+
+    // Section 4: comprehensive lesson
+    var s4Title=LANG==="zh"?"🎓 綜合課程":"🎓 Comprehensive Lesson";
+    html+='<div class="fy-section"><div class="fy-section-title">'+escHtml(s4Title)+'</div>';
     html+='<div class="lesson-card">';
-    html+='<div class="lesson-icon">🎓</div>';
-    html+='<div class="lesson-title">'+escHtml(tr("fy_lesson_title"))+'</div>';
     html+='<div class="lesson-sub">'+escHtml(tr("fy_lesson_sub").replace("%1",total))+'</div>';
-    html+='<ul class="lesson-targets">';
-    top.forEach(function(t){var pat=ERROR_PATTERNS[t];var label=pat?(LANG==="zh"?(pat.label_zh||pat.label):pat.label):capitalize(t);html+='<li>'+escHtml(label)+' ('+types[t].count+'×)</li>';});
-    html+='</ul>';
     html+='<button class="lesson-btn" onclick=\'startMadeForYouLesson('+JSON.stringify(top)+')\'>'+escHtml(tr("fy_lesson_btn"))+'</button>';
     html+='</div></div>';
+
     content.innerHTML=html;
+  });
+}
+
+function startFocusedLesson(type){
+  var pat=ERROR_PATTERNS[type];
+  if(!pat)return;
+  var typeName=LANG==="zh"?(pat.label_zh||pat.label):pat.label;
+  var sys="You are a warm English speaking coach. This student's specific weakness is: "+pat.label+". "
+    +pat.tip+" "+pat.advice
+    +" Have a natural, flowing conversation. After every 2–3 exchanges, gently correct any "+pat.label+" errors with a comment like 'By the way, a more natural way to say that would be...'."
+    +" Ask questions that naturally invite the student to practice correct "+pat.label+". Only say spoken words. One question at a time.";
+  var opening="Hi! Today we're focusing specifically on "+pat.label.toLowerCase()+". No pressure — just a normal conversation, and I'll help you along the way. To start: tell me about something interesting that happened to you recently.";
+  showTab("practice");currentMode="lesson";
+  var task=LANG==="zh"?"完成 5 次對話強化"+typeName:"Complete 5 exchanges to strengthen your "+pat.label.toLowerCase();
+  startSession(typeName+" Practice",sys,opening,{
+    cultural:null,task:task,
+    taskCheck:function(utts){var n=Math.min(utts.length,5);var lbl=LANG==="zh"?"完成 5 次對話（"+n+"/5）":"5 exchanges ("+n+"/5)";return{done:utts.length>=5,steps:[{label:lbl,done:utts.length>=5}]};}
   });
 }
 
@@ -1608,7 +1645,7 @@ function showPhraseReview(sc){
   document.getElementById("eb").disabled=true;
   var chat=document.getElementById("chat");
   var card=document.createElement("div");card.className="phrase-review-card";
-  var html='<button type="button" class="phrase-skip" onclick="startFromPhraseReview(\'ai\')">'+escHtml(tr("pr_skip"))+'</button>';
+  var html='<button type="button" class="phrase-skip" onclick="skipAndChoose()">'+escHtml(tr("pr_skip"))+'</button>';
   html+='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
@@ -2116,6 +2153,16 @@ function saveVocabItem(btn,zh,word,ex){
   saveSentence(zh,word,ex);
   btn.textContent="✅ "+(LANG==="zh"?"已儲存":"Saved");
   btn.classList.add("saved");btn.disabled=true;
+}
+
+function skipAndChoose(){
+  var btn=document.querySelector('.phrase-skip');
+  if(!btn)return;
+  var div=document.createElement('div');
+  div.className='start-choice';
+  div.innerHTML='<button class="phrase-start-btn" onclick="startFromPhraseReview(\'user\')">'+escHtml(tr('pr_start_i'))+'</button>'
+    +'<button class="phrase-start-btn" onclick="startFromPhraseReview(\'ai\')">'+escHtml(tr('pr_start_ai'))+'</button>';
+  btn.replaceWith(div);
 }
 
 function startFromPhraseReview(firstSpeaker){
