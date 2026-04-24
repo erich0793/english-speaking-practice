@@ -461,7 +461,7 @@ var SAVED_MAP={};
 var FC_CARDS=[],FC_INDEX=0,FC_FLIPPED=false,FC_KNOWN=[],FC_AGAIN=[],FC_ACTIVE=false;
 var SLOW_MODE=false;
 var LEVEL=localStorage.getItem("pref_level")||"";
-var PENDING_TOPIC="";
+var PENDING_TOPIC="";var PENDING_SC=null;var GENERATING_SCENARIO=false;
 
 var LANG=localStorage.getItem("pref_lang")||"en";
 var UI_STRINGS={
@@ -927,8 +927,52 @@ function useDailyTopic(){
   currentMode="free";
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("mode-free").classList.add("active");
-  PENDING_TOPIC=t.text;
-  showPhraseReview(SCENARIOS.free);
+  generateTopicScenario(t.text,function(sc){
+    PENDING_TOPIC=t.text;PENDING_SC=sc;
+    showPhraseReview(sc);
+  },function(){
+    PENDING_TOPIC=t.text;
+    showPhraseReview(SCENARIOS.free);
+  });
+}
+function showTopicLoading(){
+  ON=false;closeVocabOverlay();
+  var chat=document.getElementById("chat");chat.innerHTML="";
+  document.getElementById("smr").style.display="none";
+  document.getElementById("mb").disabled=true;document.getElementById("eb").disabled=true;
+  var card=document.createElement("div");card.className="phrase-review-card";
+  card.innerHTML='<div style="text-align:center;padding:2rem 1rem">'
+    +'<div style="font-size:28px;margin-bottom:12px">✨</div>'
+    +'<div style="font-size:14px;color:#333;font-weight:500;margin-bottom:8px">'+(LANG==="zh"?"正在為你生成學習內容…":"Preparing your lesson…")+'</div>'
+    +'<div style="display:flex;gap:6px;justify-content:center;margin-top:8px"><span class="dot"></span><span class="dot d2"></span><span class="dot d3"></span></div>'
+    +'</div>';
+  chat.appendChild(card);
+}
+function generateTopicScenario(topic,onSuccess,onError){
+  if(GENERATING_SCENARIO)return;
+  GENERATING_SCENARIO=true;
+  showTopicLoading();
+  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. Make them practical and directly useful for talking about this specific topic.';
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    model:"claude-sonnet-4-20250514",max_tokens:2000,
+    messages:[{role:"user",content:prompt}]
+  })}).then(function(r){return r.json();}).then(function(d){
+    GENERATING_SCENARIO=false;
+    var text=(d.content&&d.content[0]&&d.content[0].text)||"";
+    var m=text.match(/\{[\s\S]*\}/);
+    if(!m)throw new Error("no json");
+    var sc=JSON.parse(m[0]);
+    if(!sc.phrases||!sc.vocab||!sc.phrases.length)throw new Error("invalid");
+    sc.name=topic;
+    sc.system=SCENARIOS.free.system;
+    sc.opening="Let's talk about TOPIC. What's on your mind?";
+    sc.taskCheck=null;
+    onSuccess(sc);
+  }).catch(function(e){
+    GENERATING_SCENARIO=false;
+    console.error("generateTopicScenario:",e);
+    if(onError)onError(e);
+  });
 }
 
 // ── Task checkers ──
@@ -1648,10 +1692,18 @@ function startWithCustom(){
   unlockAudio();
   var v=document.getElementById("ti").value.trim();
   if(!v){setst("Please enter a topic first.");return;}
-  var sc=SCENARIOS[currentMode||"free"];
-  var sys=sc.system.replace("TOPIC",v);
-  var opening=currentMode&&currentMode!=="free"?sc.opening:"Let's talk about "+v+". What's on your mind?";
-  startSession(v,sys,opening,sc);
+  if(currentMode&&currentMode!=="free"){
+    var sc=SCENARIOS[currentMode];
+    startSession(v,sc.system.replace("TOPIC",v),sc.opening,sc);
+    return;
+  }
+  generateTopicScenario(v,function(sc){
+    PENDING_TOPIC=v;PENDING_SC=sc;
+    showPhraseReview(sc);
+  },function(){
+    var sc=SCENARIOS.free;
+    startSession(v,sc.system.replace("TOPIC",v),"Let's talk about "+v+". What's on your mind?",sc);
+  });
 }
 function startSession(topic,sysPrompt,opening,sc){
   var levelPrompt=(LEVEL_CONFIG[LEVEL]?LEVEL_CONFIG[LEVEL].prompt:"");
@@ -2036,10 +2088,11 @@ function saveVocabItem(btn,zh,word,ex){
 }
 
 function startFromPhraseReview(){
-  var sc=SCENARIOS[currentMode];
+  var sc=PENDING_SC||SCENARIOS[currentMode];
+  PENDING_SC=null;
   var topic=PENDING_TOPIC||document.getElementById("ti").value.trim()||sc.name;
-  var sys=sc.system.replace("TOPIC",topic);
-  var opening=sc.opening.replace("TOPIC",topic);
+  var sys=(sc.system||SCENARIOS.free.system).replace("TOPIC",topic);
+  var opening=(sc.opening||"Let's talk about TOPIC. What's on your mind?").replace("TOPIC",topic);
   PENDING_TOPIC="";
   startSession(topic,sys,opening,sc);
 }
