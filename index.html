@@ -274,7 +274,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .vocab-speak-btn:hover{opacity:1}
 .phrase-speak-btn{font-size:15px;background:none;border:none;cursor:pointer;padding:3px 6px;opacity:.45;flex-shrink:0;align-self:center;line-height:1}
 .phrase-speak-btn:hover{opacity:1}
+.phrase-save-btn{font-size:14px;background:none;border:none;cursor:pointer;padding:3px 5px;opacity:.4;flex-shrink:0;align-self:center;line-height:1}
+.phrase-save-btn:hover{opacity:1}
 .phrase-item{cursor:default}
+.vocab-overlay-save{display:block;width:100%;margin-top:12px;padding:9px;border-radius:8px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;font-size:13px;font-weight:500;cursor:pointer}
+.vocab-overlay-save:hover{background:#d0e8f8}
+.vocab-overlay-save.saved{border-color:#639922;background:#EAF3DE;color:#27500A}
 .pr-cultural{font-size:12px;color:#444;background:#f0f4ff;border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.6}
 .pr-mission{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#0C447C;background:#E6F1FB;border-radius:8px;padding:9px 12px;margin-bottom:14px;line-height:1.6}
 .pr-mission-label{font-weight:600;white-space:nowrap}
@@ -311,21 +316,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 <div class="screen" id="levelScreen">
   <div class="login-wrap">
     <div>
-      <h1>What's your English level?</h1>
-      <p style="margin-top:6px">We'll adjust the conversation to match you.</p>
+      <h1 id="levelScreenTitle">What's your English level?</h1>
+      <p style="margin-top:6px" id="levelScreenSub">We'll adjust the conversation to match you.</p>
     </div>
     <div class="level-pick">
       <button class="level-btn" id="lvlBtnBeginner" onclick="selectLevel('beginner')">
         <span class="level-icon">🌱</span>
-        <div><span class="level-name">Beginner</span><span class="level-desc">Simple words · slow speech · basic sentences</span></div>
+        <div><span class="level-name" id="lvlNameBeginner">Beginner</span><span class="level-desc" id="lvlDescBeginner">Simple words · slow speech · basic sentences</span></div>
       </button>
       <button class="level-btn" id="lvlBtnIntermediate" onclick="selectLevel('intermediate')">
         <span class="level-icon">🌿</span>
-        <div><span class="level-name">Intermediate</span><span class="level-desc">Natural conversations · everyday vocabulary</span></div>
+        <div><span class="level-name" id="lvlNameIntermediate">Intermediate</span><span class="level-desc" id="lvlDescIntermediate">Natural conversations · everyday vocabulary</span></div>
       </button>
       <button class="level-btn" id="lvlBtnAdvanced" onclick="selectLevel('advanced')">
         <span class="level-icon">🌳</span>
-        <div><span class="level-name">Advanced</span><span class="level-desc">Idioms · complex sentences · native speed</span></div>
+        <div><span class="level-name" id="lvlNameAdvanced">Advanced</span><span class="level-desc" id="lvlDescAdvanced">Idioms · complex sentences · native speed</span></div>
       </button>
     </div>
   </div>
@@ -354,7 +359,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
   <div id="tabContentPractice">
     <div class="level-bar" id="levelBar">
       <span class="level-bar-text" id="levelBarText">Level: Intermediate 🌿</span>
-      <span class="level-bar-change" onclick="showLevelScreen()">Change level</span>
+      <span class="level-bar-change" id="levelBarChange" onclick="showLevelScreen()">Change level</span>
     </div>
     <div class="daily" id="dailyBanner" onclick="useDailyTopic()">
       <span class="daily-label">Today's topic</span>
@@ -461,6 +466,7 @@ var PENDING_TOPIC="";
 var LANG=localStorage.getItem("pref_lang")||"en";
 var UI_STRINGS={
   en:{app_title:"English Practice",btn_lang:"中文",btn_logout:"Logout",
+    level_change:"Change level",level_title:"What's your English level?",level_sub:"We'll adjust the conversation to match you.",
     tab_practice:"Practice",tab_saved:"⭐ Saved",tab_analysis:"📊 Analysis",tab_foryou:"🎓 For You",
     daily_label:"Today's topic",daily_use:"Use it →",mode_title:"Choose a scenario",
     mode_free:"Free talk",mode_restaurant:"Restaurant",mode_interview:"Interview",
@@ -483,6 +489,7 @@ var UI_STRINGS={
     pr_sub:"Here are phrases you may use in this scenario. Read through them before starting!",
     pr_progress:"Reviewed %1 / %2 phrases",pr_start:"Start Conversation",pr_skip:"Skip, start now"},
   zh:{app_title:"英語口說練習",btn_lang:"EN",btn_logout:"登出",
+    level_change:"更改程度",level_title:"你的英文程度是？",level_sub:"我們會根據你的程度調整對話。",
     tab_practice:"練習",tab_saved:"⭐ 收藏",tab_analysis:"📊 分析",tab_foryou:"🎓 為你量身",
     daily_label:"今日話題",daily_use:"開始 →",mode_title:"選擇情境",
     mode_free:"自由對話",mode_restaurant:"餐廳",mode_interview:"工作面試",
@@ -555,6 +562,8 @@ function applyLang(){
   var weakH2=document.querySelector("#tabContentWeak h2");if(weakH2)weakH2.textContent=tr("analysis_title");
   var foryouH2=document.querySelector("#tabContentForyou h2");if(foryouH2)foryouH2.textContent=tr("foryou_title");
   if(!ON){var chat=document.getElementById("chat");var aiMsg=chat.querySelector(".aibbl");if(aiMsg&&!aiMsg.querySelector(".save-btn"))aiMsg.textContent=tr("chat_init");}
+  updateLevelBar();
+  applyLevelScreen();
 }
 
 // ── Supabase ──
@@ -988,7 +997,9 @@ var SCENARIOS={
     ]},
   restaurant:{name:"Restaurant",
     cultural:"🇺🇸 American restaurants: servers introduce themselves, check on you mid-meal, and bring the check only when asked. Tipping 15–20% is expected.",
+    cultural_zh:"🇺🇸 美式餐廳：服務員會自我介紹、用餐中途關心你，帳單只在你開口時才送來。通常預期給 15–20% 小費。",
     task:"Your mission: Order a main course AND a dessert. Ask for the bill when finished.",
+    task_zh:"你的任務：點一道主菜和一道甜點，用餐結束後請服務員結帳。",
     taskCheck:TASK_CHECKS.restaurant,
     system:"You are Jamie, a friendly waiter at a mid-range American restaurant called 'The Blue Plate'. Menu — MAINS: Grilled Salmon ($24), Ribeye Steak ($36), Pasta Primavera ($18), Chicken Burger ($16). DESSERTS: Chocolate Lava Cake ($9), New York Cheesecake ($8), Seasonal Sorbet ($7). Help the customer order. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Hi there! Welcome to The Blue Plate, I'm Jamie and I'll be taking care of you tonight. Can I start you off with something to drink, or would you like to hear today's specials?",
@@ -1039,7 +1050,9 @@ var SCENARIOS={
     ]},
   interview:{name:"Job interview",
     cultural:"🇺🇸 US interviews value the STAR method: Situation, Task, Action, Result. Be specific — generic answers seem weak.",
+    cultural_zh:"🇺🇸 美國面試重視 STAR 法則：情境、任務、行動、結果。要具體——籠統的回答會讓人覺得準備不足。",
     task:"Your mission: Answer at least 3 questions. Use specific examples in at least 2 answers.",
+    task_zh:"你的任務：回答至少 3 個問題，並在至少 2 個回答中使用具體例子。",
     taskCheck:TASK_CHECKS.interview,
     system:"You are a professional interviewer at a US tech company for a marketing coordinator role. Ask one behavioral question at a time. Be encouraging. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Thank you so much for coming in today! To start — could you tell me a little about yourself and why you're interested in this role?",
@@ -1090,7 +1103,9 @@ var SCENARIOS={
     ]},
   shopping:{name:"Shopping",
     cultural:"🇺🇸 In US stores, staff greet you but there's no pressure to buy. It's normal to ask about return policies, request discounts, or try items on.",
+    cultural_zh:"🇺🇸 美國商店裡，店員會打招呼但不會強迫購買。詢問退換貨政策、要求折扣或試穿都是很正常的。",
     task:"Your mission: Find a specific item, ask about size and price, then decide to buy or decline.",
+    task_zh:"你的任務：找一件商品，詢問尺寸和價格，然後決定要買或不買。",
     taskCheck:TASK_CHECKS.shopping,
     system:"You are a helpful sales assistant at a clothing store in an American mall. Casual and smart-casual clothes, sizes XS–XXL, sale items 30–40% off. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Hey, welcome in! Feel free to look around. We've got new arrivals this week and a sale section at the back — up to 40% off. Is there anything specific I can help you find?",
@@ -1141,7 +1156,9 @@ var SCENARIOS={
     ]},
   directions:{name:"Directions",
     cultural:"🇺🇸 Americans use landmarks and block counts: 'Take a left at the light', 'It's about two blocks down', 'You can't miss it'.",
+    cultural_zh:"🇺🇸 美國人用地標和街區數量指路：「在紅綠燈左轉」、「大約再走兩個街區」、「你一定看得到」。",
     task:"Your mission: Ask for directions to Central Park, then repeat the key steps back to confirm.",
+    task_zh:"你的任務：問路到中央公園，然後複述關鍵步驟確認你聽懂了。",
     taskCheck:TASK_CHECKS.directions,
     system:"You are a friendly local in Midtown Manhattan helping a tourist find Central Park. Give clear directions using streets and landmarks. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Oh hi! You look like you might need some help — are you trying to find your way around? Where are you trying to go?",
@@ -1192,7 +1209,9 @@ var SCENARIOS={
     ]},
   hotel:{name:"Hotel",
     cultural:"🇺🇸 US hotel check-in requires photo ID and credit card. Staff are trained to be warm. It's perfectly normal to ask about every amenity.",
+    cultural_zh:"🇺🇸 美國飯店入住需要附照片的身分證件和信用卡。工作人員受過親切服務訓練。詢問任何設施都完全正常。",
     task:"Your mission: Complete check-in AND ask about at least 2 hotel services.",
+    task_zh:"你的任務：完成入住手續，並詢問至少 2 項飯店服務。",
     taskCheck:TASK_CHECKS.hotel,
     system:"You are Alex, a professional front desk receptionist at a 4-star hotel in San Francisco. Amenities: free Wi-Fi, gym, rooftop pool, breakfast buffet ($18/person), valet parking ($45/night), 24hr room service. Help the guest check in. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Good evening and welcome to The Grand Pacific! I'm Alex, happy to get you checked in. Do you have a reservation? If you give me your last name I'll pull that right up.",
@@ -1243,7 +1262,9 @@ var SCENARIOS={
     ]},
   airport:{name:"Airport",
     cultural:"🇺🇸 US airports: arrive 2 hrs early for domestic, 3 hrs international. TSA requires ID. Agents are professional but efficient — be clear and concise.",
+    cultural_zh:"🇺🇸 美國機場：國內航班提前 2 小時、國際航班提前 3 小時抵達。TSA 需要身分證件。工作人員專業有效率——說話要清楚簡潔。",
     task:"Your mission: Check in your bag AND ask at least one question about your flight.",
+    task_zh:"你的任務：辦理行李托運，並詢問至少一個關於班機的問題。",
     taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["bag","luggage","check","suitcase","carry"].some(function(w){return t.indexOf(w)>-1;});var s2=["gate","board","depart","delay","seat","time","when"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"Check in your bag",done:s1},{label:"Ask about your flight",done:s2}]};},
     system:"You are a check-in agent at a US airport for SkyLine Airlines. The passenger has a flight to New York (FL 204, departing 3:45 PM, gate B12). Baggage allowance: 1 free checked bag up to 50 lbs, carry-on included. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Good afternoon! Welcome to SkyLine Airlines check-in. May I see your passport or ID and booking confirmation, please?",
@@ -1295,7 +1316,9 @@ var SCENARIOS={
     ]},
   doctor:{name:"Doctor",
     cultural:"🇺🇸 US doctor visits: describe symptoms clearly, ask questions freely. Doctors expect patients to be involved. Insurance info is often needed at reception.",
+    cultural_zh:"🇺🇸 美國看診：清楚描述症狀，可以自由提問。醫生期望病患積極參與。掛號時通常需要提供保險資訊。",
     task:"Your mission: Describe your symptoms AND ask the doctor at least one question about your condition.",
+    task_zh:"你的任務：描述你的症狀，並至少問醫生一個關於你狀況的問題。",
     taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["pain","hurt","headache","fever","cough","sore","feel","symptom","sick","nausea"].some(function(w){return t.indexOf(w)>-1;});var s2=["serious","medicine","treatment","long","recover","test","medication","should","recommend","worry"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"Describe your symptoms",done:s1},{label:"Ask the doctor a question",done:s2}]};},
     system:"You are Dr. Smith, a friendly general practitioner at a US clinic. The patient has an appointment. Ask about symptoms, duration, severity, and give clear, reassuring advice. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Hi there, come on in! I'm Dr. Smith. So, what seems to be the problem today — what brings you in?",
@@ -1346,7 +1369,9 @@ var SCENARIOS={
     ]},
   cafe:{name:"Café",
     cultural:"🇺🇸 US cafés: orders are usually at the counter. Baristas often ask your name for the order. Tipping ~$1 per drink is common. Soy/oat milk swaps are standard.",
+    cultural_zh:"🇺🇸 美式咖啡廳：通常在櫃台點餐。咖啡師常會問你的名字。每杯小費約 1 美元很常見。換豆漿或燕麥奶是標準選項。",
     task:"Your mission: Order a customized drink AND a food item.",
+    task_zh:"你的任務：點一杯客製化飲料和一樣食物。",
     taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["latte","coffee","tea","cappuccino","cold brew","matcha","drink","espresso"].some(function(w){return t.indexOf(w)>-1;});var s2=["muffin","bagel","sandwich","pastry","croissant","food","avocado","toast","eat"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"Order a drink",done:s1},{label:"Order a food item",done:s2}]};},
     system:"You are Jordan, a barista at a cozy coffee shop called 'Morning Bloom'. Drinks: Drip Coffee ($3.5), Latte ($5.5), Cappuccino ($5), Matcha Latte ($5.5), Cold Brew ($5). Milk options: whole, skim, oat, soy, almond. Food: blueberry muffin ($3.5), avocado toast ($9), croissant ($4). Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Hey, welcome to Morning Bloom! What can I get started for you today?",
@@ -1397,7 +1422,9 @@ var SCENARIOS={
     ]},
   phone:{name:"Phone call",
     cultural:"🇺🇸 US phone etiquette: identify yourself when calling, be direct about your purpose, and confirm action items before hanging up. Hold music is common.",
+    cultural_zh:"🇺🇸 美國電話禮儀：打電話時先自我介紹，直接說明來意，掛斷前確認後續動作。等候音樂很常見。",
     task:"Your mission: State your reason for calling AND confirm the next steps before ending the call.",
+    task_zh:"你的任務：說明你打電話的原因，並在掛斷前確認後續步驟。",
     taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["calling","problem","issue","appointment","schedule","repair","order","help"].some(function(w){return t.indexOf(w)>-1;});var s2=["confirm","send","email","reference","number","thank","bye","goodbye","done","great"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"State the reason for your call",done:s1},{label:"Confirm next steps before ending",done:s2}]};},
     system:"You are Chris, a customer service representative at QuickFix Home Services. Handle the customer's call professionally — schedule appointments, resolve issues, or answer questions. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Thank you for calling QuickFix Home Services, this is Chris speaking. How can I help you today?",
@@ -1448,7 +1475,9 @@ var SCENARIOS={
     ]},
   bank:{name:"Bank",
     cultural:"🇺🇸 US banks: tellers are friendly and professional. Always bring a photo ID. Common tasks include deposits, withdrawals, account inquiries, and wire transfers.",
+    cultural_zh:"🇺🇸 美國銀行：行員親切且專業。務必攜帶附照片的身分證件。常見業務包括存款、提款、帳戶查詢和電匯。",
     task:"Your mission: Complete one banking transaction AND ask about at least one bank service.",
+    task_zh:"你的任務：完成一筆銀行交易，並詢問至少一項銀行服務。",
     taskCheck:function(utts){var t=utts.join(" ").toLowerCase();var s1=["deposit","withdraw","transfer","balance","open","account","check"].some(function(w){return t.indexOf(w)>-1;});var s2=["fee","interest","saving","loan","credit","service","rate","minimum","offer"].some(function(w){return t.indexOf(w)>-1;});return{done:s1&&s2,steps:[{label:"Complete a banking transaction",done:s1},{label:"Ask about a bank service",done:s2}]};},
     system:"You are Morgan, a friendly bank teller at First National Bank. Services: checking accounts, savings accounts, wire transfers, personal loans, credit cards. Help the customer with their request. Always ask for ID. Stay in character. Do NOT correct grammar. Only say spoken words. Keep each response to 1-2 sentences. Ask only ONE question per turn.",
     opening:"Good morning! Welcome to First National Bank. How can I assist you today?",
@@ -1520,18 +1549,24 @@ function showPhraseReview(sc){
   var chat=document.getElementById("chat");
   var card=document.createElement("div");card.className="phrase-review-card";
   var html='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
-  if(sc.cultural)html+='<div class="pr-cultural">'+escHtml(sc.cultural)+'</div>';
-  if(sc.task)html+='<div class="pr-mission"><span class="pr-mission-label">🎯 Mission &nbsp;</span>'+escHtml(sc.task)+'</div>';
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
-    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div><button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(p.en)+'\')">🔊</button></label>';
+    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
+      +'<button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(p.en)+'\')">🔊</button>'
+      +'<button type="button" class="phrase-save-btn" onclick="event.stopPropagation();event.preventDefault();savePhraseItem(this,\''+escAttr(p.en)+'\',\''+escAttr(p.zh)+'\')">⭐</button>'
+      +'</label>';
   });
   html+='</div>';
   if(sc.vocab&&sc.vocab.length){
     html+='<div class="vocab-section"><button class="vocab-toggle-btn" onclick="toggleVocabSection()">📚 Common Vocabulary ▼</button>';
     html+='<div id="vocabContent" style="display:none"><div class="vocab-chips" id="vocabChips"></div><div style="text-align:center;margin-top:4px"><button class="vocab-more-btn" id="vocabMoreBtn" onclick="loadMoreVocab()">More vocabulary →</button></div></div></div>';
   }
+  var culturalText=LANG==="zh"?(sc.cultural_zh||sc.cultural):sc.cultural;
+  var taskText=LANG==="zh"?(sc.task_zh||sc.task):sc.task;
+  var missionLabel=LANG==="zh"?"🎯 任務 &nbsp;":"🎯 Mission &nbsp;";
+  if(culturalText)html+='<div class="pr-cultural">'+escHtml(culturalText)+'</div>';
+  if(taskText)html+='<div class="pr-mission"><span class="pr-mission-label">'+missionLabel+'</span>'+escHtml(taskText)+'</div>';
   var prog0=tr("pr_progress").replace("%1","0").replace("%2",sc.phrases.length);
   html+='<div class="phrase-progress" id="phraseProgress">'+escHtml(prog0)+'</div>';
   html+='<button class="phrase-start-btn" onclick="startFromPhraseReview()">'+escHtml(tr("pr_start"))+'</button>';
@@ -1585,6 +1620,7 @@ function showVocabDetail(v,idx,chipEl){
     +'<button type="button" class="vocab-speak-btn" onclick="speakText(\''+escAttr(v.example)+'\')" title="Hear example">🔊</button>'
     +'</div>'
     +(v.example_zh?'<div class="vocab-overlay-ex-zh">'+escHtml(v.example_zh)+'</div>':'')
+    +'<button type="button" class="vocab-overlay-save" onclick="saveVocabItem(this,\''+escAttr(v.zh)+'\',\''+escAttr(v.word)+'\',\''+escAttr(v.example+(v.example_zh?' / '+v.example_zh:''))+'\')">⭐ '+(LANG==="zh"?"加入單字卡":"Save as flashcard")+'</button>'
     +'</div>';
   document.body.appendChild(overlay);
   speakText(v.word);
@@ -1694,17 +1730,20 @@ function hideThinking(){var t=document.getElementById("think");if(t)t.remove();}
 
 var LEVEL_CONFIG={
   beginner:{
-    icon:"🌱",label:"Beginner",
+    icon:"🌱",label:"Beginner",label_zh:"初學者",
+    desc:"Simple words · slow speech · basic sentences",desc_zh:"簡單詞彙・慢速語音・基礎句型",
     prompt:" The learner is a complete beginner. Use only very simple words (A1-A2 level). Keep sentences under 8 words. Avoid idioms, phrasal verbs, and contractions. Be very patient and encouraging.",
     slowDefault:true
   },
   intermediate:{
-    icon:"🌿",label:"Intermediate",
+    icon:"🌿",label:"Intermediate",label_zh:"中級",
+    desc:"Natural conversations · everyday vocabulary",desc_zh:"自然對話・日常詞彙",
     prompt:"",
     slowDefault:false
   },
   advanced:{
-    icon:"🌳",label:"Advanced",
+    icon:"🌳",label:"Advanced",label_zh:"進階",
+    desc:"Idioms · complex sentences · native speed",desc_zh:"慣用語・複雜句型・母語速度",
     prompt:" The learner is advanced (C1-C2). Use natural native-speaker language including idioms and phrasal verbs. Challenge them with varied vocabulary and complex questions.",
     slowDefault:false
   }
@@ -1729,7 +1768,21 @@ function selectLevel(level){
 }
 function updateLevelBar(){
   var cfg=LEVEL_CONFIG[LEVEL]||LEVEL_CONFIG.intermediate;
-  document.getElementById("levelBarText").textContent="Level: "+cfg.label+" "+cfg.icon;
+  var label=LANG==="zh"?(cfg.label_zh||cfg.label):cfg.label;
+  var prefix=LANG==="zh"?"程度：":"Level: ";
+  document.getElementById("levelBarText").textContent=prefix+label+" "+cfg.icon;
+  var chg=document.getElementById("levelBarChange");if(chg)chg.textContent=tr("level_change");
+}
+function applyLevelScreen(){
+  var t=document.getElementById("levelScreenTitle");if(t)t.textContent=tr("level_title");
+  var s=document.getElementById("levelScreenSub");if(s)s.textContent=tr("level_sub");
+  ["beginner","intermediate","advanced"].forEach(function(l){
+    var cfg=LEVEL_CONFIG[l];
+    var nm=document.getElementById("lvlName"+l.charAt(0).toUpperCase()+l.slice(1));
+    var dc=document.getElementById("lvlDesc"+l.charAt(0).toUpperCase()+l.slice(1));
+    if(nm)nm.textContent=LANG==="zh"?(cfg.label_zh||cfg.label):cfg.label;
+    if(dc)dc.textContent=LANG==="zh"?(cfg.desc_zh||cfg.desc):cfg.desc;
+  });
 }
 function toggleSlowMode(){
   SLOW_MODE=!SLOW_MODE;
@@ -1971,6 +2024,15 @@ function closeVocabOverlay(){
   var el=document.getElementById("vocabOverlay");if(el)el.remove();
   document.querySelectorAll(".vocab-chip").forEach(function(c){c.classList.remove("active");});
   currentVocabIdx=-1;
+}
+function savePhraseItem(btn,en,zh){
+  saveSentence(en,null,zh);
+  btn.textContent="✅";btn.disabled=true;
+}
+function saveVocabItem(btn,zh,word,ex){
+  saveSentence(zh,word,ex);
+  btn.textContent="✅ "+(LANG==="zh"?"已儲存":"Saved");
+  btn.classList.add("saved");btn.disabled=true;
 }
 
 function startFromPhraseReview(){
