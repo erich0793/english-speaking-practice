@@ -260,6 +260,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .usage-table tr:last-child td{border-bottom:none}
 .usage-table tr:hover td{background:#fafafa}
 .usage-cost{color:#185FA5;font-weight:500}
+
+/* Vocab overlay (bottom sheet) */
+.vocab-overlay{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+.vocab-overlay-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35);pointer-events:all}
+.vocab-overlay-sheet{position:relative;background:#fff;border-radius:16px 16px 0 0;padding:1.25rem 1.25rem 2rem;max-width:640px;width:100%;margin:0 auto;pointer-events:all;box-shadow:0 -4px 24px rgba(0,0,0,.12)}
+.vocab-overlay-close{position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;color:#aaa;line-height:1;padding:4px 8px}
+.vocab-overlay-close:hover{color:#333}
+.vocab-overlay-word{font-size:20px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vocab-overlay-ex{font-size:13px;color:#185FA5;font-style:italic;line-height:1.6;display:flex;align-items:flex-start;gap:6px}
+.vocab-overlay-ex-zh{font-size:12px;color:#888;margin-top:4px}
+.vocab-speak-btn{font-size:15px;background:none;border:none;cursor:pointer;padding:2px 4px;opacity:.6;flex-shrink:0}
+.vocab-speak-btn:hover{opacity:1}
+.phrase-speak-btn{font-size:15px;background:none;border:none;cursor:pointer;padding:3px 6px;opacity:.45;flex-shrink:0;align-self:center;line-height:1}
+.phrase-speak-btn:hover{opacity:1}
+.phrase-item{cursor:default}
+.pr-cultural{font-size:12px;color:#444;background:#f0f4ff;border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.6}
+.pr-mission{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#0C447C;background:#E6F1FB;border-radius:8px;padding:9px 12px;margin-bottom:14px;line-height:1.6}
+.pr-mission-label{font-weight:600;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -438,6 +456,7 @@ var SAVED_MAP={};
 var FC_CARDS=[],FC_INDEX=0,FC_FLIPPED=false,FC_KNOWN=[],FC_AGAIN=[],FC_ACTIVE=false;
 var SLOW_MODE=false;
 var LEVEL=localStorage.getItem("pref_level")||"";
+var PENDING_TOPIC="";
 
 var LANG=localStorage.getItem("pref_lang")||"en";
 var UI_STRINGS={
@@ -895,8 +914,12 @@ function getTodayTopic(){var d=new Date();return DAILY_TOPICS[(d.getFullYear()*3
 function useDailyTopic(){
   var t=getTodayTopic();
   document.getElementById("ti").value=t.text;
-  selectMode("free");
-  startSession(t.text,SCENARIOS.free.system.replace("TOPIC",t.text),SCENARIOS.free.opening.replace("TOPIC",t.text),SCENARIOS.free);
+  unlockAudio();
+  currentMode="free";
+  document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
+  document.getElementById("mode-free").classList.add("active");
+  PENDING_TOPIC=t.text;
+  showPhraseReview(SCENARIOS.free);
 }
 
 // ── Task checkers ──
@@ -938,7 +961,31 @@ var SCENARIOS={
   free:{name:"Free talk",cultural:null,task:null,taskCheck:null,
     system:"You are a friendly English conversation partner. Topic: TOPIC. Reply 2-3 natural sentences, ask one follow-up. Do NOT correct grammar. Only say spoken words.",
     opening:"Let's talk about TOPIC. What's on your mind?",
-    keywords:["actually","I think","in my opinion","for example","by the way"]},
+    keywords:["actually","I think","in my opinion","for example","by the way"],
+    phrases:[
+      {en:"That's a really interesting point.",zh:"那是個很有趣的觀點。"},
+      {en:"I totally agree with you.",zh:"我完全同意你說的。"},
+      {en:"Actually, I see it a bit differently.",zh:"其實我的看法有點不同。"},
+      {en:"Could you elaborate on that?",zh:"你能說得更詳細嗎？"},
+      {en:"I've had a similar experience.",zh:"我有過類似的經歷。"},
+      {en:"To be honest with you...",zh:"老實說……"},
+      {en:"That reminds me of...",zh:"這讓我想起……"},
+      {en:"On the other hand...",zh:"另一方面……"},
+      {en:"Speaking of which...",zh:"說到這個……"},
+      {en:"I'm not sure I follow — could you say that again?",zh:"我不太確定我理解，可以再說一遍嗎？"}
+    ],
+    vocab:[
+      {word:"elaborate",zh:"詳細說明",example:"Could you elaborate on that idea?",example_zh:"你能更詳細說明那個想法嗎？"},
+      {word:"perspective",zh:"觀點",example:"From my perspective, it looks quite different.",example_zh:"從我的角度看，感覺很不一樣。"},
+      {word:"actually",zh:"其實、說實話",example:"Actually, I changed my mind.",example_zh:"其實我改變主意了。"},
+      {word:"personally",zh:"個人而言",example:"Personally, I prefer the second option.",example_zh:"就我個人而言，我偏好第二個選項。"},
+      {word:"come to think of it",zh:"說起來",example:"Come to think of it, that makes sense.",example_zh:"說起來，那確實說得通。"},
+      {word:"on the other hand",zh:"另一方面",example:"On the other hand, there are real benefits too.",example_zh:"另一方面，也有真正的好處。"},
+      {word:"in my experience",zh:"就我的經驗",example:"In my experience, it's better to be direct.",example_zh:"就我的經驗，直接說比較好。"},
+      {word:"to be fair",zh:"說句公道話",example:"To be fair, he did try his best.",example_zh:"說句公道話，他確實盡力了。"},
+      {word:"frankly",zh:"坦白說",example:"Frankly, I'm not sure what to think.",example_zh:"坦白說，我不確定該怎麼看。"},
+      {word:"absolutely",zh:"完全同意、當然",example:"Absolutely, that's exactly how I feel.",example_zh:"完全同意，那正是我的感受。"}
+    ]},
   restaurant:{name:"Restaurant",
     cultural:"🇺🇸 American restaurants: servers introduce themselves, check on you mid-meal, and bring the check only when asked. Tipping 15–20% is expected.",
     task:"Your mission: Order a main course AND a dessert. Ask for the bill when finished.",
@@ -959,36 +1006,36 @@ var SCENARIOS={
       {en:"Do you accept credit cards?",zh:"你們接受信用卡嗎？"}
     ],
     vocab:[
-      {word:"reserve",zh:"預訂",example:"I'd like to reserve a table for two."},
-      {word:"menu",zh:"菜單",example:"Could I see the menu, please?"},
-      {word:"order",zh:"點餐",example:"Are you ready to order?"},
-      {word:"recommend",zh:"推薦",example:"What do you recommend?"},
-      {word:"bill",zh:"帳單",example:"Could we have the bill, please?"},
-      {word:"refill",zh:"續杯",example:"Could I get a refill on my water?"},
-      {word:"spicy",zh:"辣的",example:"Is this dish very spicy?"},
-      {word:"mild",zh:"不辣的",example:"Do you have a milder version?"},
-      {word:"appetizer",zh:"開胃菜",example:"I'll start with the soup as an appetizer."},
-      {word:"entrée",zh:"主菜",example:"For my entrée, I'd like the salmon."},
-      {word:"dessert",zh:"甜點",example:"What desserts do you have?"},
-      {word:"beverage",zh:"飲料",example:"What beverages are available?"},
-      {word:"specials",zh:"今日特餐",example:"What are today's specials?"},
-      {word:"substitute",zh:"替換",example:"Can I substitute fries with a salad?"},
-      {word:"allergy",zh:"過敏",example:"I have a nut allergy."},
-      {word:"vegetarian",zh:"素食",example:"Do you have vegetarian options?"},
-      {word:"gluten-free",zh:"無麩質",example:"Do you have any gluten-free dishes?"},
-      {word:"well-done",zh:"全熟",example:"I'd like my steak well-done."},
-      {word:"medium",zh:"五分熟",example:"I'll have the steak medium, please."},
-      {word:"portion",zh:"份量",example:"Are the portions large here?"},
-      {word:"takeout",zh:"外帶",example:"Can I get this to go?"},
-      {word:"ingredient",zh:"食材",example:"What are the main ingredients in this dish?"},
-      {word:"side dish",zh:"配菜",example:"What side dishes come with this?"},
-      {word:"gratuity",zh:"小費",example:"Is gratuity included in the bill?"},
-      {word:"rare",zh:"三分熟",example:"I like my steak rare."},
-      {word:"complimentary",zh:"免費提供的",example:"Is the bread complimentary?"},
-      {word:"vegan",zh:"全素",example:"Is this dish vegan-friendly?"},
-      {word:"dressing",zh:"醬料",example:"What dressings do you have for the salad?"},
-      {word:"receipt",zh:"收據",example:"May I have a receipt?"},
-      {word:"seasoning",zh:"調味料",example:"Can I get extra seasoning on the side?"}
+      {word:"reserve",zh:"預訂",example:"I'd like to reserve a table for two.",example_zh:"我想預訂一張兩人桌。"},
+      {word:"menu",zh:"菜單",example:"Could I see the menu, please?",example_zh:"可以給我看菜單嗎？"},
+      {word:"order",zh:"點餐",example:"Are you ready to order?",example_zh:"您準備好點餐了嗎？"},
+      {word:"recommend",zh:"推薦",example:"What do you recommend?",example_zh:"你有什麼推薦？"},
+      {word:"bill",zh:"帳單",example:"Could we have the bill, please?",example_zh:"可以給我們帳單嗎？"},
+      {word:"refill",zh:"續杯",example:"Could I get a refill on my water?",example_zh:"可以幫我續杯水嗎？"},
+      {word:"spicy",zh:"辣的",example:"Is this dish very spicy?",example_zh:"這道菜很辣嗎？"},
+      {word:"mild",zh:"不辣的",example:"Do you have a milder version?",example_zh:"有比較不辣的版本嗎？"},
+      {word:"appetizer",zh:"開胃菜",example:"I'll start with the soup as an appetizer.",example_zh:"我先點湯作為開胃菜。"},
+      {word:"entrée",zh:"主菜",example:"For my entrée, I'd like the salmon.",example_zh:"主菜我要鮭魚。"},
+      {word:"dessert",zh:"甜點",example:"What desserts do you have?",example_zh:"你們有什麼甜點？"},
+      {word:"beverage",zh:"飲料",example:"What beverages are available?",example_zh:"有哪些飲料可以選？"},
+      {word:"specials",zh:"今日特餐",example:"What are today's specials?",example_zh:"今天有哪些特餐？"},
+      {word:"substitute",zh:"替換",example:"Can I substitute fries with a salad?",example_zh:"可以把薯條換成沙拉嗎？"},
+      {word:"allergy",zh:"過敏",example:"I have a nut allergy.",example_zh:"我對堅果過敏。"},
+      {word:"vegetarian",zh:"素食",example:"Do you have vegetarian options?",example_zh:"有素食選項嗎？"},
+      {word:"gluten-free",zh:"無麩質",example:"Do you have any gluten-free dishes?",example_zh:"有無麩質的菜嗎？"},
+      {word:"well-done",zh:"全熟",example:"I'd like my steak well-done.",example_zh:"我的牛排要全熟。"},
+      {word:"medium",zh:"五分熟",example:"I'll have the steak medium, please.",example_zh:"牛排要五分熟。"},
+      {word:"portion",zh:"份量",example:"Are the portions large here?",example_zh:"這裡的份量多嗎？"},
+      {word:"takeout",zh:"外帶",example:"Can I get this to go?",example_zh:"可以外帶嗎？"},
+      {word:"ingredient",zh:"食材",example:"What are the main ingredients in this dish?",example_zh:"這道菜的主要食材是什麼？"},
+      {word:"side dish",zh:"配菜",example:"What side dishes come with this?",example_zh:"這道菜附什麼配菜？"},
+      {word:"gratuity",zh:"小費",example:"Is gratuity included in the bill?",example_zh:"帳單有包含小費嗎？"},
+      {word:"rare",zh:"三分熟",example:"I like my steak rare.",example_zh:"我喜歡三分熟的牛排。"},
+      {word:"complimentary",zh:"免費提供的",example:"Is the bread complimentary?",example_zh:"麵包是免費提供的嗎？"},
+      {word:"vegan",zh:"全素",example:"Is this dish vegan-friendly?",example_zh:"這道菜適合純素食者嗎？"},
+      {word:"dressing",zh:"醬料",example:"What dressings do you have for the salad?",example_zh:"沙拉有哪些醬料？"},
+      {word:"receipt",zh:"收據",example:"May I have a receipt?",example_zh:"可以給我收據嗎？"},
+      {word:"seasoning",zh:"調味料",example:"Can I get extra seasoning on the side?",example_zh:"可以另外給我調味料嗎？"}
     ]},
   interview:{name:"Job interview",
     cultural:"🇺🇸 US interviews value the STAR method: Situation, Task, Action, Result. Be specific — generic answers seem weak.",
@@ -1010,36 +1057,36 @@ var SCENARIOS={
       {en:"When can I expect to hear back from you?",zh:"我什麼時候可以收到您的回覆？"}
     ],
     vocab:[
-      {word:"experience",zh:"經驗",example:"I have three years of experience in marketing."},
-      {word:"responsibility",zh:"職責",example:"My main responsibility was managing social media."},
-      {word:"achievement",zh:"成就",example:"My biggest achievement was launching a new product line."},
-      {word:"challenge",zh:"挑戰",example:"The biggest challenge I faced was a tight deadline."},
-      {word:"teamwork",zh:"團隊合作",example:"I believe strong teamwork is key to success."},
-      {word:"initiative",zh:"主動性",example:"I took the initiative to redesign the process."},
-      {word:"deadline",zh:"截止日期",example:"I always meet my deadlines."},
-      {word:"collaborate",zh:"合作",example:"I collaborated closely with the design team."},
-      {word:"leadership",zh:"領導力",example:"I had the opportunity to demonstrate leadership."},
-      {word:"motivate",zh:"激勵",example:"I motivated my team by setting clear goals."},
-      {word:"accomplish",zh:"完成",example:"I accomplished a 20% increase in sales."},
-      {word:"contribute",zh:"貢獻",example:"I was able to contribute to the company's growth."},
-      {word:"prioritize",zh:"排列優先順序",example:"I learned to prioritize tasks under pressure."},
-      {word:"implement",zh:"執行",example:"I implemented a new tracking system."},
-      {word:"analyze",zh:"分析",example:"I analyzed the data to find key trends."},
-      {word:"strength",zh:"優點",example:"My greatest strength is attention to detail."},
-      {word:"weakness",zh:"弱點",example:"I'm working on improving my public speaking."},
-      {word:"goal",zh:"目標",example:"My long-term goal is to lead a marketing team."},
-      {word:"outcome",zh:"結果",example:"The outcome exceeded our expectations."},
-      {word:"feedback",zh:"回饋",example:"I always welcome constructive feedback."},
-      {word:"adapt",zh:"適應",example:"I adapt quickly to new environments."},
-      {word:"efficient",zh:"有效率的",example:"I found a more efficient way to manage projects."},
-      {word:"proactive",zh:"主動積極的",example:"I'm a proactive person who looks for solutions."},
-      {word:"passionate",zh:"有熱情的",example:"I'm passionate about digital marketing."},
-      {word:"coordinate",zh:"協調",example:"I coordinated between multiple departments."},
-      {word:"negotiate",zh:"協商",example:"I negotiated a better deal with suppliers."},
-      {word:"evaluate",zh:"評估",example:"I regularly evaluate campaign performance."},
-      {word:"innovative",zh:"創新的",example:"I introduced an innovative approach to the problem."},
-      {word:"strategic",zh:"有策略的",example:"I take a strategic approach to planning."},
-      {word:"detail-oriented",zh:"注重細節的",example:"I'm very detail-oriented in my work."}
+      {word:"experience",zh:"經驗",example:"I have three years of experience in marketing.",example_zh:"我有三年的行銷工作經驗。"},
+      {word:"responsibility",zh:"職責",example:"My main responsibility was managing social media.",example_zh:"我的主要職責是管理社群媒體。"},
+      {word:"achievement",zh:"成就",example:"My biggest achievement was launching a new product line.",example_zh:"我最大的成就是推出一條新產品線。"},
+      {word:"challenge",zh:"挑戰",example:"The biggest challenge I faced was a tight deadline.",example_zh:"我面臨的最大挑戰是緊迫的截止日期。"},
+      {word:"teamwork",zh:"團隊合作",example:"I believe strong teamwork is key to success.",example_zh:"我相信良好的團隊合作是成功的關鍵。"},
+      {word:"initiative",zh:"主動性",example:"I took the initiative to redesign the process.",example_zh:"我主動重新設計了流程。"},
+      {word:"deadline",zh:"截止日期",example:"I always meet my deadlines.",example_zh:"我總是在截止日期前完成工作。"},
+      {word:"collaborate",zh:"合作",example:"I collaborated closely with the design team.",example_zh:"我與設計團隊密切合作。"},
+      {word:"leadership",zh:"領導力",example:"I had the opportunity to demonstrate leadership.",example_zh:"我有機會展現領導能力。"},
+      {word:"motivate",zh:"激勵",example:"I motivated my team by setting clear goals.",example_zh:"我透過設定明確目標來激勵團隊。"},
+      {word:"accomplish",zh:"完成",example:"I accomplished a 20% increase in sales.",example_zh:"我達成了業績提升 20% 的目標。"},
+      {word:"contribute",zh:"貢獻",example:"I was able to contribute to the company's growth.",example_zh:"我得以為公司的成長貢獻力量。"},
+      {word:"prioritize",zh:"排列優先順序",example:"I learned to prioritize tasks under pressure.",example_zh:"我學會了在壓力下排列工作優先順序。"},
+      {word:"implement",zh:"執行",example:"I implemented a new tracking system.",example_zh:"我建立了一套新的追蹤系統。"},
+      {word:"analyze",zh:"分析",example:"I analyzed the data to find key trends.",example_zh:"我分析數據以找出關鍵趨勢。"},
+      {word:"strength",zh:"優點",example:"My greatest strength is attention to detail.",example_zh:"我最大的優點是注重細節。"},
+      {word:"weakness",zh:"弱點",example:"I'm working on improving my public speaking.",example_zh:"我正在努力改善我的公眾演講能力。"},
+      {word:"goal",zh:"目標",example:"My long-term goal is to lead a marketing team.",example_zh:"我的長期目標是帶領一個行銷團隊。"},
+      {word:"outcome",zh:"結果",example:"The outcome exceeded our expectations.",example_zh:"結果超出了我們的預期。"},
+      {word:"feedback",zh:"回饋",example:"I always welcome constructive feedback.",example_zh:"我一直歡迎建設性的回饋。"},
+      {word:"adapt",zh:"適應",example:"I adapt quickly to new environments.",example_zh:"我能快速適應新環境。"},
+      {word:"efficient",zh:"有效率的",example:"I found a more efficient way to manage projects.",example_zh:"我找到了一種更有效率的專案管理方式。"},
+      {word:"proactive",zh:"主動積極的",example:"I'm a proactive person who looks for solutions.",example_zh:"我是一個主動尋找解決方案的人。"},
+      {word:"passionate",zh:"有熱情的",example:"I'm passionate about digital marketing.",example_zh:"我對數位行銷充滿熱情。"},
+      {word:"coordinate",zh:"協調",example:"I coordinated between multiple departments.",example_zh:"我負責協調多個部門之間的工作。"},
+      {word:"negotiate",zh:"協商",example:"I negotiated a better deal with suppliers.",example_zh:"我與供應商談判到了更好的條件。"},
+      {word:"evaluate",zh:"評估",example:"I regularly evaluate campaign performance.",example_zh:"我定期評估行銷活動的成效。"},
+      {word:"innovative",zh:"創新的",example:"I introduced an innovative approach to the problem.",example_zh:"我為這個問題引入了創新的方法。"},
+      {word:"strategic",zh:"有策略的",example:"I take a strategic approach to planning.",example_zh:"我採取有策略性的方式來規劃。"},
+      {word:"detail-oriented",zh:"注重細節的",example:"I'm very detail-oriented in my work.",example_zh:"我工作非常注重細節。"}
     ]},
   shopping:{name:"Shopping",
     cultural:"🇺🇸 In US stores, staff greet you but there's no pressure to buy. It's normal to ask about return policies, request discounts, or try items on.",
@@ -1061,36 +1108,36 @@ var SCENARIOS={
       {en:"What's your return policy?",zh:"你們的退換貨政策是什麼？"}
     ],
     vocab:[
-      {word:"browse",zh:"隨便看看",example:"I'm just browsing, thanks."},
-      {word:"fitting room",zh:"試衣間",example:"Can I use the fitting room?"},
-      {word:"try on",zh:"試穿",example:"Could I try this on?"},
-      {word:"size",zh:"尺寸",example:"Do you have this in a medium?"},
-      {word:"material",zh:"材質",example:"What material is this made of?"},
-      {word:"style",zh:"款式",example:"Do you have other styles available?"},
-      {word:"casual",zh:"休閒的",example:"I'm looking for something casual."},
-      {word:"discount",zh:"折扣",example:"Is there a discount on this item?"},
-      {word:"sale",zh:"特賣",example:"Are these items on sale?"},
-      {word:"clearance",zh:"出清",example:"Where is the clearance section?"},
-      {word:"exchange",zh:"換貨",example:"Can I exchange this for a different size?"},
-      {word:"refund",zh:"退款",example:"I'd like to request a refund."},
-      {word:"receipt",zh:"收據",example:"Do I need a receipt to return this?"},
-      {word:"in stock",zh:"有庫存",example:"Is this in stock?"},
-      {word:"out of stock",zh:"缺貨",example:"I'm afraid this is out of stock."},
-      {word:"available",zh:"有提供的",example:"Is this available in other colors?"},
-      {word:"affordable",zh:"負擔得起的",example:"I'm looking for something affordable."},
-      {word:"brand",zh:"品牌",example:"Is this a well-known brand?"},
-      {word:"durable",zh:"耐用的",example:"Is this fabric durable?"},
-      {word:"trendy",zh:"流行的",example:"This style looks very trendy."},
-      {word:"bargain",zh:"划算的商品",example:"That's a great bargain!"},
-      {word:"warranty",zh:"保固",example:"Does this come with a warranty?"},
-      {word:"fabric",zh:"布料",example:"I prefer cotton fabric."},
-      {word:"limited",zh:"限量的",example:"This is a limited edition item."},
-      {word:"formal",zh:"正式的",example:"I need something more formal for work."},
-      {word:"accessory",zh:"配件",example:"I'm also looking for a matching accessory."},
-      {word:"credit card",zh:"信用卡",example:"Do you accept credit cards?"},
-      {word:"cash",zh:"現金",example:"Can I pay in cash?"},
-      {word:"price tag",zh:"標價",example:"The price tag says $45."},
-      {word:"fitting",zh:"合身的",example:"This fits perfectly!"}
+      {word:"browse",zh:"隨便看看",example:"I'm just browsing, thanks.",example_zh:"我只是隨便看看，謝謝。"},
+      {word:"fitting room",zh:"試衣間",example:"Can I use the fitting room?",example_zh:"我可以使用試衣間嗎？"},
+      {word:"try on",zh:"試穿",example:"Could I try this on?",example_zh:"我可以試穿這件嗎？"},
+      {word:"size",zh:"尺寸",example:"Do you have this in a medium?",example_zh:"這件有中號嗎？"},
+      {word:"material",zh:"材質",example:"What material is this made of?",example_zh:"這是用什麼材質做的？"},
+      {word:"style",zh:"款式",example:"Do you have other styles available?",example_zh:"有其他款式嗎？"},
+      {word:"casual",zh:"休閒的",example:"I'm looking for something casual.",example_zh:"我在找休閒風格的衣服。"},
+      {word:"discount",zh:"折扣",example:"Is there a discount on this item?",example_zh:"這件商品有折扣嗎？"},
+      {word:"sale",zh:"特賣",example:"Are these items on sale?",example_zh:"這些商品有特價嗎？"},
+      {word:"clearance",zh:"出清",example:"Where is the clearance section?",example_zh:"出清區在哪裡？"},
+      {word:"exchange",zh:"換貨",example:"Can I exchange this for a different size?",example_zh:"我可以換不同尺寸嗎？"},
+      {word:"refund",zh:"退款",example:"I'd like to request a refund.",example_zh:"我想申請退款。"},
+      {word:"receipt",zh:"收據",example:"Do I need a receipt to return this?",example_zh:"退貨需要收據嗎？"},
+      {word:"in stock",zh:"有庫存",example:"Is this in stock?",example_zh:"這個有庫存嗎？"},
+      {word:"out of stock",zh:"缺貨",example:"I'm afraid this is out of stock.",example_zh:"很遺憾，這個已經缺貨了。"},
+      {word:"available",zh:"有提供的",example:"Is this available in other colors?",example_zh:"這個有其他顏色嗎？"},
+      {word:"affordable",zh:"負擔得起的",example:"I'm looking for something affordable.",example_zh:"我在找負擔得起的東西。"},
+      {word:"brand",zh:"品牌",example:"Is this a well-known brand?",example_zh:"這是知名品牌嗎？"},
+      {word:"durable",zh:"耐用的",example:"Is this fabric durable?",example_zh:"這個布料耐用嗎？"},
+      {word:"trendy",zh:"流行的",example:"This style looks very trendy.",example_zh:"這款式看起來非常流行。"},
+      {word:"bargain",zh:"划算的商品",example:"That's a great bargain!",example_zh:"那真是個划算的交易！"},
+      {word:"warranty",zh:"保固",example:"Does this come with a warranty?",example_zh:"這個有保固嗎？"},
+      {word:"fabric",zh:"布料",example:"I prefer cotton fabric.",example_zh:"我偏好棉質布料。"},
+      {word:"limited",zh:"限量的",example:"This is a limited edition item.",example_zh:"這是限量版商品。"},
+      {word:"formal",zh:"正式的",example:"I need something more formal for work.",example_zh:"我需要更正式的工作服裝。"},
+      {word:"accessory",zh:"配件",example:"I'm also looking for a matching accessory.",example_zh:"我也在找搭配的配件。"},
+      {word:"credit card",zh:"信用卡",example:"Do you accept credit cards?",example_zh:"你們接受信用卡嗎？"},
+      {word:"cash",zh:"現金",example:"Can I pay in cash?",example_zh:"可以用現金嗎？"},
+      {word:"price tag",zh:"標價",example:"The price tag says $45.",example_zh:"標價是 45 美元。"},
+      {word:"fitting",zh:"合身的",example:"This fits perfectly!",example_zh:"這件非常合身！"}
     ]},
   directions:{name:"Directions",
     cultural:"🇺🇸 Americans use landmarks and block counts: 'Take a left at the light', 'It's about two blocks down', 'You can't miss it'.",
@@ -1112,36 +1159,36 @@ var SCENARIOS={
       {en:"So I should turn left, then go straight — is that right?",zh:"所以我要左轉，然後直走，對嗎？"}
     ],
     vocab:[
-      {word:"intersection",zh:"十字路口",example:"Turn left at the next intersection."},
-      {word:"block",zh:"街區",example:"Go straight for about two blocks."},
-      {word:"landmark",zh:"地標",example:"The library is a good landmark to look for."},
-      {word:"turn",zh:"轉彎",example:"Turn right at the traffic light."},
-      {word:"straight",zh:"直走",example:"Go straight down this street."},
-      {word:"corner",zh:"轉角",example:"It's just around the corner."},
-      {word:"traffic light",zh:"紅綠燈",example:"Stop at the traffic light."},
-      {word:"crosswalk",zh:"斑馬線",example:"Cross at the crosswalk."},
-      {word:"avenue",zh:"大道",example:"Walk along Fifth Avenue."},
-      {word:"block away",zh:"幾個街區遠",example:"It's about two blocks away."},
-      {word:"opposite",zh:"對面",example:"It's opposite the post office."},
-      {word:"adjacent",zh:"相鄰的",example:"The park is adjacent to the museum."},
-      {word:"nearby",zh:"附近",example:"Is there a subway station nearby?"},
-      {word:"distance",zh:"距離",example:"What's the distance from here?"},
-      {word:"walking distance",zh:"步行距離",example:"Is it within walking distance?"},
-      {word:"subway",zh:"地鐵",example:"Should I take the subway?"},
-      {word:"bus stop",zh:"公車站",example:"The bus stop is right there."},
-      {word:"downtown",zh:"市中心",example:"Central Park is in the middle of downtown."},
-      {word:"exit",zh:"出口",example:"Take exit 5 on the highway."},
-      {word:"entrance",zh:"入口",example:"The main entrance is on 5th Avenue."},
-      {word:"shortcut",zh:"捷徑",example:"I know a shortcut through the park."},
-      {word:"lost",zh:"迷路了",example:"I think I'm lost. Can you help?"},
-      {word:"heading",zh:"朝向",example:"You're heading in the right direction."},
-      {word:"pass",zh:"經過",example:"You'll pass a big church on your left."},
-      {word:"approximately",zh:"大約",example:"It's approximately a 10-minute walk."},
-      {word:"north",zh:"北",example:"Head north on Broadway."},
-      {word:"south",zh:"南",example:"Walk south for three blocks."},
-      {word:"east",zh:"東",example:"The park entrance is to the east."},
-      {word:"west",zh:"西",example:"Turn west at the fountain."},
-      {word:"you can't miss it",zh:"你一定看得到",example:"It's a huge building. You can't miss it."}
+      {word:"intersection",zh:"十字路口",example:"Turn left at the next intersection.",example_zh:"在下一個十字路口左轉。"},
+      {word:"block",zh:"街區",example:"Go straight for about two blocks.",example_zh:"直走大約兩個街區。"},
+      {word:"landmark",zh:"地標",example:"The library is a good landmark to look for.",example_zh:"圖書館是個很好辨認的地標。"},
+      {word:"turn",zh:"轉彎",example:"Turn right at the traffic light.",example_zh:"在紅綠燈那裡右轉。"},
+      {word:"straight",zh:"直走",example:"Go straight down this street.",example_zh:"沿這條街直走。"},
+      {word:"corner",zh:"轉角",example:"It's just around the corner.",example_zh:"就在轉角附近。"},
+      {word:"traffic light",zh:"紅綠燈",example:"Stop at the traffic light.",example_zh:"在紅綠燈停下來。"},
+      {word:"crosswalk",zh:"斑馬線",example:"Cross at the crosswalk.",example_zh:"走斑馬線過馬路。"},
+      {word:"avenue",zh:"大道",example:"Walk along Fifth Avenue.",example_zh:"沿著第五大道走。"},
+      {word:"block away",zh:"幾個街區遠",example:"It's about two blocks away.",example_zh:"大約兩個街區遠。"},
+      {word:"opposite",zh:"對面",example:"It's opposite the post office.",example_zh:"就在郵局對面。"},
+      {word:"adjacent",zh:"相鄰的",example:"The park is adjacent to the museum.",example_zh:"公園與博物館相鄰。"},
+      {word:"nearby",zh:"附近",example:"Is there a subway station nearby?",example_zh:"附近有地鐵站嗎？"},
+      {word:"distance",zh:"距離",example:"What's the distance from here?",example_zh:"從這裡有多遠？"},
+      {word:"walking distance",zh:"步行距離",example:"Is it within walking distance?",example_zh:"走路的距離到得了嗎？"},
+      {word:"subway",zh:"地鐵",example:"Should I take the subway?",example_zh:"我應該搭地鐵嗎？"},
+      {word:"bus stop",zh:"公車站",example:"The bus stop is right there.",example_zh:"公車站就在那裡。"},
+      {word:"downtown",zh:"市中心",example:"Central Park is in the middle of downtown.",example_zh:"中央公園在市中心的中央。"},
+      {word:"exit",zh:"出口",example:"Take exit 5 on the highway.",example_zh:"在高速公路出口 5 離開。"},
+      {word:"entrance",zh:"入口",example:"The main entrance is on 5th Avenue.",example_zh:"主要入口在第五大道。"},
+      {word:"shortcut",zh:"捷徑",example:"I know a shortcut through the park.",example_zh:"我知道一條穿過公園的捷徑。"},
+      {word:"lost",zh:"迷路了",example:"I think I'm lost. Can you help?",example_zh:"我想我迷路了，你能幫我嗎？"},
+      {word:"heading",zh:"朝向",example:"You're heading in the right direction.",example_zh:"你朝著正確的方向走。"},
+      {word:"pass",zh:"經過",example:"You'll pass a big church on your left.",example_zh:"你的左手邊會經過一座大教堂。"},
+      {word:"approximately",zh:"大約",example:"It's approximately a 10-minute walk.",example_zh:"大約走路 10 分鐘。"},
+      {word:"north",zh:"北",example:"Head north on Broadway.",example_zh:"沿百老匯大道往北走。"},
+      {word:"south",zh:"南",example:"Walk south for three blocks.",example_zh:"往南走三個街區。"},
+      {word:"east",zh:"東",example:"The park entrance is to the east.",example_zh:"公園入口在東邊。"},
+      {word:"west",zh:"西",example:"Turn west at the fountain.",example_zh:"在噴泉那裡往西轉。"},
+      {word:"you can't miss it",zh:"你一定看得到",example:"It's a huge building. You can't miss it.",example_zh:"那是一棟很大的建築，你一定看得到。"}
     ]},
   hotel:{name:"Hotel",
     cultural:"🇺🇸 US hotel check-in requires photo ID and credit card. Staff are trained to be warm. It's perfectly normal to ask about every amenity.",
@@ -1163,36 +1210,36 @@ var SCENARIOS={
       {en:"Is room service available?",zh:"有提供客房服務嗎？"}
     ],
     vocab:[
-      {word:"reservation",zh:"訂房",example:"I have a reservation under Chen."},
-      {word:"check-in",zh:"辦理入住",example:"I'd like to check in, please."},
-      {word:"check-out",zh:"退房",example:"What time is check-out?"},
-      {word:"lobby",zh:"大廳",example:"Please meet me in the lobby."},
-      {word:"front desk",zh:"前台",example:"Please go to the front desk for your key."},
-      {word:"room key",zh:"房卡",example:"Here is your room key."},
-      {word:"amenity",zh:"設施",example:"What amenities does the hotel offer?"},
-      {word:"complimentary",zh:"免費提供的",example:"Is breakfast complimentary?"},
-      {word:"housekeeping",zh:"客房清潔",example:"Can I request housekeeping in the morning?"},
-      {word:"concierge",zh:"服務台",example:"Ask the concierge for restaurant recommendations."},
-      {word:"valet",zh:"代客停車",example:"Is valet parking available?"},
-      {word:"room service",zh:"客房服務",example:"I'd like to order room service."},
-      {word:"wake-up call",zh:"叫醒服務",example:"Could I get a wake-up call at 7 AM?"},
-      {word:"late checkout",zh:"延遲退房",example:"Can I request a late checkout?"},
-      {word:"suite",zh:"套房",example:"I reserved a suite."},
-      {word:"ocean view",zh:"海景",example:"Do you have a room with an ocean view?"},
-      {word:"balcony",zh:"陽台",example:"Does the room have a balcony?"},
-      {word:"minibar",zh:"迷你吧",example:"Is the minibar included in the room rate?"},
-      {word:"laundry",zh:"洗衣服務",example:"Do you offer laundry service?"},
-      {word:"gym",zh:"健身房",example:"Where is the gym located?"},
-      {word:"pool",zh:"游泳池",example:"Is the rooftop pool open now?"},
-      {word:"Wi-Fi",zh:"無線網路",example:"Is Wi-Fi included in the room rate?"},
-      {word:"confirmation",zh:"確認",example:"Here is my booking confirmation."},
-      {word:"upgrade",zh:"升級",example:"Is an upgrade available?"},
-      {word:"double room",zh:"雙人房",example:"I booked a double room."},
-      {word:"single room",zh:"單人房",example:"I'd prefer a single room."},
-      {word:"floor",zh:"樓層",example:"What floor is my room on?"},
-      {word:"elevator",zh:"電梯",example:"Where is the elevator?"},
-      {word:"noise",zh:"噪音",example:"My room is a bit noisy. Can I change?"},
-      {word:"extra pillow",zh:"額外的枕頭",example:"Could I get an extra pillow?"}
+      {word:"reservation",zh:"訂房",example:"I have a reservation under Chen.",example_zh:"我有訂房，名字是陳。"},
+      {word:"check-in",zh:"辦理入住",example:"I'd like to check in, please.",example_zh:"我想辦理入住。"},
+      {word:"check-out",zh:"退房",example:"What time is check-out?",example_zh:"退房時間是幾點？"},
+      {word:"lobby",zh:"大廳",example:"Please meet me in the lobby.",example_zh:"請在大廳等我。"},
+      {word:"front desk",zh:"前台",example:"Please go to the front desk for your key.",example_zh:"請去前台取鑰匙。"},
+      {word:"room key",zh:"房卡",example:"Here is your room key.",example_zh:"這是您的房間鑰匙。"},
+      {word:"amenity",zh:"設施",example:"What amenities does the hotel offer?",example_zh:"這家飯店提供哪些設施？"},
+      {word:"complimentary",zh:"免費提供的",example:"Is breakfast complimentary?",example_zh:"早餐是免費提供的嗎？"},
+      {word:"housekeeping",zh:"客房清潔",example:"Can I request housekeeping in the morning?",example_zh:"可以安排早上打掃房間嗎？"},
+      {word:"concierge",zh:"服務台",example:"Ask the concierge for restaurant recommendations.",example_zh:"向服務台詢問餐廳推薦。"},
+      {word:"valet",zh:"代客停車",example:"Is valet parking available?",example_zh:"有代客停車服務嗎？"},
+      {word:"room service",zh:"客房服務",example:"I'd like to order room service.",example_zh:"我想叫客房服務。"},
+      {word:"wake-up call",zh:"叫醒服務",example:"Could I get a wake-up call at 7 AM?",example_zh:"可以幫我安排早上七點的叫醒服務嗎？"},
+      {word:"late checkout",zh:"延遲退房",example:"Can I request a late checkout?",example_zh:"可以申請延遲退房嗎？"},
+      {word:"suite",zh:"套房",example:"I reserved a suite.",example_zh:"我預訂了一間套房。"},
+      {word:"ocean view",zh:"海景",example:"Do you have a room with an ocean view?",example_zh:"有海景房嗎？"},
+      {word:"balcony",zh:"陽台",example:"Does the room have a balcony?",example_zh:"房間有陽台嗎？"},
+      {word:"minibar",zh:"迷你吧",example:"Is the minibar included in the room rate?",example_zh:"迷你吧包含在房費裡嗎？"},
+      {word:"laundry",zh:"洗衣服務",example:"Do you offer laundry service?",example_zh:"有提供洗衣服務嗎？"},
+      {word:"gym",zh:"健身房",example:"Where is the gym located?",example_zh:"健身房在哪裡？"},
+      {word:"pool",zh:"游泳池",example:"Is the rooftop pool open now?",example_zh:"頂樓游泳池現在開放嗎？"},
+      {word:"Wi-Fi",zh:"無線網路",example:"Is Wi-Fi included in the room rate?",example_zh:"Wi-Fi 包含在房費裡嗎？"},
+      {word:"confirmation",zh:"確認",example:"Here is my booking confirmation.",example_zh:"這是我的訂房確認單。"},
+      {word:"upgrade",zh:"升級",example:"Is an upgrade available?",example_zh:"有房型升級的可能嗎？"},
+      {word:"double room",zh:"雙人房",example:"I booked a double room.",example_zh:"我訂了一間雙人房。"},
+      {word:"single room",zh:"單人房",example:"I'd prefer a single room.",example_zh:"我比較想要單人房。"},
+      {word:"floor",zh:"樓層",example:"What floor is my room on?",example_zh:"我的房間在幾樓？"},
+      {word:"elevator",zh:"電梯",example:"Where is the elevator?",example_zh:"電梯在哪裡？"},
+      {word:"noise",zh:"噪音",example:"My room is a bit noisy. Can I change?",example_zh:"我的房間有點吵，可以換房嗎？"},
+      {word:"extra pillow",zh:"額外的枕頭",example:"Could I get an extra pillow?",example_zh:"可以多給我一個枕頭嗎？"}
     ]},
   airport:{name:"Airport",
     cultural:"🇺🇸 US airports: arrive 2 hrs early for domestic, 3 hrs international. TSA requires ID. Agents are professional but efficient — be clear and concise.",
@@ -1214,37 +1261,37 @@ var SCENARIOS={
       {en:"Where is the security checkpoint?",zh:"安全檢查在哪裡？"}
     ],
     vocab:[
-      {word:"check-in",zh:"辦理報到",example:"I'd like to check in for my flight."},
-      {word:"boarding pass",zh:"登機證",example:"Here is my boarding pass."},
-      {word:"passport",zh:"護照",example:"May I see your passport?"},
-      {word:"luggage",zh:"行李",example:"I have two pieces of luggage."},
-      {word:"carry-on",zh:"手提行李",example:"This is my carry-on bag."},
-      {word:"checked bag",zh:"托運行李",example:"I'd like to check one bag."},
-      {word:"overweight",zh:"超重",example:"My bag is slightly overweight."},
-      {word:"gate",zh:"登機門",example:"Which gate is my flight at?"},
-      {word:"departure",zh:"出發",example:"What is the departure time?"},
-      {word:"delay",zh:"誤點",example:"Is there a delay?"},
-      {word:"connection",zh:"轉機",example:"I have a tight connection."},
-      {word:"aisle",zh:"走道",example:"I prefer an aisle seat."},
-      {word:"window seat",zh:"靠窗座位",example:"Can I get a window seat?"},
-      {word:"boarding",zh:"登機",example:"When does boarding begin?"},
-      {word:"security",zh:"安全檢查",example:"Where is the security checkpoint?"},
-      {word:"terminal",zh:"航廈",example:"Which terminal is my flight in?"},
-      {word:"customs",zh:"海關",example:"Do I need to go through customs?"},
-      {word:"immigration",zh:"移民局",example:"Where is immigration?"},
-      {word:"declaration",zh:"申報",example:"Do I need to fill out a customs declaration?"},
-      {word:"layover",zh:"中途停留",example:"I have a two-hour layover in Tokyo."},
-      {word:"upgrade",zh:"升等",example:"Is an upgrade available?"},
-      {word:"domestic",zh:"國內線",example:"Is this a domestic flight?"},
-      {word:"international",zh:"國際線",example:"I'm on an international flight."},
-      {word:"economy class",zh:"經濟艙",example:"I'm flying economy class."},
-      {word:"business class",zh:"商務艙",example:"I upgraded to business class."},
-      {word:"overhead bin",zh:"頭頂行李艙",example:"There's space in the overhead bin."},
-      {word:"seat belt",zh:"安全帶",example:"Please fasten your seat belt."},
-      {word:"turbulence",zh:"亂流",example:"We may experience some turbulence."},
-      {word:"landing",zh:"降落",example:"We will be landing in 30 minutes."},
-      {word:"arrival",zh:"抵達",example:"What is the arrival time?"},
-      {word:"baggage claim",zh:"行李提領處",example:"Baggage claim is on Level 1."}
+      {word:"check-in",zh:"辦理報到",example:"I'd like to check in for my flight.",example_zh:"我想辦理登機手續。"},
+      {word:"boarding pass",zh:"登機證",example:"Here is my boarding pass.",example_zh:"這是我的登機證。"},
+      {word:"passport",zh:"護照",example:"May I see your passport?",example_zh:"可以看一下您的護照嗎？"},
+      {word:"luggage",zh:"行李",example:"I have two pieces of luggage.",example_zh:"我有兩件行李。"},
+      {word:"carry-on",zh:"手提行李",example:"This is my carry-on bag.",example_zh:"這是我的手提行李。"},
+      {word:"checked bag",zh:"托運行李",example:"I'd like to check one bag.",example_zh:"我想托運一件行李。"},
+      {word:"overweight",zh:"超重",example:"My bag is slightly overweight.",example_zh:"我的行李稍微超重了。"},
+      {word:"gate",zh:"登機門",example:"Which gate is my flight at?",example_zh:"我的班機在哪個登機門？"},
+      {word:"departure",zh:"出發",example:"What is the departure time?",example_zh:"出發時間是幾點？"},
+      {word:"delay",zh:"誤點",example:"Is there a delay?",example_zh:"有誤點嗎？"},
+      {word:"connection",zh:"轉機",example:"I have a tight connection.",example_zh:"我的轉機時間很緊。"},
+      {word:"aisle",zh:"走道",example:"I prefer an aisle seat.",example_zh:"我偏好走道座位。"},
+      {word:"window seat",zh:"靠窗座位",example:"Can I get a window seat?",example_zh:"可以給我靠窗座位嗎？"},
+      {word:"boarding",zh:"登機",example:"When does boarding begin?",example_zh:"什麼時候開始登機？"},
+      {word:"security",zh:"安全檢查",example:"Where is the security checkpoint?",example_zh:"安全檢查在哪裡？"},
+      {word:"terminal",zh:"航廈",example:"Which terminal is my flight in?",example_zh:"我的班機在哪個航廈？"},
+      {word:"customs",zh:"海關",example:"Do I need to go through customs?",example_zh:"我需要過海關嗎？"},
+      {word:"immigration",zh:"移民局",example:"Where is immigration?",example_zh:"移民局在哪裡？"},
+      {word:"declaration",zh:"申報",example:"Do I need to fill out a customs declaration?",example_zh:"我需要填寫海關申報單嗎？"},
+      {word:"layover",zh:"中途停留",example:"I have a two-hour layover in Tokyo.",example_zh:"我在東京有兩小時的中途停留。"},
+      {word:"upgrade",zh:"升等",example:"Is an upgrade available?",example_zh:"有可能升艙嗎？"},
+      {word:"domestic",zh:"國內線",example:"Is this a domestic flight?",example_zh:"這是國內航班嗎？"},
+      {word:"international",zh:"國際線",example:"I'm on an international flight.",example_zh:"我搭的是國際班機。"},
+      {word:"economy class",zh:"經濟艙",example:"I'm flying economy class.",example_zh:"我搭的是經濟艙。"},
+      {word:"business class",zh:"商務艙",example:"I upgraded to business class.",example_zh:"我升等到商務艙了。"},
+      {word:"overhead bin",zh:"頭頂行李艙",example:"There's space in the overhead bin.",example_zh:"頭頂行李艙還有空間。"},
+      {word:"seat belt",zh:"安全帶",example:"Please fasten your seat belt.",example_zh:"請繫好安全帶。"},
+      {word:"turbulence",zh:"亂流",example:"We may experience some turbulence.",example_zh:"可能會遇到一些亂流。"},
+      {word:"landing",zh:"降落",example:"We will be landing in 30 minutes.",example_zh:"我們將在 30 分鐘後降落。"},
+      {word:"arrival",zh:"抵達",example:"What is the arrival time?",example_zh:"抵達時間是幾點？"},
+      {word:"baggage claim",zh:"行李提領處",example:"Baggage claim is on Level 1.",example_zh:"行李提領處在一樓。"}
     ]},
   doctor:{name:"Doctor",
     cultural:"🇺🇸 US doctor visits: describe symptoms clearly, ask questions freely. Doctors expect patients to be involved. Insurance info is often needed at reception.",
@@ -1266,36 +1313,36 @@ var SCENARIOS={
       {en:"How long will it take to recover?",zh:"需要多久才能康復？"}
     ],
     vocab:[
-      {word:"symptom",zh:"症狀",example:"What symptoms are you experiencing?"},
-      {word:"fever",zh:"發燒",example:"I have a low-grade fever."},
-      {word:"headache",zh:"頭痛",example:"I've had a headache since yesterday."},
-      {word:"sore throat",zh:"喉嚨痛",example:"I have a sore throat."},
-      {word:"nausea",zh:"噁心",example:"I feel nauseous in the morning."},
-      {word:"dizziness",zh:"頭暈",example:"I've been experiencing dizziness."},
-      {word:"fatigue",zh:"疲倦",example:"I feel extreme fatigue lately."},
-      {word:"cough",zh:"咳嗽",example:"I have a dry cough."},
-      {word:"prescription",zh:"處方箋",example:"I need a prescription for this medicine."},
-      {word:"diagnosis",zh:"診斷",example:"What is your diagnosis?"},
-      {word:"treatment",zh:"治療",example:"What treatment do you recommend?"},
-      {word:"medication",zh:"藥物",example:"What medication should I take?"},
-      {word:"allergy",zh:"過敏",example:"I'm allergic to penicillin."},
-      {word:"blood pressure",zh:"血壓",example:"My blood pressure is a bit high."},
-      {word:"chronic",zh:"慢性的",example:"I have a chronic back problem."},
-      {word:"acute",zh:"急性的",example:"This seems like an acute condition."},
-      {word:"mild",zh:"輕微的",example:"The pain is mild."},
-      {word:"severe",zh:"嚴重的",example:"The pain is quite severe."},
-      {word:"inflammation",zh:"發炎",example:"There is some inflammation."},
-      {word:"blood test",zh:"血液檢查",example:"I recommend a blood test."},
-      {word:"X-ray",zh:"X光",example:"We'll need to take an X-ray."},
-      {word:"follow up",zh:"回診",example:"Please follow up in one week."},
-      {word:"side effect",zh:"副作用",example:"This medicine may have side effects."},
-      {word:"dosage",zh:"劑量",example:"Take two tablets twice a day."},
-      {word:"insurance",zh:"保險",example:"Do you accept my insurance?"},
-      {word:"recovery",zh:"康復",example:"Recovery should take about a week."},
-      {word:"rest",zh:"休息",example:"You should rest for a few days."},
-      {word:"hydration",zh:"補水",example:"Make sure to stay hydrated."},
-      {word:"referral",zh:"轉診",example:"I'm giving you a referral to a specialist."},
-      {word:"physical exam",zh:"身體檢查",example:"Let me do a quick physical exam."}
+      {word:"symptom",zh:"症狀",example:"What symptoms are you experiencing?",example_zh:"您有哪些症狀？"},
+      {word:"fever",zh:"發燒",example:"I have a low-grade fever.",example_zh:"我有輕微發燒。"},
+      {word:"headache",zh:"頭痛",example:"I've had a headache since yesterday.",example_zh:"我從昨天就開始頭痛。"},
+      {word:"sore throat",zh:"喉嚨痛",example:"I have a sore throat.",example_zh:"我喉嚨痛。"},
+      {word:"nausea",zh:"噁心",example:"I feel nauseous in the morning.",example_zh:"我早上感到噁心。"},
+      {word:"dizziness",zh:"頭暈",example:"I've been experiencing dizziness.",example_zh:"我一直有頭暈的情況。"},
+      {word:"fatigue",zh:"疲倦",example:"I feel extreme fatigue lately.",example_zh:"我最近感到極度疲倦。"},
+      {word:"cough",zh:"咳嗽",example:"I have a dry cough.",example_zh:"我有乾咳。"},
+      {word:"prescription",zh:"處方箋",example:"I need a prescription for this medicine.",example_zh:"我需要這種藥的處方箋。"},
+      {word:"diagnosis",zh:"診斷",example:"What is your diagnosis?",example_zh:"您的診斷是什麼？"},
+      {word:"treatment",zh:"治療",example:"What treatment do you recommend?",example_zh:"您建議什麼治療方式？"},
+      {word:"medication",zh:"藥物",example:"What medication should I take?",example_zh:"我應該服用什麼藥？"},
+      {word:"allergy",zh:"過敏",example:"I'm allergic to penicillin.",example_zh:"我對盤尼西林過敏。"},
+      {word:"blood pressure",zh:"血壓",example:"My blood pressure is a bit high.",example_zh:"我的血壓有點高。"},
+      {word:"chronic",zh:"慢性的",example:"I have a chronic back problem.",example_zh:"我有慢性背部問題。"},
+      {word:"acute",zh:"急性的",example:"This seems like an acute condition.",example_zh:"這看起來是急性病症。"},
+      {word:"mild",zh:"輕微的",example:"The pain is mild.",example_zh:"疼痛很輕微。"},
+      {word:"severe",zh:"嚴重的",example:"The pain is quite severe.",example_zh:"疼痛相當嚴重。"},
+      {word:"inflammation",zh:"發炎",example:"There is some inflammation.",example_zh:"有些發炎。"},
+      {word:"blood test",zh:"血液檢查",example:"I recommend a blood test.",example_zh:"我建議做血液檢查。"},
+      {word:"X-ray",zh:"X光",example:"We'll need to take an X-ray.",example_zh:"我們需要照 X 光。"},
+      {word:"follow up",zh:"回診",example:"Please follow up in one week.",example_zh:"請一週後回診。"},
+      {word:"side effect",zh:"副作用",example:"This medicine may have side effects.",example_zh:"這個藥可能有副作用。"},
+      {word:"dosage",zh:"劑量",example:"Take two tablets twice a day.",example_zh:"每天兩次，每次兩顆。"},
+      {word:"insurance",zh:"保險",example:"Do you accept my insurance?",example_zh:"你們接受我的保險嗎？"},
+      {word:"recovery",zh:"康復",example:"Recovery should take about a week.",example_zh:"康復大約需要一週。"},
+      {word:"rest",zh:"休息",example:"You should rest for a few days.",example_zh:"你應該休息幾天。"},
+      {word:"hydration",zh:"補水",example:"Make sure to stay hydrated.",example_zh:"要確保保持水分。"},
+      {word:"referral",zh:"轉診",example:"I'm giving you a referral to a specialist.",example_zh:"我要幫你轉診給專科醫師。"},
+      {word:"physical exam",zh:"身體檢查",example:"Let me do a quick physical exam.",example_zh:"讓我做一個簡單的身體檢查。"}
     ]},
   cafe:{name:"Café",
     cultural:"🇺🇸 US cafés: orders are usually at the counter. Baristas often ask your name for the order. Tipping ~$1 per drink is common. Soy/oat milk swaps are standard.",
@@ -1317,36 +1364,36 @@ var SCENARIOS={
       {en:"Can I pay by card?",zh:"可以刷卡嗎？"}
     ],
     vocab:[
-      {word:"barista",zh:"咖啡師",example:"The barista made a beautiful latte."},
-      {word:"espresso",zh:"濃縮咖啡",example:"Can I get an extra shot of espresso?"},
-      {word:"latte",zh:"拿鐵",example:"I'd like a vanilla latte."},
-      {word:"cappuccino",zh:"卡布奇諾",example:"I'll have a cappuccino."},
-      {word:"cold brew",zh:"冷萃咖啡",example:"Is the cold brew strong?"},
-      {word:"decaf",zh:"無咖啡因",example:"Can I get that decaf?"},
-      {word:"oat milk",zh:"燕麥奶",example:"I'd like oat milk instead."},
-      {word:"almond milk",zh:"杏仁奶",example:"Do you have almond milk?"},
-      {word:"size",zh:"杯型",example:"What sizes do you have?"},
-      {word:"small",zh:"小杯",example:"I'll have a small, please."},
-      {word:"medium",zh:"中杯",example:"A medium latte, please."},
-      {word:"large",zh:"大杯",example:"Can I get the large size?"},
-      {word:"shot",zh:"一份濃縮",example:"Can I get an extra shot?"},
-      {word:"foam",zh:"奶泡",example:"Light foam, please."},
-      {word:"iced",zh:"冰的",example:"Can I get that iced?"},
-      {word:"hot",zh:"熱的",example:"I'd prefer it hot."},
-      {word:"sweetener",zh:"甜味劑",example:"Do you have any sweetener?"},
-      {word:"syrup",zh:"糖漿",example:"Can I add vanilla syrup?"},
-      {word:"to go",zh:"外帶",example:"This is to go, please."},
-      {word:"for here",zh:"內用",example:"For here, thank you."},
-      {word:"muffin",zh:"馬芬",example:"I'll take a blueberry muffin."},
-      {word:"croissant",zh:"可頌",example:"Is the croissant fresh?"},
-      {word:"pastry",zh:"點心",example:"What pastries do you have today?"},
-      {word:"gluten-free",zh:"無麩質",example:"Do you have gluten-free options?"},
-      {word:"vegan",zh:"純素",example:"Is the muffin vegan?"},
-      {word:"loyalty card",zh:"集點卡",example:"Do you have a loyalty card?"},
-      {word:"receipt",zh:"收據",example:"Can I have a receipt?"},
-      {word:"cashless",zh:"無現金",example:"Is this a cashless café?"},
-      {word:"Wi-Fi",zh:"無線網路",example:"What's the Wi-Fi password?"},
-      {word:"cozy",zh:"舒適的",example:"This café is really cozy."}
+      {word:"barista",zh:"咖啡師",example:"The barista made a beautiful latte.",example_zh:"那位咖啡師做了一杯漂亮的拿鐵。"},
+      {word:"espresso",zh:"濃縮咖啡",example:"Can I get an extra shot of espresso?",example_zh:"可以多加一份濃縮咖啡嗎？"},
+      {word:"latte",zh:"拿鐵",example:"I'd like a vanilla latte.",example_zh:"我想要一杯香草拿鐵。"},
+      {word:"cappuccino",zh:"卡布奇諾",example:"I'll have a cappuccino.",example_zh:"我要一杯卡布奇諾。"},
+      {word:"cold brew",zh:"冷萃咖啡",example:"Is the cold brew strong?",example_zh:"冷萃咖啡味道濃嗎？"},
+      {word:"decaf",zh:"無咖啡因",example:"Can I get that decaf?",example_zh:"可以做成無咖啡因的嗎？"},
+      {word:"oat milk",zh:"燕麥奶",example:"I'd like oat milk instead.",example_zh:"我要改用燕麥奶。"},
+      {word:"almond milk",zh:"杏仁奶",example:"Do you have almond milk?",example_zh:"有杏仁奶嗎？"},
+      {word:"size",zh:"杯型",example:"What sizes do you have?",example_zh:"你們有哪些杯型？"},
+      {word:"small",zh:"小杯",example:"I'll have a small, please.",example_zh:"我要小杯的。"},
+      {word:"medium",zh:"中杯",example:"A medium latte, please.",example_zh:"請給我中杯拿鐵。"},
+      {word:"large",zh:"大杯",example:"Can I get the large size?",example_zh:"可以給我大杯的嗎？"},
+      {word:"shot",zh:"一份濃縮",example:"Can I get an extra shot?",example_zh:"可以多加一份濃縮嗎？"},
+      {word:"foam",zh:"奶泡",example:"Light foam, please.",example_zh:"請給我少一點奶泡。"},
+      {word:"iced",zh:"冰的",example:"Can I get that iced?",example_zh:"可以做成冰的嗎？"},
+      {word:"hot",zh:"熱的",example:"I'd prefer it hot.",example_zh:"我偏好熱的。"},
+      {word:"sweetener",zh:"甜味劑",example:"Do you have any sweetener?",example_zh:"有甜味劑嗎？"},
+      {word:"syrup",zh:"糖漿",example:"Can I add vanilla syrup?",example_zh:"可以加香草糖漿嗎？"},
+      {word:"to go",zh:"外帶",example:"This is to go, please.",example_zh:"我要外帶。"},
+      {word:"for here",zh:"內用",example:"For here, thank you.",example_zh:"我要內用，謝謝。"},
+      {word:"muffin",zh:"馬芬",example:"I'll take a blueberry muffin.",example_zh:"我要一個藍莓馬芬。"},
+      {word:"croissant",zh:"可頌",example:"Is the croissant fresh?",example_zh:"可頌是新鮮的嗎？"},
+      {word:"pastry",zh:"點心",example:"What pastries do you have today?",example_zh:"今天有什麼點心？"},
+      {word:"gluten-free",zh:"無麩質",example:"Do you have gluten-free options?",example_zh:"有無麩質的選項嗎？"},
+      {word:"vegan",zh:"純素",example:"Is the muffin vegan?",example_zh:"這個馬芬是純素的嗎？"},
+      {word:"loyalty card",zh:"集點卡",example:"Do you have a loyalty card?",example_zh:"有集點卡嗎？"},
+      {word:"receipt",zh:"收據",example:"Can I have a receipt?",example_zh:"可以給我收據嗎？"},
+      {word:"cashless",zh:"無現金",example:"Is this a cashless café?",example_zh:"這家咖啡廳是無現金的嗎？"},
+      {word:"Wi-Fi",zh:"無線網路",example:"What's the Wi-Fi password?",example_zh:"Wi-Fi 密碼是什麼？"},
+      {word:"cozy",zh:"舒適的",example:"This café is really cozy.",example_zh:"這家咖啡廳真的很舒適。"}
     ]},
   phone:{name:"Phone call",
     cultural:"🇺🇸 US phone etiquette: identify yourself when calling, be direct about your purpose, and confirm action items before hanging up. Hold music is common.",
@@ -1368,36 +1415,36 @@ var SCENARIOS={
       {en:"Thank you so much for your help.",zh:"非常感謝你的幫助。"}
     ],
     vocab:[
-      {word:"hold",zh:"等候",example:"Please hold for a moment."},
-      {word:"transfer",zh:"轉接",example:"I'll transfer you to the right department."},
-      {word:"extension",zh:"分機",example:"Please dial extension 204."},
-      {word:"reference number",zh:"參考編號",example:"What is your reference number?"},
-      {word:"callback",zh:"回撥",example:"Can I arrange a callback?"},
-      {word:"voicemail",zh:"語音信箱",example:"Please leave a voicemail."},
-      {word:"representative",zh:"客服人員",example:"I'd like to speak with a representative."},
-      {word:"complaint",zh:"投訴",example:"I'd like to file a complaint."},
-      {word:"appointment",zh:"預約",example:"I need to schedule an appointment."},
-      {word:"cancel",zh:"取消",example:"I'd like to cancel my order."},
-      {word:"reschedule",zh:"改期",example:"Can we reschedule the appointment?"},
-      {word:"confirm",zh:"確認",example:"Could you confirm the details?"},
-      {word:"urgent",zh:"緊急",example:"This is quite urgent."},
-      {word:"refund",zh:"退款",example:"I'd like to request a refund."},
-      {word:"policy",zh:"政策",example:"What is your cancellation policy?"},
-      {word:"available",zh:"有空的",example:"Is a technician available on Friday?"},
-      {word:"estimate",zh:"估價",example:"Can you give me an estimate?"},
-      {word:"charge",zh:"收費",example:"What will the charge be?"},
-      {word:"department",zh:"部門",example:"Which department handles this?"},
-      {word:"supervisor",zh:"主管",example:"I'd like to speak with a supervisor."},
-      {word:"resolved",zh:"已解決",example:"Is the issue resolved?"},
-      {word:"follow up",zh:"後續追蹤",example:"I'll follow up by email."},
-      {word:"issue",zh:"問題",example:"I'm having an issue with my account."},
-      {word:"account",zh:"帳號",example:"May I have your account number?"},
-      {word:"address",zh:"地址",example:"Let me confirm your address."},
-      {word:"zip code",zh:"郵遞區號",example:"What is your zip code?"},
-      {word:"confirmation",zh:"確認",example:"You'll receive a confirmation email."},
-      {word:"business hours",zh:"營業時間",example:"What are your business hours?"},
-      {word:"automated",zh:"自動化的",example:"You've reached our automated system."},
-      {word:"speak to",zh:"和...說話",example:"I'd like to speak to a real person."}
+      {word:"hold",zh:"等候",example:"Please hold for a moment.",example_zh:"請稍等一下。"},
+      {word:"transfer",zh:"轉接",example:"I'll transfer you to the right department.",example_zh:"我幫您轉接到正確的部門。"},
+      {word:"extension",zh:"分機",example:"Please dial extension 204.",example_zh:"請撥分機 204。"},
+      {word:"reference number",zh:"參考編號",example:"What is your reference number?",example_zh:"您的參考編號是什麼？"},
+      {word:"callback",zh:"回撥",example:"Can I arrange a callback?",example_zh:"可以安排回撥嗎？"},
+      {word:"voicemail",zh:"語音信箱",example:"Please leave a voicemail.",example_zh:"請留下語音信箱訊息。"},
+      {word:"representative",zh:"客服人員",example:"I'd like to speak with a representative.",example_zh:"我想和客服人員說話。"},
+      {word:"complaint",zh:"投訴",example:"I'd like to file a complaint.",example_zh:"我想提出投訴。"},
+      {word:"appointment",zh:"預約",example:"I need to schedule an appointment.",example_zh:"我需要預約。"},
+      {word:"cancel",zh:"取消",example:"I'd like to cancel my order.",example_zh:"我想取消訂單。"},
+      {word:"reschedule",zh:"改期",example:"Can we reschedule the appointment?",example_zh:"可以重新安排預約時間嗎？"},
+      {word:"confirm",zh:"確認",example:"Could you confirm the details?",example_zh:"可以確認一下細節嗎？"},
+      {word:"urgent",zh:"緊急",example:"This is quite urgent.",example_zh:"這件事相當緊急。"},
+      {word:"refund",zh:"退款",example:"I'd like to request a refund.",example_zh:"我想申請退款。"},
+      {word:"policy",zh:"政策",example:"What is your cancellation policy?",example_zh:"你們的取消政策是什麼？"},
+      {word:"available",zh:"有空的",example:"Is a technician available on Friday?",example_zh:"週五有技術人員可以上門嗎？"},
+      {word:"estimate",zh:"估價",example:"Can you give me an estimate?",example_zh:"可以給我一個估價嗎？"},
+      {word:"charge",zh:"收費",example:"What will the charge be?",example_zh:"費用是多少？"},
+      {word:"department",zh:"部門",example:"Which department handles this?",example_zh:"這件事是哪個部門負責？"},
+      {word:"supervisor",zh:"主管",example:"I'd like to speak with a supervisor.",example_zh:"我想和主管談談。"},
+      {word:"resolved",zh:"已解決",example:"Is the issue resolved?",example_zh:"問題解決了嗎？"},
+      {word:"follow up",zh:"後續追蹤",example:"I'll follow up by email.",example_zh:"我會通過電子郵件跟進。"},
+      {word:"issue",zh:"問題",example:"I'm having an issue with my account.",example_zh:"我的帳號出了問題。"},
+      {word:"account",zh:"帳號",example:"May I have your account number?",example_zh:"可以告訴我您的帳號嗎？"},
+      {word:"address",zh:"地址",example:"Let me confirm your address.",example_zh:"讓我確認一下您的地址。"},
+      {word:"zip code",zh:"郵遞區號",example:"What is your zip code?",example_zh:"您的郵遞區號是什麼？"},
+      {word:"confirmation",zh:"確認",example:"You'll receive a confirmation email.",example_zh:"您會收到一封確認信。"},
+      {word:"business hours",zh:"營業時間",example:"What are your business hours?",example_zh:"你們的營業時間是什麼？"},
+      {word:"automated",zh:"自動化的",example:"You've reached our automated system.",example_zh:"您已連線到我們的自動化系統。"},
+      {word:"speak to",zh:"和...說話",example:"I'd like to speak to a real person.",example_zh:"我想和真人說話。"}
     ]},
   bank:{name:"Bank",
     cultural:"🇺🇸 US banks: tellers are friendly and professional. Always bring a photo ID. Common tasks include deposits, withdrawals, account inquiries, and wire transfers.",
@@ -1419,36 +1466,36 @@ var SCENARIOS={
       {en:"Could I have a receipt for this transaction?",zh:"可以給我這筆交易的收據嗎？"}
     ],
     vocab:[
-      {word:"deposit",zh:"存款",example:"I'd like to make a deposit."},
-      {word:"withdrawal",zh:"提款",example:"I need to make a withdrawal."},
-      {word:"balance",zh:"餘額",example:"What is my account balance?"},
-      {word:"transfer",zh:"轉帳",example:"I'd like to transfer $500."},
-      {word:"checking account",zh:"活期帳戶",example:"I have a checking account."},
-      {word:"savings account",zh:"儲蓄帳戶",example:"I'd like to open a savings account."},
-      {word:"interest rate",zh:"利率",example:"What is the current interest rate?"},
-      {word:"PIN",zh:"密碼",example:"Please enter your PIN."},
-      {word:"teller",zh:"行員",example:"Please see the teller at window 3."},
-      {word:"transaction",zh:"交易",example:"I need to dispute a transaction."},
-      {word:"statement",zh:"對帳單",example:"Can I get a paper statement?"},
-      {word:"fee",zh:"手續費",example:"Is there a transaction fee?"},
-      {word:"wire transfer",zh:"電匯",example:"I'd like to send a wire transfer."},
-      {word:"loan",zh:"貸款",example:"I'm interested in a personal loan."},
-      {word:"credit card",zh:"信用卡",example:"I'd like to apply for a credit card."},
-      {word:"debit card",zh:"金融卡",example:"Can I use a debit card?"},
-      {word:"ATM",zh:"提款機",example:"Where is the nearest ATM?"},
-      {word:"branch",zh:"分行",example:"Which branch should I visit?"},
-      {word:"account number",zh:"帳號",example:"What is your account number?"},
-      {word:"routing number",zh:"路由號碼",example:"I need the bank's routing number."},
-      {word:"overdraft",zh:"透支",example:"I have an overdraft protection plan."},
-      {word:"mortgage",zh:"房貸",example:"I'd like information on mortgage rates."},
-      {word:"minimum balance",zh:"最低存款",example:"Is there a minimum balance required?"},
-      {word:"direct deposit",zh:"直接存入",example:"I want to set up direct deposit."},
-      {word:"exchange rate",zh:"匯率",example:"What is today's exchange rate?"},
-      {word:"signature",zh:"簽名",example:"Please sign on the line."},
-      {word:"identification",zh:"身分證明",example:"Can I see your identification?"},
-      {word:"secure",zh:"安全的",example:"Your account is fully secure."},
-      {word:"authorization",zh:"授權",example:"This requires your authorization."},
-      {word:"financial advisor",zh:"財務顧問",example:"Would you like to speak with a financial advisor?"}
+      {word:"deposit",zh:"存款",example:"I'd like to make a deposit.",example_zh:"我想存款。"},
+      {word:"withdrawal",zh:"提款",example:"I need to make a withdrawal.",example_zh:"我需要提款。"},
+      {word:"balance",zh:"餘額",example:"What is my account balance?",example_zh:"我的帳戶餘額是多少？"},
+      {word:"transfer",zh:"轉帳",example:"I'd like to transfer $500.",example_zh:"我想轉帳 500 美元。"},
+      {word:"checking account",zh:"活期帳戶",example:"I have a checking account.",example_zh:"我有一個活期帳戶。"},
+      {word:"savings account",zh:"儲蓄帳戶",example:"I'd like to open a savings account.",example_zh:"我想開一個儲蓄帳戶。"},
+      {word:"interest rate",zh:"利率",example:"What is the current interest rate?",example_zh:"目前的利率是多少？"},
+      {word:"PIN",zh:"密碼",example:"Please enter your PIN.",example_zh:"請輸入您的密碼。"},
+      {word:"teller",zh:"行員",example:"Please see the teller at window 3.",example_zh:"請到第 3 號窗口找行員。"},
+      {word:"transaction",zh:"交易",example:"I need to dispute a transaction.",example_zh:"我需要申訴一筆交易。"},
+      {word:"statement",zh:"對帳單",example:"Can I get a paper statement?",example_zh:"可以給我紙本對帳單嗎？"},
+      {word:"fee",zh:"手續費",example:"Is there a transaction fee?",example_zh:"有手續費嗎？"},
+      {word:"wire transfer",zh:"電匯",example:"I'd like to send a wire transfer.",example_zh:"我想進行電匯。"},
+      {word:"loan",zh:"貸款",example:"I'm interested in a personal loan.",example_zh:"我對個人貸款有興趣。"},
+      {word:"credit card",zh:"信用卡",example:"I'd like to apply for a credit card.",example_zh:"我想申請信用卡。"},
+      {word:"debit card",zh:"金融卡",example:"Can I use a debit card?",example_zh:"可以用金融卡嗎？"},
+      {word:"ATM",zh:"提款機",example:"Where is the nearest ATM?",example_zh:"最近的提款機在哪裡？"},
+      {word:"branch",zh:"分行",example:"Which branch should I visit?",example_zh:"我應該去哪個分行？"},
+      {word:"account number",zh:"帳號",example:"What is your account number?",example_zh:"您的帳號是什麼？"},
+      {word:"routing number",zh:"路由號碼",example:"I need the bank's routing number.",example_zh:"我需要銀行的路由號碼。"},
+      {word:"overdraft",zh:"透支",example:"I have an overdraft protection plan.",example_zh:"我有透支保護方案。"},
+      {word:"mortgage",zh:"房貸",example:"I'd like information on mortgage rates.",example_zh:"我想了解房貸利率的資訊。"},
+      {word:"minimum balance",zh:"最低存款",example:"Is there a minimum balance required?",example_zh:"有最低存款要求嗎？"},
+      {word:"direct deposit",zh:"直接存入",example:"I want to set up direct deposit.",example_zh:"我想設定直接存入。"},
+      {word:"exchange rate",zh:"匯率",example:"What is today's exchange rate?",example_zh:"今天的匯率是多少？"},
+      {word:"signature",zh:"簽名",example:"Please sign on the line.",example_zh:"請在這條線上簽名。"},
+      {word:"identification",zh:"身分證明",example:"Can I see your identification?",example_zh:"可以看一下您的身分證明嗎？"},
+      {word:"secure",zh:"安全的",example:"Your account is fully secure.",example_zh:"您的帳戶完全安全。"},
+      {word:"authorization",zh:"授權",example:"This requires your authorization.",example_zh:"這需要您的授權。"},
+      {word:"financial advisor",zh:"財務顧問",example:"Would you like to speak with a financial advisor?",example_zh:"您想和財務顧問談談嗎？"}
     ]}
 };
 
@@ -1465,6 +1512,7 @@ function selectMode(mode){
 }
 function showPhraseReview(sc){
   ON=false;
+  closeVocabOverlay();
   document.getElementById("chat").innerHTML="";
   document.getElementById("smr").style.display="none";
   document.getElementById("mb").disabled=true;
@@ -1472,20 +1520,22 @@ function showPhraseReview(sc){
   var chat=document.getElementById("chat");
   var card=document.createElement("div");card.className="phrase-review-card";
   var html='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
+  if(sc.cultural)html+='<div class="pr-cultural">'+escHtml(sc.cultural)+'</div>';
+  if(sc.task)html+='<div class="pr-mission"><span class="pr-mission-label">🎯 Mission &nbsp;</span>'+escHtml(sc.task)+'</div>';
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
-    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div></label>';
+    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div><button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(p.en)+'\')">🔊</button></label>';
   });
   html+='</div>';
   if(sc.vocab&&sc.vocab.length){
     html+='<div class="vocab-section"><button class="vocab-toggle-btn" onclick="toggleVocabSection()">📚 Common Vocabulary ▼</button>';
-    html+='<div id="vocabContent" style="display:none"><div class="vocab-chips" id="vocabChips"></div><div class="vocab-detail-panel" id="vocabDetailPanel" style="display:none"></div><div style="text-align:center;margin-top:4px"><button class="vocab-more-btn" id="vocabMoreBtn" onclick="loadMoreVocab()">More vocabulary →</button></div></div></div>';
+    html+='<div id="vocabContent" style="display:none"><div class="vocab-chips" id="vocabChips"></div><div style="text-align:center;margin-top:4px"><button class="vocab-more-btn" id="vocabMoreBtn" onclick="loadMoreVocab()">More vocabulary →</button></div></div></div>';
   }
   var prog0=tr("pr_progress").replace("%1","0").replace("%2",sc.phrases.length);
   html+='<div class="phrase-progress" id="phraseProgress">'+escHtml(prog0)+'</div>';
-  html+='<button class="phrase-start-btn" onclick="startSession(\''+escHtml(sc.name)+'\',SCENARIOS[currentMode].system,SCENARIOS[currentMode].opening,SCENARIOS[currentMode])">'+escHtml(tr("pr_start"))+'</button>';
-  html+='<div class="phrase-skip" onclick="startSession(\''+escHtml(sc.name)+'\',SCENARIOS[currentMode].system,SCENARIOS[currentMode].opening,SCENARIOS[currentMode])">'+escHtml(tr("pr_skip"))+'</div>';
+  html+='<button class="phrase-start-btn" onclick="startFromPhraseReview()">'+escHtml(tr("pr_start"))+'</button>';
+  html+='<div class="phrase-skip" onclick="startFromPhraseReview()">'+escHtml(tr("pr_skip"))+'</div>';
   card.innerHTML=html;
   currentVocabSc=sc;vocabPage=0;currentVocabIdx=-1;
   chat.appendChild(card);
@@ -1505,9 +1555,8 @@ function renderVocabPage(){
   var start=vocabPage*20;
   var words=currentVocabSc.vocab.slice(start,start+20);
   var chipsEl=document.getElementById("vocabChips");
-  var detailEl=document.getElementById("vocabDetailPanel");
   if(!chipsEl)return;
-  if(detailEl){detailEl.style.display="none";detailEl.innerHTML="";}
+  closeVocabOverlay();
   currentVocabIdx=-1;
   chipsEl.innerHTML="";
   words.forEach(function(v,i){
@@ -1520,13 +1569,25 @@ function renderVocabPage(){
   if(moreBtn)moreBtn.style.display=(start+20<currentVocabSc.vocab.length)?"inline-block":"none";
 }
 function showVocabDetail(v,idx,chipEl){
-  var detailEl=document.getElementById("vocabDetailPanel");
-  if(!detailEl)return;
+  var existing=document.getElementById("vocabOverlay");
   document.querySelectorAll(".vocab-chip").forEach(function(c){c.classList.remove("active");});
-  if(currentVocabIdx===idx){detailEl.style.display="none";currentVocabIdx=-1;return;}
+  if(existing){existing.remove();if(currentVocabIdx===idx){currentVocabIdx=-1;return;}}
   chipEl.classList.add("active");currentVocabIdx=idx;
-  detailEl.style.display="block";
-  detailEl.innerHTML='<strong>'+escHtml(v.word)+'</strong><span class="vocab-zh-tag">'+escHtml(v.zh)+'</span><div class="vocab-ex">"'+escHtml(v.example)+'"</div>';
+  var overlay=document.createElement("div");overlay.id="vocabOverlay";overlay.className="vocab-overlay";
+  overlay.innerHTML='<div class="vocab-overlay-backdrop" onclick="closeVocabOverlay()"></div>'
+    +'<div class="vocab-overlay-sheet">'
+    +'<button type="button" class="vocab-overlay-close" onclick="closeVocabOverlay()">✕</button>'
+    +'<div class="vocab-overlay-word">'+escHtml(v.word)
+    +'<span class="vocab-zh-tag">'+escHtml(v.zh)+'</span>'
+    +'<button type="button" class="vocab-speak-btn" onclick="speakText(\''+escAttr(v.word)+'\')" title="Hear word">🔊</button>'
+    +'</div>'
+    +'<div class="vocab-overlay-ex">"'+escHtml(v.example)+'"'
+    +'<button type="button" class="vocab-speak-btn" onclick="speakText(\''+escAttr(v.example)+'\')" title="Hear example">🔊</button>'
+    +'</div>'
+    +(v.example_zh?'<div class="vocab-overlay-ex-zh">'+escHtml(v.example_zh)+'</div>':'')
+    +'</div>';
+  document.body.appendChild(overlay);
+  speakText(v.word);
 }
 function loadMoreVocab(){vocabPage++;renderVocabPage();}
 function phraseCbChange(cb,idx){
@@ -1888,6 +1949,37 @@ function showToast(msg){
   var t=document.createElement("div");t.textContent=msg;
   t.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:9999;";
   document.body.appendChild(t);setTimeout(function(){t.remove();},2500);
+}
+
+// ── Pronunciation playback (non-blocking) ──
+function speakText(text){
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:"en-US",name:VOICE_GENDER==="male"?"en-US-Neural2-D":"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3",speakingRate:0.88}})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.audioContent){if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang="en-US";window.speechSynthesis.speak(u);}return;}
+    var ctx=getAudioCtx();
+    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
+      var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
+      ctx.resume().then(function(){src.start(0);});
+    });
+  }).catch(function(){
+    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang="en-US";window.speechSynthesis.speak(u);}
+  });
+}
+
+function closeVocabOverlay(){
+  var el=document.getElementById("vocabOverlay");if(el)el.remove();
+  document.querySelectorAll(".vocab-chip").forEach(function(c){c.classList.remove("active");});
+  currentVocabIdx=-1;
+}
+
+function startFromPhraseReview(){
+  var sc=SCENARIOS[currentMode];
+  var topic=PENDING_TOPIC||document.getElementById("ti").value.trim()||sc.name;
+  var sys=sc.system.replace("TOPIC",topic);
+  var opening=sc.opening.replace("TOPIC",topic);
+  PENDING_TOPIC="";
+  startSession(topic,sys,opening,sc);
 }
 </script>
 </body>
