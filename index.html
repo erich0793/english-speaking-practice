@@ -176,6 +176,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .practice-btn{font-size:12px;color:#185FA5;background:none;border:1px solid #185FA5;border-radius:20px;padding:2px 10px;cursor:pointer}
 .practice-btn:hover{background:#E6F1FB}
 .empty-msg{text-align:center;color:#aaa;font-size:14px;padding:2rem 0}
+/* Saved scenarios chips */
+.my-scenarios-wrap{margin-bottom:1rem}
+.my-scenarios-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.scenario-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 10px 6px 12px;background:#fff;border:1px solid #e0e0e0;border-radius:20px;font-size:12px;color:#333;cursor:default}
+.scenario-chip:hover{border-color:#185FA5;background:#f0f6ff}
+.scenario-chip-name{cursor:pointer;color:#185FA5;font-weight:500}
+.scenario-chip-del{font-size:14px;color:#bbb;background:none;border:none;padding:0 0 0 2px;cursor:pointer;line-height:1;flex-shrink:0}
+.scenario-chip-del:hover{color:#A32D2D}
+/* Save scenario button in phrase review */
+.save-scenario-btn{display:block;width:100%;padding:8px;border-radius:8px;border:1px solid #639922;background:#EAF3DE;color:#27500A;font-size:13px;font-weight:500;cursor:pointer;text-align:center;margin-bottom:8px}
+.save-scenario-btn:hover{background:#d4edbc}
+.save-scenario-btn:disabled{opacity:.5;cursor:default}
+/* Error info toggle */
+.err-info-btn{font-size:10px;padding:1px 5px;border-radius:20px;border:1px solid #ccc;background:#f5f5f5;color:#666;cursor:pointer;margin-left:4px;vertical-align:middle}
+.err-info-btn:hover{background:#e0e0e0}
+.err-info{font-size:11px;color:#555;padding:6px 8px;background:#f9f9f9;border-radius:6px;margin:4px 0 6px;line-height:1.55;display:none}
 
 /* Saved sections */
 .saved-section-header{font-size:11px;font-weight:600;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;padding:4px 0;margin-top:14px;margin-bottom:8px;border-bottom:1px solid #e8f0fc}
@@ -390,6 +406,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
       <button class="mode-btn" id="mode-phone" onclick="selectMode('phone')"><span class="mode-icon">📞</span><span class="mode-name">Phone call</span></button>
       <button class="mode-btn" id="mode-bank" onclick="selectMode('bank')"><span class="mode-icon">🏦</span><span class="mode-name">Bank</span></button>
     </div>
+    <div class="my-scenarios-wrap" id="myScenarios" style="display:none">
+      <p class="mode-title" id="myScTitle">MY SCENARIOS</p>
+      <div class="my-scenarios-list" id="myScenariosList"></div>
+    </div>
     <div class="row">
       <input type="text" id="ti" placeholder="Or type your own topic...">
       <button class="abtn" onclick="startWithCustom()">Start</button>
@@ -489,6 +509,7 @@ var UI_STRINGS={
     pr_header:"📖 Review Common Phrases",
     pr_sub:"Here are phrases you may use in this scenario. Read through them before starting!",
     pr_progress:"Reviewed %1 / %2 phrases",pr_start_i:"🙋 I'll start",pr_start_ai:"🤖 AI starts",pr_skip:"Skip, start now",pr_vocab_title:"📚 Common Vocabulary",pr_vocab_more:"More vocabulary →",
+    pr_save_scenario:"⭐ Save this scenario",pr_scenario_saved:"✓ Saved!",my_scenarios_title:"My Scenarios",
     fy_empty:"Complete at least one session to get your personalized lesson.",fy_go_practice:"Go to Practice →",fy_lesson_title:"Your Personalized Lesson",fy_lesson_sub:"Based on %1 errors across your sessions, we'll focus on:",fy_lesson_btn:"Start Lesson →"},
   zh:{app_title:"英語口說練習",btn_lang:"EN",btn_logout:"登出",
     level_change:"更改程度",level_title:"你的英文程度是？",level_sub:"我們會根據你的程度調整對話。",
@@ -513,6 +534,7 @@ var UI_STRINGS={
     pr_header:"📖 先複習常用句子",
     pr_sub:"以下是這個情境常會用到的句子，先看熟再開始對話更有自信！",
     pr_progress:"已複習 %1 / %2 句",pr_start_i:"🙋 我先說",pr_start_ai:"🤖 AI先說",pr_skip:"略過，直接開始",pr_vocab_title:"📚 常用單字",pr_vocab_more:"更多單字 →",
+    pr_save_scenario:"⭐ 儲存此情境",pr_scenario_saved:"✓ 已儲存！",my_scenarios_title:"我的情境",
     fy_empty:"完成至少一個練習課程來獲得你的專屬課程。",fy_go_practice:"去練習 →",fy_lesson_title:"你的專屬課程",fy_lesson_sub:"根據你 %1 次錯誤，我們將專注練習：",fy_lesson_btn:"開始課程 →"}
 };
 var ST_ZH={
@@ -622,9 +644,62 @@ function initApp(){
   document.getElementById("dailyText").textContent=getTodayTopic().text;
   applyLang();
   updateLevelBar();
+  loadMyScenarios();
   if(currentUser&&currentUser.username===ADMIN_USERNAME){
     document.getElementById("tabAdmin").style.display="";
   }
+}
+
+// ── My saved scenarios (localStorage) ──
+function getMyScenarios(){
+  var key="ep_myscen_"+(currentUser?currentUser.id:"guest");
+  try{return JSON.parse(localStorage.getItem(key)||"[]");}catch(e){return[];}
+}
+function setMyScenarios(arr){
+  var key="ep_myscen_"+(currentUser?currentUser.id:"guest");
+  localStorage.setItem(key,JSON.stringify(arr));
+}
+function saveCurrentScenario(){
+  if(!PENDING_SC||!PENDING_SC.isCustom){showToast(LANG==="zh"?"無法儲存此情境":"Cannot save this scenario");return;}
+  var name=(PENDING_TOPIC||PENDING_SC.name||"Custom").trim();
+  var scenarios=getMyScenarios();
+  if(scenarios.some(function(s){return s.name===name;})){showToast(LANG==="zh"?"已儲存過此情境":"Already saved!");return;}
+  if(scenarios.length>=12){showToast(LANG==="zh"?"最多儲存 12 個情境":"Max 12 saved scenarios");return;}
+  scenarios.push({id:Date.now().toString(),name:name,sc:PENDING_SC});
+  setMyScenarios(scenarios);
+  var btn=document.getElementById("saveScenarioBtn");
+  if(btn){btn.textContent=tr("pr_scenario_saved");btn.disabled=true;}
+  showToast(LANG==="zh"?"情境已儲存！":"Scenario saved!");
+  loadMyScenarios();
+}
+function deleteMyScenario(id){
+  setMyScenarios(getMyScenarios().filter(function(s){return s.id!==id;}));
+  loadMyScenarios();
+}
+function startMyScenario(id){
+  var item=getMyScenarios().find(function(s){return s.id===id;});
+  if(!item)return;
+  unlockAudio();currentMode="free";
+  document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
+  document.getElementById("mode-free").classList.add("active");
+  PENDING_SC=item.sc;PENDING_TOPIC=item.name;
+  showPhraseReview(item.sc);
+}
+function loadMyScenarios(){
+  var wrap=document.getElementById("myScenarios");
+  var list=document.getElementById("myScenariosList");
+  var titleEl=document.getElementById("myScTitle");
+  if(!wrap||!list)return;
+  var scenarios=getMyScenarios();
+  if(titleEl)titleEl.textContent=tr("my_scenarios_title");
+  if(!scenarios.length){wrap.style.display="none";return;}
+  wrap.style.display="block";
+  list.innerHTML=scenarios.map(function(item){
+    return '<div class="scenario-chip" id="scchip-'+item.id+'">'
+      +'<span class="scenario-chip-name" onclick="startMyScenario(\''+item.id+'\')">📝 '+escHtml(item.name)+'</span>'
+      +'<button class="scenario-chip-del" onclick="deleteMyScenario(\''+item.id+'\')" title="Remove">×</button>'
+      +'</div>';
+  }).join("");
 }
 
 // ── Tabs ──
@@ -635,6 +710,7 @@ function showTab(tab){
     var b=document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1));
     if(b)b.classList.toggle("active",t===tab);
   });
+  if(tab==="practice")loadMyScenarios();
   if(tab==="saved")loadSaved();
   if(tab==="weak")loadWeakness();
   if(tab==="foryou")loadForYou();
@@ -762,6 +838,10 @@ var ERROR_PATTERNS={
   structure:{label:"Sentence Structure",label_zh:"句子結構",color:"c-structure",tip:"Word order, run-on sentences, missing connectors.",advice:"Keep sentences short. Use 'because', 'so', 'but' to link ideas clearly."},
   fluency:{label:"Fluency",label_zh:"流暢度",color:"c-fluency",tip:"Filler words (um, uh), long pauses, restarting mid-sentence.",advice:"It's better to pause silently than say 'um'. Slow down and breathe."}
 };
+function toggleErrInfo(type){
+  var el=document.getElementById("errInfo-"+type);
+  if(el)el.style.display=el.style.display==="block"?"none":"block";
+}
 function loadWeakness(){
   if(!currentUser)return;
   dbGet("session_errors","user_id=eq."+currentUser.id+"&limit=300").then(function(rows){
@@ -771,28 +851,35 @@ function loadWeakness(){
     rows.forEach(function(r){var t=r.error_type||"grammar";if(!types[t])types[t]={count:0,examples:[]};types[t].count++;if(types[t].examples.length<5)types[t].examples.push({orig:r.original,fix:r.corrected,reason:r.reason,type:t});});
     var total=rows.length;
     var sorted=Object.keys(types).sort(function(a,b){return types[b].count-types[a].count;});
-    var html='<div class="weakness-section"><h3>Error frequency <span style="font-size:12px;color:#aaa;font-weight:400">('+total+' total)</span></h3>';
+    var isZh=LANG==="zh";
+    var freqTitle=isZh?'錯誤頻率 <span style="font-size:12px;color:#aaa;font-weight:400">(共 '+total+' 次)</span>':'Error frequency <span style="font-size:12px;color:#aaa;font-weight:400">('+total+' total)</span>';
+    var html='<div class="weakness-section"><h3>'+freqTitle+'</h3>';
     sorted.forEach(function(t){
       var pat=ERROR_PATTERNS[t]||{label:capitalize(t.replace(/_/g," ")),color:"c-other"};
+      var label=isZh?(pat.label_zh||pat.label):pat.label;
       var pct=Math.round(types[t].count/total*100);
-      html+='<div class="wbar-wrap"><div class="wbar-label"><span>'+pat.label+'</span><span style="color:#999">'+types[t].count+'× &nbsp;'+pct+'%</span></div><div class="wbar"><div class="wbar-fill '+pat.color+'" style="width:'+pct+'%"></div></div></div>';
+      var infoTip=pat.tip?pat.tip+(pat.advice?' '+pat.advice:''):'';
+      html+='<div class="wbar-wrap">'
+        +'<div class="wbar-label">'
+        +'<span>'+escHtml(label)+(infoTip?'<button class="err-info-btn" onclick="toggleErrInfo(\''+t+'\')" title="What is this?">？</button>':'')+'</span>'
+        +'<span style="color:#999">'+types[t].count+'× &nbsp;'+pct+'%</span>'
+        +'</div>'
+        +(infoTip?'<div class="err-info" id="errInfo-'+t+'">'+escHtml(infoTip)+'</div>':'')
+        +'<div class="wbar"><div class="wbar-fill '+pat.color+'" style="width:'+pct+'%"></div></div>'
+        +'</div>';
     });
-    html+='</div><div class="weakness-section"><h3>What each error type means</h3><div class="pattern-grid">';
-    sorted.forEach(function(t){
-      var pat=ERROR_PATTERNS[t];if(!pat)return;
-      var isHot=t===sorted[0];
-      html+='<div class="pattern-card'+(isHot?' hot':'')+'"><h4>'+(isHot?'🔥 ':'')+pat.label+'</h4><p>'+pat.tip+'</p><p style="margin-top:4px;color:#888">'+pat.advice+'</p></div>';
-    });
-    html+='</div></div><div class="weakness-section"><h3>Recent examples to review</h3><div class="all-examples">';
+    var exTitle=isZh?'最近的錯誤範例':'Recent examples to review';
+    html+='</div><div class="weakness-section"><h3>'+exTitle+'</h3><div class="all-examples">';
     var shown=0;
     sorted.slice(0,2).forEach(function(t){
       var pat=ERROR_PATTERNS[t]||{label:capitalize(t),color:"c-other"};
+      var label=isZh?(pat.label_zh||pat.label):pat.label;
       types[t].examples.forEach(function(e){
-        html+='<div class="ex-item c-'+t+'"><strong>'+escHtml(pat.label)+':</strong> <span style="text-decoration:line-through;opacity:.7">'+escHtml(e.orig)+'</span> → <strong>'+escHtml(e.fix)+'</strong>'+(e.reason?'<br><span style="font-size:12px;opacity:.8">'+escHtml(e.reason)+'</span>':'')+'</div>';
+        html+='<div class="ex-item c-'+t+'"><strong>'+escHtml(label)+':</strong> <span style="text-decoration:line-through;opacity:.7">'+escHtml(e.orig)+'</span> → <strong>'+escHtml(e.fix)+'</strong>'+(e.reason?'<br><span style="font-size:12px;opacity:.8">'+escHtml(e.reason)+'</span>':'')+'</div>';
         shown++;
       });
     });
-    if(!shown)html+='<div class="empty-msg" style="padding:.5rem">No examples yet.</div>';
+    if(!shown)html+='<div class="empty-msg" style="padding:.5rem">'+(isZh?'還沒有範例。':'No examples yet.')+'</div>';
     html+='</div></div>';
     content.innerHTML=html;
   });
@@ -807,49 +894,17 @@ function loadForYou(){
       content.innerHTML='<div class="fy-empty">'+escHtml(tr("fy_empty"))+'<br><br><button class="lesson-btn" onclick="showTab(\'practice\')">'+escHtml(tr("fy_go_practice"))+'</button></div>';
       return;
     }
-    var types={};var recentExamples=[];
+    var types={};
     rows.forEach(function(r){
       var t=r.error_type||"grammar";
       if(!types[t])types[t]={count:0};
       types[t].count++;
-      if(recentExamples.length<3&&r.corrected)recentExamples.push(r);
     });
     var sorted=Object.keys(types).sort(function(a,b){return types[b].count-types[a].count;});
     var top=sorted.slice(0,3);
-    var total=rows.length;
     var html="";
 
-    // Section 1: error frequency bars
-    var s1Title=LANG==="zh"?"📊 錯誤分佈":"📊 Error Frequency";
-    html+='<div class="fy-section"><div class="fy-section-title">'+escHtml(s1Title)+'</div>';
-    sorted.slice(0,4).forEach(function(t){
-      var pat=ERROR_PATTERNS[t];
-      var label=pat?(LANG==="zh"?(pat.label_zh||pat.label):pat.label):capitalize(t);
-      var pct=Math.round(types[t].count/total*100);
-      var color=pat?pat.color.replace("c-",""):"888";
-      var fillColor=pat?({grammar:"#E24B4A",word_choice:"#EF9F27",structure:"#185FA5",fluency:"#9B5DE5"}[t]||"#888"):"#888";
-      html+='<div class="fy-bar-row"><span class="fy-bar-label">'+escHtml(label)+'</span>'
-        +'<div class="fy-bar-track"><div class="fy-bar-fill" style="width:'+pct+'%;background:'+fillColor+'"></div></div>'
-        +'<span class="fy-bar-count">'+types[t].count+'×</span></div>';
-    });
-    html+='</div>';
-
-    // Section 2: recent mistakes
-    if(recentExamples.length){
-      var s2Title=LANG==="zh"?"📝 最近的錯誤":"📝 Recent Mistakes";
-      html+='<div class="fy-section"><div class="fy-section-title">'+escHtml(s2Title)+'</div>';
-      recentExamples.forEach(function(r){
-        html+='<div class="fy-error-card">'
-          +'<button type="button" class="fy-error-speak" onclick="speakText(\''+escAttr(r.corrected)+'\')">🔊</button>'
-          +'<div class="fy-error-orig">'+escHtml(r.original)+'</div>'
-          +'<div class="fy-error-fix">✓ '+escHtml(r.corrected)+'</div>'
-          +(r.reason?'<div class="fy-error-reason">'+escHtml(r.reason)+'</div>':'')
-          +'</div>';
-      });
-      html+='</div>';
-    }
-
-    // Section 3: targeted drills
+    // Section 1: targeted drills
     var s3Title=LANG==="zh"?"🎯 針對性練習":"🎯 Targeted Practice";
     html+='<div class="fy-section"><div class="fy-section-title">'+escHtml(s3Title)+'</div><div class="fy-drill-btns">';
     top.forEach(function(t){
@@ -864,7 +919,7 @@ function loadForYou(){
     var s4Title=LANG==="zh"?"🎓 綜合課程":"🎓 Comprehensive Lesson";
     html+='<div class="fy-section"><div class="fy-section-title">'+escHtml(s4Title)+'</div>';
     html+='<div class="lesson-card">';
-    html+='<div class="lesson-sub">'+escHtml(tr("fy_lesson_sub").replace("%1",total))+'</div>';
+    html+='<div class="lesson-sub">'+escHtml(tr("fy_lesson_sub").replace("%1",rows.length))+'</div>';
     html+='<button class="lesson-btn" onclick=\'startMadeForYouLesson('+JSON.stringify(top)+')\'>'+escHtml(tr("fy_lesson_btn"))+'</button>';
     html+='</div></div>';
 
@@ -1020,6 +1075,7 @@ function generateTopicScenario(topic,onSuccess,onError){
     sc.system=SCENARIOS.free.system;
     sc.opening=sc.opening||"Let's talk about TOPIC. What's on your mind?";
     sc.taskCheck=null;
+    sc.isCustom=true;
     onSuccess(sc);
   }).catch(function(e){
     GENERATING_SCENARIO=false;
@@ -1630,7 +1686,15 @@ function selectMode(mode){
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("mode-"+mode).classList.add("active");
   var sc=SCENARIOS[mode];
-  if(mode!=="free"){
+  if(mode==="free"){
+    // Free talk: show phrase review with generic free conversation opening
+    var freeSc=Object.assign({},sc,{
+      system:"You are a friendly English conversation partner. Have a natural, free-flowing conversation on any topic the student brings up. Reply 2-3 natural sentences, ask one follow-up question. Do NOT correct grammar. Only say spoken words.",
+      opening:"Hi! What's on your mind today? Feel free to talk about anything you like!"
+    });
+    PENDING_SC=freeSc;PENDING_TOPIC="";
+    showPhraseReview(freeSc);
+  } else {
     document.getElementById("ti").value="";
     if(sc.phrases){showPhraseReview(sc);}
     else{startSession(sc.name,sc.system,sc.opening,sc);}
@@ -1647,6 +1711,7 @@ function showPhraseReview(sc){
   var card=document.createElement("div");card.className="phrase-review-card";
   var html='<button type="button" class="phrase-skip" onclick="skipAndChoose()">'+escHtml(tr("pr_skip"))+'</button>';
   html+='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
+  if(sc.isCustom)html+='<button type="button" class="save-scenario-btn" id="saveScenarioBtn" onclick="saveCurrentScenario()">'+escHtml(tr("pr_save_scenario"))+'</button>';
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
