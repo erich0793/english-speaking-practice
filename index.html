@@ -73,6 +73,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .kw-list{display:flex;flex-wrap:wrap;gap:6px}
 .kw{font-size:12px;padding:3px 10px;border-radius:20px;background:#EAF3DE;color:#27500A;border:1px solid #639922;cursor:pointer}
 .kw.used{background:#f0f0f0;color:#999;border-color:#e0e0e0;text-decoration:line-through;cursor:default}
+.topic-mic-btn{padding:8px 10px;border-radius:8px;border:1px solid #ccc;background:#f0f0f0;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0;transition:all .15s}
+.topic-mic-btn.listening{background:#FCEBEB;border-color:#E24B4A;color:#A32D2D}
 
 /* Chat */
 .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;justify-content:center}
@@ -412,6 +414,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     </div>
     <div class="row">
       <input type="text" id="ti" placeholder="Or type your own topic...">
+      <button class="topic-mic-btn" id="topicMicBtn" onclick="toggleTopicMic()" title="Voice input">🎤</button>
       <button class="abtn" onclick="startWithCustom()">Start</button>
     </div>
     <div class="chat" id="chat">
@@ -483,6 +486,7 @@ var SAVED_MAP={};
 var SLOW_MODE=false;
 var LEVEL=localStorage.getItem("pref_level")||"";
 var PENDING_TOPIC="";var PENDING_SC=null;var GENERATING_SCENARIO=false;
+var TOPIC_RC=null,TOPIC_IR=false;
 
 var LANG=localStorage.getItem("pref_lang")||"en";
 var UI_STRINGS={
@@ -1716,8 +1720,8 @@ function showPhraseReview(sc){
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
     html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
-      +'<button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(p.en)+'\')">🔊</button>'
-      +'<button type="button" class="phrase-save-btn" onclick="event.stopPropagation();event.preventDefault();savePhraseItem(this,\''+escAttr(p.en)+'\',\''+escAttr(p.zh)+'\')">⭐</button>'
+      +'<button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(p.en)+'\');phraseMarkChecked(this)">🔊</button>'
+      +'<button type="button" class="phrase-save-btn" onclick="event.stopPropagation();event.preventDefault();savePhraseItem(this,\''+escAttr(p.en)+'\',\''+escAttr(p.zh)+'\');phraseMarkChecked(this)">⭐</button>'
       +'</label>';
   });
   html+='</div>';
@@ -1810,6 +1814,39 @@ function showKeywords(kwArr){
     list.appendChild(s);
   });
 }
+function toggleTopicMic(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var btn=document.getElementById("topicMicBtn");
+  if(!SR){if(btn)btn.style.display="none";return;}
+  if(TOPIC_IR&&TOPIC_RC){TOPIC_RC.stop();return;}
+  var inp=document.getElementById("ti");
+  TOPIC_RC=new SR();
+  TOPIC_RC.lang=LANG==="zh"?"zh-TW":"en-US";
+  TOPIC_RC.continuous=false;
+  TOPIC_RC.interimResults=true;
+  TOPIC_RC.onstart=function(){TOPIC_IR=true;if(btn)btn.classList.add("listening");};
+  TOPIC_RC.onresult=function(e){
+    var fin="",tmp="";
+    for(var i=0;i<e.results.length;i++){
+      if(e.results[i].isFinal)fin+=e.results[i][0].transcript;
+      else tmp+=e.results[i][0].transcript;
+    }
+    inp.value=fin||tmp;
+  };
+  TOPIC_RC.onend=function(){TOPIC_IR=false;if(btn)btn.classList.remove("listening");TOPIC_RC=null;};
+  TOPIC_RC.onerror=function(){TOPIC_IR=false;if(btn)btn.classList.remove("listening");TOPIC_RC=null;};
+  try{TOPIC_RC.start();}catch(e){TOPIC_RC=null;}
+}
+
+function phraseMarkChecked(btn){
+  var item=btn.closest(".phrase-item");
+  if(!item)return;
+  var cb=item.querySelector(".phrase-cb");
+  if(!cb||cb.checked)return;
+  cb.checked=true;
+  phraseCbChange(cb);
+}
+
 function startWithCustom(){
   unlockAudio();
   var v=document.getElementById("ti").value.trim();
