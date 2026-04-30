@@ -1123,7 +1123,7 @@ function generateTopicScenario(topic,onSuccess,onError){
     advanced:"The learner is ADVANCED (C1-C2). Include idioms, phrasal verbs, and sophisticated expressions in phrases and vocabulary. Opening can be nuanced."
   };
   var levelHint=levelHints[levelKey]||levelHints.intermediate;
-  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nLearner level: '+levelHint+'\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character, e.g. the other driver who just had a collision with the learner].\' Then describe their attitude and what they want. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion with no opposing character, write: \'You are a friendly English conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "role": "If isRoleplay is true: a short phrase describing who AI plays, in the language of the topic (e.g. \'對方司機\', \'面試官\', \'店員\'). Empty string if isRoleplay is false.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "opening": "A natural English opening line to start this specific conversation — if roleplay, speak directly AS the opposing character (e.g. \'Hey! What are you doing?! You just ran into my car!\'); if general, open as a conversation partner",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
+  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nLearner level: '+levelHint+'\n\nDefault context: The scenario takes place in Taiwan unless the topic clearly specifies another location.\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character, e.g. the other driver who just had a collision with the learner].\' Then describe their attitude and what they want. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion with no opposing character, write: \'You are a friendly English conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "role": "If isRoleplay is true: a short phrase describing who AI plays, in the language of the topic (e.g. \'對方司機\', \'面試官\', \'店員\'). Empty string if isRoleplay is false.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "opening": "A natural English opening line to start this specific conversation — if roleplay, speak directly AS the opposing character (e.g. \'Hey! What are you doing?! You just ran into my car!\'); if general, open as a conversation partner",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     model:"claude-sonnet-4-20250514",max_tokens:2000,
     messages:[{role:"user",content:prompt}]
@@ -1775,9 +1775,7 @@ function showPhraseReview(sc){
   document.getElementById("eb").disabled=true;
   var chat=document.getElementById("chat");
   var card=document.createElement("div");card.className="phrase-review-card";
-  var html='<button type="button" class="phrase-skip" onclick="skipAndChoose()">'+escHtml(tr("pr_skip"))+'</button>';
-  html+='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
-  html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
+  var html="";
   if(sc.isCustom){
     var isRP=!!sc.isRoleplay;
     var roleVal=sc.role||"";
@@ -1797,6 +1795,9 @@ function showPhraseReview(sc){
       +'</div>'
       +'</div>';
   }
+  html+='<button type="button" class="phrase-skip" onclick="skipAndChoose()">'+escHtml(tr("pr_skip"))+'</button>';
+  html+='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
+  html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
     html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
@@ -2376,7 +2377,8 @@ function startFromPhraseReview(firstSpeaker){
   var role=roleInput?roleInput.value.trim():"";
   if(isRP&&role){
     sc=Object.assign({},sc);
-    sc.system='You are '+role+'. Stay fully in character at all times.'
+    sc.system='You are '+role+'. The scenario takes place in Taiwan unless otherwise specified.'
+      +' Stay fully in character at all times.'
       +' Never break character to coach, narrate, or sympathize as an outsider.'
       +' Respond exactly as this character would speak in real life.'
       +' Do not acknowledge being an AI. Only say spoken words.';
