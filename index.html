@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>English Speaking Practice</title>
+<title>語言口說練習</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;color:#1a1a1a}
@@ -210,6 +210,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .vocab-item-ex-zh{font-size:11px;color:#aaa;margin-top:2px;font-style:italic}
 .vocab-zh-toggle{font-size:10px;padding:1px 6px;border-radius:10px;border:1px solid #ddd;background:#f5f5f5;color:#999;cursor:pointer;margin-left:6px;vertical-align:middle;line-height:1.6}
 .vocab-zh-toggle.shown{background:#e8f0fc;border-color:#b3cff5;color:#185FA5}
+.tlang-btn{padding:5px 14px;border-radius:20px;border:1.5px solid #ddd;background:#fff;font-size:12px;cursor:pointer;color:#888;transition:all .15s}
+.tlang-btn.active{border-color:#185FA5;background:#185FA5;color:#fff}
+.tlang-btn:hover:not(.active){border-color:#aaa;color:#555}
 .sc-setup{background:#f8f9fc;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;border:1px solid #e8edf5}
 .sc-setup-row{display:flex;align-items:center;gap:10px}
 .sc-setup-label{font-size:11px;font-weight:600;color:#666;width:52px;flex-shrink:0}
@@ -383,7 +386,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 <!-- MAIN APP SCREEN -->
 <div class="screen" id="appScreen">
   <div class="topbar">
-    <h1>English Practice</h1>
+    <h1 id="appTitle">英文練習</h1>
     <div class="topbar-btns">
       <button class="icon-btn" id="langToggle" onclick="toggleLang()">中文</button>
       <button class="icon-btn" id="logoutBtn" onclick="logout()" style="color:#A32D2D">Logout</button>
@@ -405,13 +408,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
       <span class="level-bar-text" id="levelBarText">Level: Intermediate 🌿</span>
       <span class="level-bar-change" id="levelBarChange" onclick="showLevelScreen()">Change level</span>
     </div>
+    <div id="targetLangBar" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="tlang-btn active" id="tlang-en" onclick="setTargetLang('en')">🇺🇸 英文</button>
+      <button class="tlang-btn" id="tlang-ja" onclick="setTargetLang('ja')">🇯🇵 日文</button>
+      <button class="tlang-btn" id="tlang-de" onclick="setTargetLang('de')">🇩🇪 德文</button>
+    </div>
     <div class="daily" id="dailyBanner" onclick="useDailyTopic()">
       <span class="daily-label">Today's topic</span>
       <span class="daily-text" id="dailyText">Loading...</span>
       <span class="daily-use">Use it →</span>
     </div>
-    <p class="mode-title">Choose a scenario</p>
-    <div class="modes">
+    <p class="mode-title" id="scenarioLabel">Choose a scenario</p>
+    <div class="modes" id="modeGrid">
       <button class="mode-btn" id="mode-free" onclick="selectMode('free')"><span class="mode-icon">💬</span><span class="mode-name">Free talk</span></button>
       <button class="mode-btn" id="mode-restaurant" onclick="selectMode('restaurant')"><span class="mode-icon">🍽️</span><span class="mode-name">Restaurant</span></button>
       <button class="mode-btn" id="mode-interview" onclick="selectMode('interview')"><span class="mode-icon">💼</span><span class="mode-name">Interview</span></button>
@@ -507,6 +515,17 @@ var PENDING_TOPIC="";var PENDING_SC=null;var GENERATING_SCENARIO=false;var SESSI
 var TOPIC_RC=null,TOPIC_IR=false;
 
 var LANG=localStorage.getItem("pref_lang")||"en";
+var TARGET_LANG=localStorage.getItem("pref_target_lang")||"en";
+var TARGET_LANG_CONFIG={
+  en:{name:"英文",nameEn:"English",ttsLang:"en-US",ttsVoiceM:"en-US-Neural2-D",ttsVoiceF:"en-US-Neural2-F",sttLang:"en-US",
+    errorTips:{grammar:"Articles (a/an/the), verb tenses, subject-verb agreement, prepositions.",grammar_advice:"Practice: 'I went' not 'I go yesterday'; 'an apple' not 'a apple'.",fluency:"Filler words (um, uh), long pauses, restarting mid-sentence.",fluency_advice:"It's better to pause silently than say 'um'. Slow down and breathe."}},
+  ja:{name:"日文",nameEn:"Japanese",ttsLang:"ja-JP",ttsVoiceM:"ja-JP-Neural2-C",ttsVoiceF:"ja-JP-Neural2-B",sttLang:"ja-JP",
+    errorTips:{grammar:"Particles (は/が/を/に), verb conjugation (て-form, た-form), politeness levels.",grammar_advice:"Practice: 'に行きます' not 'へ行きます' when targeting a destination with a verb of motion.",fluency:"Filler sounds (えーと, あの), unnatural pauses, mixing formal/casual registers.",fluency_advice:"Use 'えーと' sparingly. In formal situations, maintain ～です/～ます throughout."}},
+  de:{name:"德文",nameEn:"German",ttsLang:"de-DE",ttsVoiceM:"de-DE-Neural2-B",ttsVoiceF:"de-DE-Neural2-A",sttLang:"de-DE",
+    errorTips:{grammar:"Noun gender (der/die/das), case endings (Nominativ/Akkusativ/Dativ), verb placement in subordinate clauses.",grammar_advice:"Practice: 'Ich sehe den Mann' (Akk.) not 'der Mann'. Verb goes to end after 'weil'.",fluency:"Filler words (ähm, also), compound word hesitation, sentence bracket issues.",fluency_advice:"Commit to the verb bracket — say the full sentence, don't trail off before the final verb."}}
+};
+function targetLang(){return TARGET_LANG_CONFIG[TARGET_LANG]||TARGET_LANG_CONFIG.en;}
+function tln(){return targetLang().nameEn;}
 var UI_STRINGS={
   en:{app_title:"English Practice",btn_lang:"中文",btn_logout:"Logout",
     level_change:"Change level",level_title:"What's your English level?",level_sub:"We'll adjust the conversation to match you.",
@@ -581,6 +600,26 @@ var ST_ZH={
   "Connection issue. Try again.":"連線問題，請再試一次。"
 };
 function tr(k){return(UI_STRINGS[LANG]&&UI_STRINGS[LANG][k]!==undefined)?UI_STRINGS[LANG][k]:((UI_STRINGS.en&&UI_STRINGS.en[k]!==undefined)?UI_STRINGS.en[k]:k);}
+function setTargetLang(lang){
+  TARGET_LANG=lang;
+  localStorage.setItem("pref_target_lang",lang);
+  document.querySelectorAll(".tlang-btn").forEach(function(b){b.classList.remove("active");});
+  var btn=document.getElementById("tlang-"+lang);if(btn)btn.classList.add("active");
+  var modeGrid=document.getElementById("modeGrid");
+  var scenarioLabel=document.getElementById("scenarioLabel");
+  var dailyBanner=document.getElementById("dailyBanner");
+  var isEn=lang==="en";
+  if(modeGrid)modeGrid.style.display=isEn?"":"none";
+  if(scenarioLabel)scenarioLabel.style.display=isEn?"":"none";
+  if(dailyBanner)dailyBanner.style.display=isEn?"":"none";
+  applyTargetLang();
+}
+function applyTargetLang(){
+  var cfg=targetLang();
+  var titleEl=document.getElementById("appTitle");
+  if(titleEl)titleEl.textContent=cfg.name+"練習";
+  SCENARIOS.free.system="You are a friendly "+cfg.nameEn+" conversation partner. Topic: TOPIC. Reply 2-3 natural sentences, ask one follow-up. Do NOT correct grammar. Only say spoken words.";
+}
 function toggleLang(){LANG=LANG==="zh"?"en":"zh";localStorage.setItem("pref_lang",LANG);applyLang();}
 function applyLang(){
   document.querySelector(".topbar h1").textContent=tr("app_title");
@@ -665,6 +704,7 @@ window.onload=function(){
 function initApp(){
   document.getElementById("dailyText").textContent=getTodayTopic().text;
   applyLang();
+  setTargetLang(TARGET_LANG);
   updateLevelBar();
   loadMyScenarios();
   if(currentUser&&currentUser.username===ADMIN_USERNAME){
@@ -870,8 +910,8 @@ function practiceThisSentence(id){
   document.getElementById("mb").disabled=true;document.getElementById("eb").disabled=true;
   document.getElementById("smr").style.display="none";
   var promptForOpening=isVocab
-    ?'You are an English speaking coach. Generate ONE natural spoken question (1-2 sentences) that puts a learner in a realistic situation where they must use the English word "'+target+'" in their reply. Give only the question, nothing else.'
-    :'You are an English speaking coach. Generate ONE natural spoken scenario question (1-2 sentences) that puts a learner in a realistic situation where they would naturally say the phrase "'+target+'". Give only the question, nothing else.';
+    ?'You are a '+tln()+' speaking coach. Generate ONE natural spoken question (1-2 sentences) that puts a learner in a realistic situation where they must use the '+tln()+' word "'+target+'" in their reply. Give only the question, nothing else.'
+    :'You are a '+tln()+' speaking coach. Generate ONE natural spoken scenario question (1-2 sentences) that puts a learner in a realistic situation where they would naturally say the '+tln()+' phrase "'+target+'". Give only the question, nothing else.';
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     model:"claude-sonnet-4-20250514",max_tokens:120,
     messages:[{role:"user",content:promptForOpening}]
@@ -879,8 +919,8 @@ function practiceThisSentence(id){
     var scenario=(d.content&&d.content[0]&&d.content[0].text)||"";
     scenario=scenario.trim().replace(/^["']|["']$/g,"");
     var sys=isVocab
-      ?'You are an encouraging English speaking coach. The student is practicing the word "'+target+'" (Chinese meaning: '+r.original+'). Give 3 different real-life situations one at a time — each should naturally invite the student to use the word "'+target+'" in their response. After each response, briefly confirm if they used the word correctly and naturally. Only say spoken words. One situation at a time.'
-      :'You are an encouraging English speaking coach. The student is practicing the phrase: "'+target+'". Give 3 different real-life situations one at a time where saying this phrase would fit naturally. After each response, note if they used the target phrase. Only say spoken words. One situation at a time.';
+      ?'You are an encouraging '+tln()+' speaking coach. The student is practicing the word "'+target+'" (meaning: '+r.original+'). Give 3 different real-life situations one at a time — each should naturally invite the student to use the word "'+target+'" in their response. After each response, briefly confirm if they used the word correctly and naturally. Only say spoken words. One situation at a time.'
+      :'You are an encouraging '+tln()+' speaking coach. The student is practicing the phrase: "'+target+'". Give 3 different real-life situations one at a time where saying this phrase would fit naturally. After each response, note if they used the target phrase. Only say spoken words. One situation at a time.';
     var opening=(isVocab?'Let\'s practice the word "'+target+'"! Here\'s your first situation: ':'Let\'s practice the phrase: "'+target+'"! Here\'s your first situation: ')+scenario;
     var taskLbl=LANG==="zh"?"在 3 個不同情境中使用目標"+(isVocab?"單字":"句子"):"Use the "+(isVocab?"word":"phrase")+" in 3 different situations.";
     startSession(isVocab?"Word Practice":"Phrase Practice",sys,opening,{
@@ -888,7 +928,7 @@ function practiceThisSentence(id){
       taskCheck:function(utts){var n=Math.min(utts.length,3);var lbl=LANG==="zh"?"完成 3 個練習情境（"+n+"/3）":"Complete 3 practice situations ("+n+"/3)";return{done:utts.length>=3,steps:[{label:lbl,done:utts.length>=3}]};}
     });
   }).catch(function(){
-    var sys='You are an encouraging English speaking coach. The student is practicing the '+(isVocab?'word "'+target+'"':'phrase "'+target+'"')+'. Give 3 real-life situations one at a time. Only say spoken words.';
+    var sys='You are an encouraging '+tln()+' speaking coach. The student is practicing the '+(isVocab?'word "'+target+'"':'phrase "'+target+'"')+'. Give 3 real-life situations one at a time. Only say spoken words.';
     var opening='Let\'s practice '+(isVocab?'the word "'+target+'"':'the phrase "'+target+'"')+'! Tell me about a recent situation where you might have used it.';
     startSession("Practice",sys,opening,{cultural:null,task:"Complete 3 situations.",taskCheck:function(u){var n=Math.min(u.length,3);return{done:u.length>=3,steps:[{label:"3 situations ("+n+"/3)",done:u.length>=3}]};}});
   });
@@ -896,10 +936,18 @@ function practiceThisSentence(id){
 
 // ── Weakness analysis ──
 var ERROR_PATTERNS={
-  grammar:{label:"Grammar",label_zh:"文法",color:"c-grammar",tip:"Articles (a/an/the), verb tenses, subject-verb agreement, prepositions.",advice:"Practice: 'I went' not 'I go yesterday'; 'an apple' not 'a apple'."},
-  word_choice:{label:"Word Choice",label_zh:"用字選擇",color:"c-word_choice",tip:"Using an imprecise or wrong word; formal/informal mismatch.",advice:"Read aloud to build vocabulary. Note which words you mix up most often."},
-  structure:{label:"Sentence Structure",label_zh:"句子結構",color:"c-structure",tip:"Word order, run-on sentences, missing connectors.",advice:"Keep sentences short. Use 'because', 'so', 'but' to link ideas clearly."},
-  fluency:{label:"Fluency",label_zh:"流暢度",color:"c-fluency",tip:"Filler words (um, uh), long pauses, restarting mid-sentence.",advice:"It's better to pause silently than say 'um'. Slow down and breathe."}
+  grammar:{label:"Grammar",label_zh:"文法",color:"c-grammar",
+    get tip(){return targetLang().errorTips.grammar;},
+    get advice(){return targetLang().errorTips.grammar_advice;}},
+  word_choice:{label:"Word Choice",label_zh:"用字選擇",color:"c-word_choice",
+    tip:"Using an imprecise or wrong word; formal/informal mismatch.",
+    advice:"Read aloud to build vocabulary. Note which words you mix up most often."},
+  structure:{label:"Sentence Structure",label_zh:"句子結構",color:"c-structure",
+    tip:"Word order, run-on sentences, missing connectors.",
+    advice:"Keep sentences short. Use 'because', 'so', 'but' to link ideas clearly."},
+  fluency:{label:"Fluency",label_zh:"流暢度",color:"c-fluency",
+    get tip(){return targetLang().errorTips.fluency;},
+    get advice(){return targetLang().errorTips.fluency_advice;}}
 };
 function toggleErrInfo(type){
   var el=document.getElementById("errInfo-"+type);
@@ -994,7 +1042,7 @@ function startFocusedLesson(type){
   var pat=ERROR_PATTERNS[type];
   if(!pat)return;
   var typeName=LANG==="zh"?(pat.label_zh||pat.label):pat.label;
-  var sys="You are a warm English speaking coach. This student's specific weakness is: "+pat.label+". "
+  var sys="You are a warm "+tln()+" speaking coach. This student's specific weakness is: "+pat.label+". "
     +pat.tip+" "+pat.advice
     +" Have a natural, flowing conversation. After every 2–3 exchanges, gently correct any "+pat.label+" errors with a comment like 'By the way, a more natural way to say that would be...'."
     +" Ask questions that naturally invite the student to practice correct "+pat.label+". Only say spoken words. One question at a time.";
@@ -1009,7 +1057,7 @@ function startFocusedLesson(type){
 
 function startMadeForYouLesson(topTypes){
   var typeNames=topTypes.map(function(t){return ERROR_PATTERNS[t]?ERROR_PATTERNS[t].label:t;}).join(", ");
-  var sys="You are a warm and encouraging English speaking coach. This student's recorded weaknesses are: "+typeNames+"."
+  var sys="You are a warm and encouraging "+tln()+" speaking coach. This student's recorded weaknesses are: "+typeNames+"."
     +" Have a natural, flowing conversation with them. Internally notice when they make errors in these categories — but do NOT interrupt to correct them."
     +" After every 2–3 exchanges, gently weave in a natural correction like: 'By the way, a more natural way to say that would be...'"
     +" Ask engaging questions that naturally invite the student to use the grammar patterns they struggle with."
@@ -1123,7 +1171,8 @@ function generateTopicScenario(topic,onSuccess,onError){
     advanced:"The learner is ADVANCED (C1-C2). Include idioms, phrasal verbs, and sophisticated expressions in phrases and vocabulary. Opening can be nuanced."
   };
   var levelHint=levelHints[levelKey]||levelHints.intermediate;
-  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nLearner level: '+levelHint+'\n\nDefault context: The scenario takes place in Taiwan unless the topic clearly specifies another location.\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character, e.g. the other driver who just had a collision with the learner].\' Then describe their attitude and what they want. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion with no opposing character, write: \'You are a friendly English conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "role": "If isRoleplay is true: a short phrase describing who AI plays, in the language of the topic (e.g. \'對方司機\', \'面試官\', \'店員\'). Empty string if isRoleplay is false.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "opening": "A natural English opening line to start this specific conversation — if roleplay, speak directly AS the opposing character (e.g. \'Hey! What are you doing?! You just ran into my car!\'); if general, open as a conversation partner",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
+  var tl=tln();
+  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nTarget language: '+tl+'\nLearner level: '+levelHint+'\n\nIMPORTANT: The entire conversation must be conducted in '+tl+'. All phrases and vocabulary must be in '+tl+' (NOT in English unless '+tl+' IS English). Chinese translations go in zh/example_zh fields.\nDefault context: The scenario takes place in Taiwan unless the topic clearly specifies another location.\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character].\' Then describe their attitude. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion, write: \'You are a friendly '+tl+' conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words in '+tl+'.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "role": "If isRoleplay is true: a short phrase describing who AI plays, in the language of the topic (e.g. \'對方司機\', \'店員\'). Empty string if isRoleplay is false.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞後面一律加括號標注，例如：中央公園(Central Park)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版]",\n  "opening": "A natural '+tl+' opening line to start this conversation — if roleplay, speak directly AS the opposing character; if general, open as a conversation partner",\n  "phrases": [\n    {"en": "Useful '+tl+' phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "'+tl+' word", "zh": "中文", "example": "Example sentence in '+tl+'.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     model:"claude-sonnet-4-20250514",max_tokens:2000,
     messages:[{role:"user",content:prompt}]
@@ -1755,7 +1804,7 @@ function selectMode(mode){
   if(mode==="free"){
     // Free talk: show phrase review with generic free conversation opening
     var freeSc=Object.assign({},sc,{
-      system:"You are a friendly English conversation partner. Have a natural, free-flowing conversation on any topic the student brings up. Reply 2-3 natural sentences, ask one follow-up question. Do NOT correct grammar. Only say spoken words.",
+      system:"You are a friendly "+tln()+" conversation partner. Have a natural, free-flowing conversation on any topic the student brings up. Reply 2-3 natural sentences, ask one follow-up question. Do NOT correct grammar. Only say spoken words.",
       opening:"Hi! What's on your mind today? Feel free to talk about anything you like!"
     });
     PENDING_SC=freeSc;PENDING_TOPIC="";
@@ -2036,7 +2085,7 @@ var LEVEL_CONFIG={
   beginner:{
     icon:"🌱",label:"Beginner",label_zh:"初學者",
     desc:"Simple words · slow speech · basic sentences",desc_zh:"簡單詞彙・慢速語音・基礎句型",
-    prompt:" The learner is a complete beginner. Use only very simple words (A1-A2 level). Keep sentences under 8 words. Avoid idioms, phrasal verbs, and contractions. Be very patient and encouraging.",
+    get prompt(){return" The learner is a complete beginner. Use only very simple words (A1-A2 level). Keep sentences under 8 words. Avoid idioms"+(TARGET_LANG==="en"?", phrasal verbs,":"")+" and contractions. Be very patient and encouraging.";},
     slowDefault:true
   },
   intermediate:{
@@ -2048,7 +2097,7 @@ var LEVEL_CONFIG={
   advanced:{
     icon:"🌳",label:"Advanced",label_zh:"進階",
     desc:"Idioms · complex sentences · native speed",desc_zh:"慣用語・複雜句型・母語速度",
-    prompt:" The learner is advanced (C1-C2). Use natural native-speaker language including idioms and phrasal verbs. Challenge them with varied vocabulary and complex questions.",
+    get prompt(){return" The learner is advanced (C1-C2). Use natural native-speaker language including idioms"+(TARGET_LANG==="en"?" and phrasal verbs":"")+". Challenge them with varied vocabulary and complex questions.";},
     slowDefault:false
   }
 };
@@ -2106,7 +2155,8 @@ function toSSML(text){
 var AUDIO_UNLOCKED=false,SHARED_CTX=null;
 function testTTS(){
   unlockAudio();setst("Calling Google TTS...");
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:"Hello this is a test."},voice:{languageCode:"en-US",name:"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3"}})})
+  var tlcT=targetLang();
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:"Hello this is a test."},voice:{languageCode:tlcT.ttsLang,name:tlcT.ttsVoiceF},audioConfig:{audioEncoding:"MP3"}})})
   .then(function(r){setst("HTTP "+r.status);return r.json();})
   .then(function(d){
     if(!d.audioContent){setst("No audio: "+JSON.stringify(d));return;}
@@ -2129,9 +2179,10 @@ function setSpeaking(val){
 function speakFallback(text,onDone){
   if(!window.speechSynthesis){if(onDone)onDone();return;}
   window.speechSynthesis.cancel();
-  var utter=new SpeechSynthesisUtterance(text);utter.lang="en-US";utter.rate=0.95;
+  var tlCfg=targetLang();var tlCode=tlCfg.ttsLang;var tlPrefix=tlCode.split("-")[0];
+  var utter=new SpeechSynthesisUtterance(text);utter.lang=tlCode;utter.rate=0.95;
   var voices=window.speechSynthesis.getVoices();
-  var v=VOICE_GENDER==="male"?(voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Male")>-1;})||voices.find(function(v){return v.lang==="en-US";}))||voices.find(function(v){return v.lang.startsWith("en");}):(voices.find(function(v){return v.lang==="en-US"&&v.name.indexOf("Female")>-1;})||voices.find(function(v){return v.lang==="en-US";}))||voices.find(function(v){return v.lang.startsWith("en");});
+  var v=VOICE_GENDER==="male"?(voices.find(function(v){return v.lang===tlCode&&v.name.indexOf("Male")>-1;})||voices.find(function(v){return v.lang===tlCode;}))||voices.find(function(v){return v.lang.startsWith(tlPrefix);}):(voices.find(function(v){return v.lang===tlCode&&v.name.indexOf("Female")>-1;})||voices.find(function(v){return v.lang===tlCode;}))||voices.find(function(v){return v.lang.startsWith(tlPrefix);});
   if(v)utter.voice=v;setSpeaking(true);
   utter.onend=function(){setSpeaking(false);if(onDone)onDone();};
   utter.onerror=function(){setSpeaking(false);if(onDone)onDone();};
@@ -2141,7 +2192,8 @@ function speak(text,onDone){
   setSpeaking(true);
   var rate=SLOW_MODE?0.82:0.95;
   var input=SLOW_MODE?{ssml:toSSML(text)}:{text:text};
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:input,voice:{languageCode:"en-US",name:VOICE_GENDER==="male"?"en-US-Neural2-D":"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
+  var tlc=targetLang();
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:input,voice:{languageCode:tlc.ttsLang,name:VOICE_GENDER==="male"?tlc.ttsVoiceM:tlc.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
@@ -2162,7 +2214,7 @@ function speak(text,onDone){
 function initRec(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){setst("Not supported. Use Chrome or Edge.");return false;}
-  RC=new SR();RC.lang="en-US";RC.continuous=true;RC.interimResults=true;
+  RC=new SR();RC.lang=targetLang().sttLang;RC.continuous=true;RC.interimResults=true;
   RC.onstart=function(){setst("Listening... speak now");};
   RC.onresult=function(e){
     var f="",n="";
@@ -2222,7 +2274,7 @@ function endSess(){
   ON=false;SPEAKING=false;IR=false;if(RC)try{RC.stop();}catch(e){}
   setst("Generating feedback...");document.getElementById("mb").disabled=true;document.getElementById("eb").disabled=true;showThinking();
   var utteranceLines=UTTS.map(function(u,i){var cs=CONF_SCORES[i];return(cs&&cs.confidence>0&&cs.confidence<0.75)?u+" [speech clarity: "+Math.round(cs.confidence*100)+"%]":u;});
-  var prompt="Analyze these English utterances from a learner:\n"+utteranceLines.join("\n")+"\n\n"
+  var prompt="Analyze these "+tln()+" utterances from a learner:\n"+utteranceLines.join("\n")+"\n\n"
     +"Return ONLY valid JSON, no markdown:\n"
     +'{"scores":{"grammar":0,"word_choice":0,"structure":0,"fluency":0},'
     +'"corrections":[{"original":"x","corrected":"x","reason":"x","error_type":"grammar"}],'
@@ -2232,7 +2284,7 @@ function endSess(){
     +"Scores 0-10. Max 3 corrections, 3 improvements. error_type: grammar/word_choice/structure/fluency. "
     +"pronunciation: up to 3 specific words from the utterances a non-native speaker likely mispronounced, with a tip on how to say them correctly. Only include if there are real concerns. "
     +"Use actual sentences from the learner. Do not invent examples. "
-    +"IMPORTANT: This is spoken English practice. Do NOT flag corrections that are only about punctuation (missing commas, periods, question marks, capitalization). Only flag errors that affect spoken meaning: wrong words, wrong grammar, wrong verb tense, wrong word order.";
+    +"IMPORTANT: This is spoken "+tln()+" practice. Do NOT flag corrections that are only about punctuation (missing commas, periods, question marks, capitalization). Only flag errors that affect spoken meaning: wrong words, wrong grammar, wrong verb tense, wrong word order.";
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})})
   .then(function(r){return r.json();})
   .then(function(d){
@@ -2326,7 +2378,8 @@ function showToast(msg){
 
 // ── Pronunciation playback (non-blocking) ──
 function speakText(text){
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:"en-US",name:VOICE_GENDER==="male"?"en-US-Neural2-D":"en-US-Neural2-F"},audioConfig:{audioEncoding:"MP3",speakingRate:0.88}})})
+  var tlcF=targetLang();
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:0.88}})})
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.audioContent){if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang="en-US";window.speechSynthesis.speak(u);}return;}
