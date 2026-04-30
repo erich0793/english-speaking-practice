@@ -210,6 +210,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .vocab-item-ex-zh{font-size:11px;color:#aaa;margin-top:2px;font-style:italic}
 .vocab-zh-toggle{font-size:10px;padding:1px 6px;border-radius:10px;border:1px solid #ddd;background:#f5f5f5;color:#999;cursor:pointer;margin-left:6px;vertical-align:middle;line-height:1.6}
 .vocab-zh-toggle.shown{background:#e8f0fc;border-color:#b3cff5;color:#185FA5}
+.sc-setup{background:#f8f9fc;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;border:1px solid #e8edf5}
+.sc-setup-row{display:flex;align-items:center;gap:10px}
+.sc-setup-label{font-size:11px;font-weight:600;color:#666;width:52px;flex-shrink:0}
+.sc-mode-toggle{display:flex;gap:6px}
+.sc-mode-btn{padding:5px 12px;border-radius:20px;border:1.5px solid #ccc;background:#fff;font-size:12px;cursor:pointer;color:#888;transition:all .15s}
+.sc-mode-btn.active{border-color:#185FA5;background:#185FA5;color:#fff}
+.sc-role-row{display:flex;align-items:center;gap:10px}
+.sc-role-input{flex:1;font-size:13px;border:1.5px solid #d0d8f0;border-radius:8px;padding:6px 10px;outline:none;background:#fff}
+.sc-role-input:focus{border-color:#185FA5}
 
 /* Weakness / Analysis */
 .weakness-section{margin-bottom:1.5rem}
@@ -737,6 +746,15 @@ function logUsage(type,chars){
 }
 
 // ── Saved sentences ──
+function setScMode(mode){
+  var isRP=mode==="rp";
+  var convBtn=document.getElementById("scModeConv");
+  var rpBtn=document.getElementById("scModeRP");
+  var roleRow=document.getElementById("scRoleRow");
+  if(convBtn)convBtn.classList.toggle("active",!isRP);
+  if(rpBtn)rpBtn.classList.toggle("active",isRP);
+  if(roleRow)roleRow.style.display=isRP?"flex":"none";
+}
 function toggleVocabZh(btn){
   var item=btn.closest(".saved-item");
   if(!item)return;
@@ -1105,7 +1123,7 @@ function generateTopicScenario(topic,onSuccess,onError){
     advanced:"The learner is ADVANCED (C1-C2). Include idioms, phrasal verbs, and sophisticated expressions in phrases and vocabulary. Opening can be nuanced."
   };
   var levelHint=levelHints[levelKey]||levelHints.intermediate;
-  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nLearner level: '+levelHint+'\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character, e.g. the other driver who just had a collision with the learner].\' Then describe their attitude and what they want. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion with no opposing character, write: \'You are a friendly English conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "opening": "A natural English opening line to start this specific conversation — if roleplay, speak directly AS the opposing character (e.g. \'Hey! What are you doing?! You just ran into my car!\'); if general, open as a conversation partner",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
+  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nLearner level: '+levelHint+'\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character, e.g. the other driver who just had a collision with the learner].\' Then describe their attitude and what they want. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion with no opposing character, write: \'You are a friendly English conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "role": "If isRoleplay is true: a short phrase describing who AI plays, in the language of the topic (e.g. \'對方司機\', \'面試官\', \'店員\'). Empty string if isRoleplay is false.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "opening": "A natural English opening line to start this specific conversation — if roleplay, speak directly AS the opposing character (e.g. \'Hey! What are you doing?! You just ran into my car!\'); if general, open as a conversation partner",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     model:"claude-sonnet-4-20250514",max_tokens:2000,
     messages:[{role:"user",content:prompt}]
@@ -1760,6 +1778,25 @@ function showPhraseReview(sc){
   var html='<button type="button" class="phrase-skip" onclick="skipAndChoose()">'+escHtml(tr("pr_skip"))+'</button>';
   html+='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
+  if(sc.isCustom){
+    var isRP=!!sc.isRoleplay;
+    var roleVal=sc.role||"";
+    var modeLabel=LANG==="zh"?"對話類型":"Mode";
+    var aiLabel=LANG==="zh"?"AI 扮演":"AI plays";
+    var rolePh=LANG==="zh"?"例如：對方司機、面試官…":"e.g. the other driver, interviewer…";
+    html+='<div class="sc-setup" id="scSetup">'
+      +'<div class="sc-setup-row">'
+      +'<span class="sc-setup-label">'+escHtml(modeLabel)+'</span>'
+      +'<div class="sc-mode-toggle">'
+      +'<button type="button" class="sc-mode-btn'+(isRP?'':' active')+'" id="scModeConv" onclick="setScMode(\'conv\')">💬 '+(LANG==="zh"?"對話":"Conversation")+'</button>'
+      +'<button type="button" class="sc-mode-btn'+(isRP?' active':'')+'" id="scModeRP" onclick="setScMode(\'rp\')">🎭 '+(LANG==="zh"?"角色扮演":"Roleplay")+'</button>'
+      +'</div></div>'
+      +'<div class="sc-role-row" id="scRoleRow" style="display:'+(isRP?'flex':'none')+'">'
+      +'<span class="sc-setup-label">'+escHtml(aiLabel)+'</span>'
+      +'<input type="text" id="scRoleInput" class="sc-role-input" placeholder="'+escAttr(rolePh)+'" value="'+escAttr(roleVal)+'">'
+      +'</div>'
+      +'</div>';
+  }
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
     html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
@@ -2333,6 +2370,17 @@ function startFromPhraseReview(firstSpeaker){
   SESSION_SC=sc;
   PENDING_SC=null;
   var topic=PENDING_TOPIC||document.getElementById("ti").value.trim()||sc.name;
+  var rpBtn=document.getElementById("scModeRP");
+  var roleInput=document.getElementById("scRoleInput");
+  var isRP=rpBtn&&rpBtn.classList.contains("active");
+  var role=roleInput?roleInput.value.trim():"";
+  if(isRP&&role){
+    sc=Object.assign({},sc);
+    sc.system='You are '+role+'. Stay fully in character at all times.'
+      +' Never break character to coach, narrate, or sympathize as an outsider.'
+      +' Respond exactly as this character would speak in real life.'
+      +' Do not acknowledge being an AI. Only say spoken words.';
+  }
   var sys=(sc.system||SCENARIOS.free.system).replace("TOPIC",topic);
   var opening=(sc.opening||"Let's talk about TOPIC. What's on your mind?").replace("TOPIC",topic);
   PENDING_TOPIC="";
