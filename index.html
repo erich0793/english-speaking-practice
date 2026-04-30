@@ -196,8 +196,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .err-info{font-size:11px;color:#555;padding:6px 8px;background:#f9f9f9;border-radius:6px;margin:4px 0 6px;line-height:1.55;display:none}
 
 /* Saved sections */
-.saved-section-header{font-size:11px;font-weight:600;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;padding:4px 0;margin-top:14px;margin-bottom:8px;border-bottom:1px solid #e8f0fc}
-.saved-section-header:first-child{margin-top:0}
+.saved-tabs-wrap{display:flex;border-bottom:2px solid #ebebeb;margin-bottom:14px}
+.saved-tab-btn{flex:1;padding:9px 0;font-size:13px;font-weight:500;background:none;border:none;cursor:pointer;color:#aaa;border-bottom:2.5px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s}
+.saved-tab-btn.active{color:#185FA5;border-bottom-color:#185FA5}
+.saved-tab-btn:hover:not(.active){color:#555}
 .saved-item-speak{font-size:15px;background:none;border:none;cursor:pointer;padding:3px 5px;opacity:.45;flex-shrink:0}
 .saved-item-speak:hover{opacity:1}
 .vocab-item-word{font-size:14px;font-weight:500;color:#1a1a1a}
@@ -445,10 +447,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 
   <!-- SAVED TAB -->
   <div id="tabContentSaved" style="display:none">
-    <h2 style="font-size:15px;font-weight:500;margin-bottom:1rem" id="savedTabTitle">⭐ 收藏</h2>
-    <div id="savedList">
-      <div class="empty-msg">No saved sentences yet.<br>Tap ⭐ on any message to save it.</div>
+    <div class="saved-tabs-wrap">
+      <button class="saved-tab-btn active" id="stab-sent" onclick="switchSavedTab('sent')">📝 <span id="stabSentLabel">Sentences</span></button>
+      <button class="saved-tab-btn" id="stab-vocab" onclick="switchSavedTab('vocab')">📚 <span id="stabVocabLabel">Vocabulary</span></button>
     </div>
+    <div id="savedSentList"><div class="empty-msg">No saved sentences yet.<br>Tap ⭐ on any message to save it.</div></div>
+    <div id="savedVocabList" style="display:none"></div>
   </div>
 
   <!-- ANALYSIS TAB -->
@@ -485,7 +489,7 @@ var TASK_DONE=false,TASK_DEF=null;
 var SAVED_MAP={};
 var SLOW_MODE=false;
 var LEVEL=localStorage.getItem("pref_level")||"";
-var PENDING_TOPIC="";var PENDING_SC=null;var GENERATING_SCENARIO=false;
+var PENDING_TOPIC="";var PENDING_SC=null;var GENERATING_SCENARIO=false;var SESSION_SC=null;
 var TOPIC_RC=null,TOPIC_IR=false;
 
 var LANG=localStorage.getItem("pref_lang")||"en";
@@ -586,7 +590,7 @@ function applyLang(){
   document.querySelector(".note").textContent=tr("note_browser");
   var smrH2=document.querySelector("#smr h2");if(smrH2)smrH2.textContent=tr("smr_title");
   document.querySelector(".rbtn").textContent=tr("btn_restart");
-  var savedH2=document.querySelector("#tabContentSaved h2");if(savedH2)savedH2.textContent=tr("saved_title");
+  updateSavedTabLabels(0,0);
   var weakH2=document.querySelector("#tabContentWeak h2");if(weakH2)weakH2.textContent=tr("analysis_title");
   var foryouH2=document.querySelector("#tabContentForyou h2");if(foryouH2)foryouH2.textContent=tr("foryou_title");
   if(!ON){var chat=document.getElementById("chat");var aiMsg=chat.querySelector(".aibbl");if(aiMsg&&!aiMsg.querySelector(".save-btn"))aiMsg.textContent=tr("chat_init");}
@@ -664,15 +668,17 @@ function setMyScenarios(arr){
   localStorage.setItem(key,JSON.stringify(arr));
 }
 function saveCurrentScenario(){
-  if(!PENDING_SC||!PENDING_SC.isCustom){showToast(LANG==="zh"?"無法儲存此情境":"Cannot save this scenario");return;}
-  var name=(PENDING_TOPIC||PENDING_SC.name||"Custom").trim();
+  var sc_ref=PENDING_SC||SESSION_SC;
+  if(!sc_ref||!sc_ref.isCustom){showToast(LANG==="zh"?"無法儲存此情境":"Cannot save this scenario");return;}
+  var name=(PENDING_TOPIC||sc_ref.name||"Custom").trim();
   var scenarios=getMyScenarios();
   if(scenarios.some(function(s){return s.name===name;})){showToast(LANG==="zh"?"已儲存過此情境":"Already saved!");return;}
   if(scenarios.length>=12){showToast(LANG==="zh"?"最多儲存 12 個情境":"Max 12 saved scenarios");return;}
-  scenarios.push({id:Date.now().toString(),name:name,sc:PENDING_SC});
+  scenarios.push({id:Date.now().toString(),name:name,sc:sc_ref});
   setMyScenarios(scenarios);
-  var btn=document.getElementById("saveScenarioBtn");
-  if(btn){btn.textContent=tr("pr_scenario_saved");btn.disabled=true;}
+  [document.getElementById("saveScenarioBtn"),document.getElementById("smrSaveBtn")].forEach(function(btn){
+    if(btn&&btn.style.display!=="none"){btn.textContent=tr("pr_scenario_saved");btn.disabled=true;}
+  });
   showToast(LANG==="zh"?"情境已儲存！":"Scenario saved!");
   loadMyScenarios();
 }
@@ -726,66 +732,77 @@ function logUsage(type,chars){
 }
 
 // ── Saved sentences ──
+function switchSavedTab(which){
+  document.getElementById("savedSentList").style.display=which==="sent"?"":"none";
+  document.getElementById("savedVocabList").style.display=which==="vocab"?"":"none";
+  document.getElementById("stab-sent").classList.toggle("active",which==="sent");
+  document.getElementById("stab-vocab").classList.toggle("active",which==="vocab");
+}
 function loadSaved(){
   if(!currentUser)return;
   dbGet("saved_sentences","user_id=eq."+currentUser.id).then(function(rows){
     SAVED_MAP={};
-    var list=document.getElementById("savedList");
-    var titleEl=document.getElementById("savedTabTitle");
-    if(titleEl)titleEl.textContent=LANG==="zh"?"⭐ 收藏":"⭐ Saved";
-    if(!rows||!rows.length){list.innerHTML='<div class="empty-msg">'+(LANG==="zh"?"還沒有收藏內容。<br>點 ⭐ 可收藏句子或單字。":"No saved sentences yet.<br>Tap ⭐ on any message to save it.")+'</div>';return;}
+    var sentList=document.getElementById("savedSentList");
+    var vocabList=document.getElementById("savedVocabList");
+    var isChinese=LANG==="zh";
+    var emptyMsg=isChinese?"還沒有收藏內容。<br>點 ⭐ 可收藏句子或單字。":"No saved content yet.<br>Tap ⭐ to save sentences or words.";
+    if(!rows||!rows.length){
+      sentList.innerHTML='<div class="empty-msg">'+emptyMsg+'</div>';
+      vocabList.innerHTML='';
+      updateSavedTabLabels(0,0);
+      return;
+    }
     rows.forEach(function(r){SAVED_MAP[r.id]=r;});
     var isZh=/[一-鿿]/;
     var vocabRows=rows.filter(function(r){return r.corrected&&isZh.test(r.original);});
     var sentRows=rows.filter(function(r){return !isZh.test(r.original);});
-    var html="";
-    var practiceLabel=LANG==="zh"?"🔄 練習":"🔄 Practice";
-    var removeLabel=LANG==="zh"?"刪除":"Remove";
-    // Sentences section
-    var sentTitle=LANG==="zh"?"📝 收藏的句子":"📝 Saved Sentences";
-    if(sentRows.length){
-      html+='<div class="saved-section-header">'+escHtml(sentTitle)+'</div>';
-      html+=sentRows.map(function(r){
-        var speakTarget=r.corrected||r.original;
-        return '<div class="saved-item" id="si-'+r.id+'">'
-          +'<div style="display:flex;align-items:flex-start;gap:6px">'
-          +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(speakTarget)+'\')">🔊</button>'
-          +'<div style="flex:1">'
-          +'<div class="orig-text">'+escHtml(r.original)+'</div>'
-          +(r.corrected?'<div class="fix-text">✓ '+escHtml(r.corrected)+'</div>':'')
-          +(r.note?'<div class="note-text">'+escHtml(r.note)+'</div>':'')
-          +'</div></div>'
-          +'<div class="meta">'
-          +(r.scenario?'<span class="scenario-tag">'+escHtml(r.scenario)+'</span>':'<span></span>')
-          +'<div class="item-actions">'
-          +'<button class="practice-btn" onclick="practiceThisSentence(\''+r.id+'\')">'+escHtml(practiceLabel)+'</button>'
-          +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">'+escHtml(removeLabel)+'</button>'
-          +'</div></div></div>';
-      }).join("");
-    }
-    // Vocab section
-    var vocabTitle=LANG==="zh"?"📚 收藏的單字":"📚 Saved Vocabulary";
-    if(vocabRows.length){
-      html+='<div class="saved-section-header">'+escHtml(vocabTitle)+'</div>';
-      html+=vocabRows.map(function(r){
-        return '<div class="saved-item" id="si-'+r.id+'">'
-          +'<div style="display:flex;align-items:flex-start;gap:6px">'
-          +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(r.corrected)+'\')">🔊</button>'
-          +'<div style="flex:1">'
-          +'<div class="vocab-item-word">'+escHtml(r.corrected)+'</div>'
-          +'<div class="vocab-item-zh">'+escHtml(r.original)+'</div>'
-          +(r.note?'<div class="vocab-item-ex">'+escHtml(r.note)+'</div>':'')
-          +'</div></div>'
-          +'<div class="meta"><span></span>'
-          +'<div class="item-actions">'
-          +'<button class="practice-btn" onclick="practiceThisSentence(\''+r.id+'\')">'+escHtml(practiceLabel)+'</button>'
-          +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">'+escHtml(removeLabel)+'</button>'
-          +'</div></div></div>';
-      }).join("");
-    }
-    if(!html)html='<div class="empty-msg">'+(LANG==="zh"?"還沒有收藏內容。":"No saved content yet.")+'</div>';
-    list.innerHTML=html;
+    var practiceLabel=isChinese?"🔄 練習":"🔄 Practice";
+    var removeLabel=isChinese?"刪除":"Remove";
+    // Sentences panel
+    var sentHtml=sentRows.map(function(r){
+      var speakTarget=r.corrected||r.original;
+      return '<div class="saved-item" id="si-'+r.id+'">'
+        +'<div style="display:flex;align-items:flex-start;gap:6px">'
+        +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(speakTarget)+'\')">🔊</button>'
+        +'<div style="flex:1">'
+        +'<div class="orig-text">'+escHtml(r.original)+'</div>'
+        +(r.corrected?'<div class="fix-text">✓ '+escHtml(r.corrected)+'</div>':'')
+        +(r.note?'<div class="note-text">'+escHtml(r.note)+'</div>':'')
+        +'</div></div>'
+        +'<div class="meta">'
+        +(r.scenario?'<span class="scenario-tag">'+escHtml(r.scenario)+'</span>':'<span></span>')
+        +'<div class="item-actions">'
+        +'<button class="practice-btn" onclick="practiceThisSentence(\''+r.id+'\')">'+escHtml(practiceLabel)+'</button>'
+        +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">'+escHtml(removeLabel)+'</button>'
+        +'</div></div></div>';
+    }).join("");
+    sentList.innerHTML=sentHtml||'<div class="empty-msg">'+(isChinese?"還沒有收藏的句子。":"No saved sentences yet.")+'</div>';
+    // Vocab panel
+    var vocabHtml=vocabRows.map(function(r){
+      return '<div class="saved-item" id="si-'+r.id+'">'
+        +'<div style="display:flex;align-items:flex-start;gap:6px">'
+        +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(r.corrected)+'\')">🔊</button>'
+        +'<div style="flex:1">'
+        +'<div class="vocab-item-word">'+escHtml(r.corrected)+'</div>'
+        +'<div class="vocab-item-zh">'+escHtml(r.original)+'</div>'
+        +(r.note?'<div class="vocab-item-ex">'+escHtml(r.note)+'</div>':'')
+        +'</div></div>'
+        +'<div class="meta"><span></span>'
+        +'<div class="item-actions">'
+        +'<button class="practice-btn" onclick="practiceThisSentence(\''+r.id+'\')">'+escHtml(practiceLabel)+'</button>'
+        +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">'+escHtml(removeLabel)+'</button>'
+        +'</div></div></div>';
+    }).join("");
+    vocabList.innerHTML=vocabHtml||'<div class="empty-msg">'+(isChinese?"還沒有收藏的單字。":"No saved vocabulary yet.")+'</div>';
+    updateSavedTabLabels(sentRows.length,vocabRows.length);
   });
+}
+function updateSavedTabLabels(sentCount,vocabCount){
+  var isChinese=LANG==="zh";
+  var sentLabel=document.getElementById("stabSentLabel");
+  var vocabLabel=document.getElementById("stabVocabLabel");
+  if(sentLabel)sentLabel.textContent=(isChinese?"句子":"Sentences")+(sentCount?" ("+sentCount+")":"");
+  if(vocabLabel)vocabLabel.textContent=(isChinese?"單字":"Vocabulary")+(vocabCount?" ("+vocabCount+")":"");
 }
 function saveSentence(original,corrected,note){
   if(!currentUser)return;
@@ -1064,7 +1081,7 @@ function generateTopicScenario(topic,onSuccess,onError){
     advanced:"The learner is ADVANCED (C1-C2). Include idioms, phrasal verbs, and sophisticated expressions in phrases and vocabulary. Opening can be nuanced."
   };
   var levelHint=levelHints[levelKey]||levelHints.intermediate;
-  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nLearner level: '+levelHint+'\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "opening": "A natural English opening question to start this specific conversation (1 sentence, level-appropriate, in English regardless of topic language)",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
+  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nLearner level: '+levelHint+'\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "One sentence in English describing how the AI should behave. If the topic involves roleplay, conflict, or a specific opposing character (e.g., arguing with someone, playing a shopkeeper, negotiating with a boss), instruct the AI to actively play that opposing role and stay in character throughout. Otherwise instruct it to be a friendly English conversation partner discussing the topic.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞（地名、人名、品牌、術語等）後面一律加英文括號，例如：中央公園(Central Park)、星巴克(Starbucks)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版，專有名詞後加英文括號]",\n  "opening": "A natural English opening line to start this specific conversation (1 sentence, level-appropriate, in English regardless of topic language — if roleplay, speak as the opposing character from the start)",\n  "phrases": [\n    {"en": "Useful English phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "word", "zh": "中文", "example": "Example sentence.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     model:"claude-sonnet-4-20250514",max_tokens:2000,
     messages:[{role:"user",content:prompt}]
@@ -1076,7 +1093,7 @@ function generateTopicScenario(topic,onSuccess,onError){
     var sc=JSON.parse(m[0]);
     if(!sc.phrases||!sc.vocab||!sc.phrases.length)throw new Error("invalid");
     sc.name=topic;
-    sc.system=SCENARIOS.free.system;
+    sc.system=(sc.system&&sc.system.length>10?sc.system:null)||SCENARIOS.free.system;
     sc.opening=sc.opening||"Let's talk about TOPIC. What's on your mind?";
     sc.taskCheck=null;
     sc.isCustom=true;
@@ -1715,7 +1732,6 @@ function showPhraseReview(sc){
   var card=document.createElement("div");card.className="phrase-review-card";
   var html='<button type="button" class="phrase-skip" onclick="skipAndChoose()">'+escHtml(tr("pr_skip"))+'</button>';
   html+='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
-  if(sc.isCustom)html+='<button type="button" class="save-scenario-btn" id="saveScenarioBtn" onclick="saveCurrentScenario()">'+escHtml(tr("pr_save_scenario"))+'</button>';
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
@@ -1725,6 +1741,8 @@ function showPhraseReview(sc){
       +'</label>';
   });
   html+='</div>';
+  var prog0=tr("pr_progress").replace("%1","0").replace("%2",sc.phrases.length);
+  html+='<div class="phrase-progress" id="phraseProgress">'+escHtml(prog0)+'</div>';
   if(sc.vocab&&sc.vocab.length){
     html+='<div class="vocab-section"><span class="vocab-section-title">'+escHtml(tr("pr_vocab_title"))+'</span>';
     html+='<div id="vocabContent"><div class="vocab-chips" id="vocabChips"></div><div style="text-align:center;margin-top:4px"><button class="vocab-more-btn" id="vocabMoreBtn" onclick="loadMoreVocab()">'+escHtml(tr("pr_vocab_more"))+'</button></div></div></div>';
@@ -1734,8 +1752,7 @@ function showPhraseReview(sc){
   var missionLabel=LANG==="zh"?"🎯 任務 &nbsp;":"🎯 Mission &nbsp;";
   if(culturalText)html+='<div class="pr-cultural">'+escHtml(culturalText)+'</div>';
   if(taskText)html+='<div class="pr-mission"><span class="pr-mission-label">'+missionLabel+'</span>'+escHtml(taskText)+'</div>';
-  var prog0=tr("pr_progress").replace("%1","0").replace("%2",sc.phrases.length);
-  html+='<div class="phrase-progress" id="phraseProgress">'+escHtml(prog0)+'</div>';
+  if(sc.isCustom)html+='<button type="button" class="save-scenario-btn" id="saveScenarioBtn" onclick="saveCurrentScenario()">'+escHtml(tr("pr_save_scenario"))+'</button>';
   html+='<div class="start-choice">';
   html+='<button class="phrase-start-btn" onclick="startFromPhraseReview(\'user\')">'+escHtml(tr("pr_start_i"))+'</button>';
   html+='<button class="phrase-start-btn" onclick="startFromPhraseReview(\'ai\')">'+escHtml(tr("pr_start_ai"))+'</button>';
@@ -2197,6 +2214,22 @@ function showFeedback(fb){
   if(fb.strengths&&fb.strengths.length){h+='<div class="fbh">'+tr("fb_strengths")+'</div>';fb.strengths.forEach(function(s){h+='<div class="fbi fgd">'+escHtml(s)+'</div>';});}
   if(fb.overall_tip)h+='<div class="tipbox"><strong>'+tr("fb_tip")+'</strong> '+escHtml(fb.overall_tip)+'</div>';
   document.getElementById("fbc").innerHTML=h;
+  var smrSaveBtn=document.getElementById("smrSaveBtn");
+  if(SESSION_SC&&SESSION_SC.isCustom){
+    if(!smrSaveBtn){
+      smrSaveBtn=document.createElement("button");
+      smrSaveBtn.id="smrSaveBtn";
+      smrSaveBtn.className="save-scenario-btn";
+      smrSaveBtn.style.marginTop="12px";
+      smrSaveBtn.onclick=saveCurrentScenario;
+      panel.appendChild(smrSaveBtn);
+    }
+    smrSaveBtn.textContent=tr("pr_save_scenario");
+    smrSaveBtn.disabled=false;
+    smrSaveBtn.style.display="block";
+  } else if(smrSaveBtn){
+    smrSaveBtn.style.display="none";
+  }
   panel.scrollIntoView({behavior:"smooth"});setst("Done — see feedback below!");
   speak("Great practice session! Here is your feedback.",null);
 }
@@ -2204,7 +2237,7 @@ function showFeedback(fb){
 function restart(){
   window.speechSynthesis&&window.speechSynthesis.cancel();
   ON=false;HIST=[];UTTS=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
-  TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;
+  TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;SESSION_SC=null;
   document.getElementById("ti").value="";
   document.getElementById("tb").textContent=tr("speech_placeholder");
   document.getElementById("smr").style.display="none";
@@ -2270,6 +2303,7 @@ function skipAndChoose(){
 function startFromPhraseReview(firstSpeaker){
   firstSpeaker=firstSpeaker||"ai";
   var sc=PENDING_SC||SCENARIOS[currentMode];
+  SESSION_SC=sc;
   PENDING_SC=null;
   var topic=PENDING_TOPIC||document.getElementById("ti").value.trim()||sc.name;
   var sys=(sc.system||SCENARIOS.free.system).replace("TOPIC",topic);
