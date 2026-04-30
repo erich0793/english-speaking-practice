@@ -203,8 +203,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .saved-item-speak{font-size:15px;background:none;border:none;cursor:pointer;padding:3px 5px;opacity:.45;flex-shrink:0}
 .saved-item-speak:hover{opacity:1}
 .vocab-item-word{font-size:14px;font-weight:500;color:#1a1a1a}
-.vocab-item-zh{font-size:12px;color:#888;margin-top:1px}
-.vocab-item-ex{font-size:12px;color:#666;margin-top:5px;font-style:italic}
+.vocab-item-zh{font-size:12px;color:#888;margin-top:3px}
+.vocab-item-ex-en{font-size:12px;color:#666;margin-top:5px;font-style:italic;display:flex;align-items:flex-start;gap:4px}
+.vocab-item-ex-en-speak{font-size:12px;background:none;border:none;cursor:pointer;padding:0 2px;opacity:.45;flex-shrink:0;line-height:1.5}
+.vocab-item-ex-en-speak:hover{opacity:1}
+.vocab-item-ex-zh{font-size:11px;color:#aaa;margin-top:2px;font-style:italic}
+.vocab-zh-toggle{font-size:10px;padding:1px 6px;border-radius:10px;border:1px solid #ddd;background:#f5f5f5;color:#999;cursor:pointer;margin-left:6px;vertical-align:middle;line-height:1.6}
+.vocab-zh-toggle.shown{background:#e8f0fc;border-color:#b3cff5;color:#185FA5}
 
 /* Weakness / Analysis */
 .weakness-section{margin-bottom:1.5rem}
@@ -732,6 +737,15 @@ function logUsage(type,chars){
 }
 
 // ── Saved sentences ──
+function toggleVocabZh(btn){
+  var item=btn.closest(".saved-item");
+  if(!item)return;
+  var isShown=btn.classList.contains("shown");
+  item.querySelectorAll(".vocab-item-zh,.vocab-item-ex-zh").forEach(function(el){
+    el.style.display=isShown?"none":"";
+  });
+  btn.classList.toggle("shown",!isShown);
+}
 function switchSavedTab(which){
   document.getElementById("savedSentList").style.display=which==="sent"?"":"none";
   document.getElementById("savedVocabList").style.display=which==="vocab"?"":"none";
@@ -779,13 +793,23 @@ function loadSaved(){
     sentList.innerHTML=sentHtml||'<div class="empty-msg">'+(isChinese?"還沒有收藏的句子。":"No saved sentences yet.")+'</div>';
     // Vocab panel
     var vocabHtml=vocabRows.map(function(r){
+      var noteParts=(r.note||"").split(" / ");
+      var exEn=noteParts[0]||"";
+      var exZh=noteParts.length>1?noteParts.slice(1).join(" / "):"";
       return '<div class="saved-item" id="si-'+r.id+'">'
         +'<div style="display:flex;align-items:flex-start;gap:6px">'
         +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(r.corrected)+'\')">🔊</button>'
         +'<div style="flex:1">'
-        +'<div class="vocab-item-word">'+escHtml(r.corrected)+'</div>'
-        +'<div class="vocab-item-zh">'+escHtml(r.original)+'</div>'
-        +(r.note?'<div class="vocab-item-ex">'+escHtml(r.note)+'</div>':'')
+        +'<div style="display:flex;align-items:center">'
+        +'<span class="vocab-item-word">'+escHtml(r.corrected)+'</span>'
+        +'<button type="button" class="vocab-zh-toggle" onclick="toggleVocabZh(this)">中文</button>'
+        +'</div>'
+        +'<div class="vocab-item-zh" style="display:none">'+escHtml(r.original)+'</div>'
+        +(exEn?'<div class="vocab-item-ex-en">'
+          +'<button type="button" class="vocab-item-ex-en-speak" onclick="speakText(\''+escAttr(exEn)+'\')">🔊</button>'
+          +'<span>'+escHtml(exEn)+'</span>'
+          +'</div>':'')
+        +(exZh?'<div class="vocab-item-ex-zh" style="display:none">'+escHtml(exZh)+'</div>':'')
         +'</div></div>'
         +'<div class="meta"><span></span>'
         +'<div class="item-actions">'
