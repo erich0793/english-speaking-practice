@@ -2466,6 +2466,7 @@ function startFromPhraseReview(firstSpeaker){
   var roleInput=document.getElementById("scRoleInput");
   var isRP=rpBtn&&rpBtn.classList.contains("active");
   var role=roleInput?roleInput.value.trim():"";
+  var customRP=false;
   if(isRP&&role){
     sc=Object.assign({},sc);
     sc.system='You are '+role+'. The scenario takes place in '+targetLang().country+' unless otherwise specified.'
@@ -2473,11 +2474,30 @@ function startFromPhraseReview(firstSpeaker){
       +' Never break character to coach, narrate, or sympathize as an outsider.'
       +' Respond exactly as this character would speak in real life.'
       +' Do not acknowledge being an AI. Only say spoken words.';
+    customRP=true;
   }
   var sys=(sc.system||SCENARIOS.free.system).replace("TOPIC",topic);
-  var opening=(sc.opening||"Let's talk about TOPIC. What's on your mind?").replace("TOPIC",topic);
   PENDING_TOPIC="";
-  startSession(topic,sys,opening,sc,firstSpeaker);
+  // When user manually set a roleplay role, fetch an in-character opening from AI
+  // instead of using the pre-generated (out-of-character) opening line
+  if(customRP&&firstSpeaker==="ai"){
+    setst(LANG==="zh"?"準備中⋯⋯":"Getting into character...");
+    var _sc=sc,_topic=topic,_sys=sys,_fs=firstSpeaker;
+    fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      model:"claude-sonnet-4-20250514",max_tokens:80,
+      messages:[{role:"user",content:"[Scenario: "+_topic+". Start now — say only your natural in-character opening line. No stage directions, no quotes, just spoken words.]"}],
+      system:_sys
+    })}).then(function(r){return r.json();}).then(function(d){
+      var op=((d.content&&d.content[0]&&d.content[0].text)||"").trim();
+      startSession(_topic,_sys,op||_sc.opening||"",_sc,_fs);
+    }).catch(function(){
+      var op=(_sc.opening||"").replace("TOPIC",_topic);
+      startSession(_topic,_sys,op,_sc,_fs);
+    });
+  } else {
+    var opening=(sc.opening||"Let's talk about TOPIC. What's on your mind?").replace("TOPIC",topic);
+    startSession(topic,sys,opening,sc,firstSpeaker);
+  }
 }
 </script>
 </body>
