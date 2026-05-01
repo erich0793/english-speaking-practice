@@ -345,12 +345,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 }
 @media(min-width:820px){
   .screen{max-width:1100px}
-  .topbar-selectors{flex-direction:row;gap:16px;align-items:center}
-  #tabContentPractice{display:grid;grid-template-columns:280px 1fr;gap:1.5rem;align-items:start}
+  /* Make app screen fill full viewport height as a flex column */
+  .screen.active#appScreen{display:flex;flex-direction:column;min-height:100vh}
+  #appScreen>.topbar{flex-shrink:0}
+  #appScreen>.tabs{flex-shrink:0}
+  .topbar-selectors{flex-direction:row;gap:12px;align-items:center}
+  /* Practice tab: grid fills remaining height */
+  #tabContentPractice{flex:1;min-height:0;display:grid;grid-template-columns:280px 1fr;gap:1.5rem;align-items:stretch}
+  #practiceLeft{overflow-y:auto}
+  #practiceRight{display:flex;flex-direction:column;min-height:0}
+  /* Chat grows to fill available height in right panel */
+  .chat{flex:1;max-height:none;min-height:160px}
   .modes{flex-wrap:wrap;overflow:visible;padding-bottom:0}
   .mode-btn{flex:0 0 calc(33.3% - 5px);min-width:unset}
-  .chat{max-height:62vh}
   .tab{font-size:13px;padding:10px 8px}
+}
+/* Progressive width expansion for larger screens */
+@media(min-width:1300px){
+  .screen{max-width:1380px}
+  #tabContentPractice{grid-template-columns:320px 1fr}
+}
+@media(min-width:1700px){
+  .screen{max-width:1680px}
+  #tabContentPractice{grid-template-columns:360px 1fr}
+}
+@media(min-width:2200px){
+  .screen{max-width:2100px}
+  #tabContentPractice{grid-template-columns:400px 1fr}
 }
 </style>
 </head>
