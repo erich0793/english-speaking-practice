@@ -47,7 +47,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .topbar-btns{display:flex;gap:10px;align-items:center}
 .topbar-selectors{display:flex;flex-direction:column;gap:5px;border:1px solid #e8e8e8;border-radius:10px;padding:6px 10px;background:#fafafa}
 .topbar-row{display:flex;align-items:center;gap:7px}
-.topbar-row-label{font-size:10px;color:#999;font-weight:600;white-space:nowrap;width:42px;text-align:right;flex-shrink:0}
+.topbar-row-label{font-size:10px;color:#666;font-weight:600;white-space:nowrap;min-width:42px;text-align:right;flex-shrink:0}
 .topbar-row-divider{width:1px;height:18px;background:#e0e0e0;margin:0 2px;flex-shrink:0}
 .topbar-group-pills{display:flex;gap:4px}
 .topbar-pill{padding:3px 10px;border-radius:10px;border:1.5px solid #e0e0e0;background:#fff;font-size:11px;cursor:pointer;color:#999;transition:all .15s;font-weight:400}
@@ -324,9 +324,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .vocab-overlay-ex-zh{font-size:12px;color:#888;margin-top:4px}
 .vocab-speak-btn{font-size:15px;background:none;border:none;cursor:pointer;padding:2px 4px;opacity:.6;flex-shrink:0}
 .vocab-speak-btn:hover{opacity:1}
-.phrase-speak-btn{font-size:15px;background:none;border:none;cursor:pointer;padding:3px 6px;opacity:.45;flex-shrink:0;align-self:center;line-height:1}
+.phrase-speak-btn{font-size:15px;background:none;border:none;cursor:pointer;padding:3px 6px;opacity:.7;flex-shrink:0;align-self:center;line-height:1}
 .phrase-speak-btn:hover{opacity:1}
-.phrase-save-btn{font-size:14px;background:none;border:none;cursor:pointer;padding:3px 5px;opacity:.4;flex-shrink:0;align-self:center;line-height:1}
+.phrase-save-btn{font-size:14px;background:none;border:none;cursor:pointer;padding:3px 5px;opacity:.7;flex-shrink:0;align-self:center;line-height:1}
 .phrase-save-btn:hover{opacity:1}
 .phrase-item{cursor:default}
 .vocab-overlay-save{display:block;width:100%;margin-top:12px;padding:9px;border-radius:8px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;font-size:13px;font-weight:500;cursor:pointer}
@@ -335,6 +335,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .pr-cultural{font-size:12px;color:#444;background:#f0f4ff;border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.6}
 .pr-mission{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#0C447C;background:#E6F1FB;border-radius:8px;padding:9px 12px;margin-bottom:14px;line-height:1.6}
 .pr-mission-label{font-weight:600;white-space:nowrap}
+@media(max-width:480px){
+  .topbar{flex-wrap:wrap;gap:6px}
+  .topbar-selectors{width:100%}
+  .topbar-row{justify-content:space-between}
+  .topbar-row-label{width:auto;text-align:left}
+  .topbar-pill{padding:3px 7px;font-size:10px}
+  .icon-btn{font-size:11px;padding:5px 10px}
+}
 </style>
 </head>
 <body>
@@ -395,7 +403,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     <div class="topbar-btns">
       <div class="topbar-selectors">
         <div class="topbar-row">
-          <span class="topbar-row-label">練習語言</span>
+          <span class="topbar-row-label" id="topbarPracticeLang">練習語言</span>
           <div class="topbar-group-pills">
             <button class="topbar-pill tlang-pill active" id="tlang-en" onclick="setTargetLang('en')">English</button>
             <button class="topbar-pill tlang-pill" id="tlang-ja" onclick="setTargetLang('ja')">日本語</button>
@@ -403,7 +411,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
           </div>
         </div>
         <div class="topbar-row">
-          <span class="topbar-row-label">顯示語言</span>
+          <span class="topbar-row-label" id="topbarDisplayLang">顯示語言</span>
           <div class="topbar-group-pills">
             <button class="topbar-pill displang-pill" id="displang-zh" onclick="setDisplayLang('zh')">中文</button>
             <button class="topbar-pill displang-pill" id="displang-en" onclick="setDisplayLang('en')">English</button>
@@ -567,7 +575,9 @@ var UI_STRINGS={
     pr_sub:"Here are phrases you may use in this scenario. Read through them before starting!",
     pr_progress:"Reviewed %1 / %2 phrases",pr_start_i:"🙋 I'll start",pr_start_ai:"🤖 AI starts",pr_skip:"Skip, start now",pr_vocab_title:"📚 Common Vocabulary",pr_vocab_more:"More vocabulary →",
     pr_save_scenario:"⭐ Save this scenario",pr_scenario_saved:"✓ Saved!",my_scenarios_title:"My Scenarios",
-    fy_empty:"Complete at least one session to get your personalized lesson.",fy_go_practice:"Go to Practice →",fy_lesson_title:"Your Personalized Lesson",fy_lesson_sub:"Based on %1 errors across your sessions, we'll focus on:",fy_lesson_btn:"Start Lesson →"},
+    fy_empty:"Complete at least one session to get your personalized lesson.",fy_go_practice:"Go to Practice →",fy_lesson_title:"Your Personalized Lesson",fy_lesson_sub:"Based on %1 errors across your sessions, we'll focus on:",fy_lesson_btn:"Start Lesson →",
+    topbar_practice_lang:"Practice",topbar_display_lang:"Display",topbar_logout:"Logout",
+    my_scenarios_empty:"No saved scenarios for %1 yet."},
   zh:{app_title:"英語口說練習",btn_lang:"EN",btn_logout:"登出",
     level_change:"更改程度",level_title:"你的英文程度是？",level_sub:"我們會根據你的程度調整對話。",
     tab_practice:"練習",tab_saved:"⭐ 收藏",tab_analysis:"📊 分析",tab_foryou:"🎓 為你量身",
@@ -592,7 +602,9 @@ var UI_STRINGS={
     pr_sub:"以下是這個情境常會用到的句子，先看熟再開始對話更有自信！",
     pr_progress:"已複習 %1 / %2 句",pr_start_i:"🙋 我先說",pr_start_ai:"🤖 AI先說",pr_skip:"略過，直接開始",pr_vocab_title:"📚 常用單字",pr_vocab_more:"更多單字 →",
     pr_save_scenario:"⭐ 儲存此情境",pr_scenario_saved:"✓ 已儲存！",my_scenarios_title:"我的情境",
-    fy_empty:"完成至少一個練習課程來獲得你的專屬課程。",fy_go_practice:"去練習 →",fy_lesson_title:"你的專屬課程",fy_lesson_sub:"根據你 %1 次錯誤，我們將專注練習：",fy_lesson_btn:"開始課程 →"}
+    fy_empty:"完成至少一個練習課程來獲得你的專屬課程。",fy_go_practice:"去練習 →",fy_lesson_title:"你的專屬課程",fy_lesson_sub:"根據你 %1 次錯誤，我們將專注練習：",fy_lesson_btn:"開始課程 →",
+    topbar_practice_lang:"練習語言",topbar_display_lang:"顯示語言",topbar_logout:"登出",
+    my_scenarios_empty:"尚未儲存%1的情境。"}
 };
 var ST_ZH={
   "Please enter a topic first.":"請先輸入話題。",
@@ -650,7 +662,9 @@ function setDisplayLang(lang){
   applyLang();
 }
 function applyLang(){
-  document.getElementById("logoutBtn").textContent=tr("btn_logout");
+  document.getElementById("logoutBtn").textContent=tr("topbar_logout");
+  var plEl=document.getElementById("topbarPracticeLang");if(plEl)plEl.textContent=tr("topbar_practice_lang");
+  var dlEl=document.getElementById("topbarDisplayLang");if(dlEl)dlEl.textContent=tr("topbar_display_lang");
   document.querySelectorAll(".displang-pill").forEach(function(b){b.classList.remove("active");});
   var dpEl=document.getElementById("displang-"+LANG);if(dpEl)dpEl.classList.add("active");
   document.getElementById("tabPractice").textContent=tr("tab_practice");
@@ -767,6 +781,7 @@ function saveCurrentScenario(){
   loadMyScenarios();
 }
 function deleteMyScenario(id){
+  if(!confirm(LANG==="zh"?"確定要刪除此情境？":"Delete this scenario?"))return;
   setMyScenarios(getMyScenarios().filter(function(s){return s.id!==id;}));
   loadMyScenarios();
 }
@@ -784,10 +799,16 @@ function loadMyScenarios(){
   var list=document.getElementById("myScenariosList");
   var titleEl=document.getElementById("myScTitle");
   if(!wrap||!list)return;
-  var scenarios=getMyScenarios().filter(function(s){return (s.lang||"en")===TARGET_LANG;});
+  var allScenarios=getMyScenarios();
+  var scenarios=allScenarios.filter(function(s){return (s.lang||"en")===TARGET_LANG;});
   if(titleEl)titleEl.textContent=tr("my_scenarios_title");
-  if(!scenarios.length){wrap.style.display="none";return;}
+  if(!allScenarios.length){wrap.style.display="none";return;}
   wrap.style.display="block";
+  if(!scenarios.length){
+    var langName=LANG==="zh"?targetLang().name:targetLang().nameEn;
+    list.innerHTML='<div class="empty-msg" style="font-size:12px;padding:4px 0 2px;color:#bbb">'+escHtml(tr("my_scenarios_empty").replace("%1",langName))+'</div>';
+    return;
+  }
   list.innerHTML=scenarios.map(function(item){
     return '<div class="scenario-chip" id="scchip-'+item.id+'">'
       +'<span class="scenario-chip-name" onclick="startMyScenario(\''+item.id+'\')">📝 '+escHtml(item.name)+'</span>'
@@ -921,6 +942,7 @@ function saveSentence(original,corrected,note){
   dbInsert("saved_sentences",{user_id:currentUser.id,original:original,corrected:corrected||null,note:note||null,scenario:currentMode||null,lang:TARGET_LANG}).then(function(){showToast(LANG==="zh"?"已收藏！":"Saved!");});
 }
 function deleteSaved(id){
+  if(!confirm(LANG==="zh"?"確定要刪除？":"Delete this item?"))return;
   dbDelete("saved_sentences",id).then(function(){var el=document.getElementById("si-"+id);if(el)el.remove();});
 }
 
