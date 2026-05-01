@@ -2507,17 +2507,18 @@ function showToast(msg){
 // ── Pronunciation playback (non-blocking) ──
 function speakText(text){
   var tlcF=targetLang();
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:0.88}})})
+  var rate=SLOW_MODE?0.72:0.88;
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
   .then(function(r){return r.json();})
   .then(function(d){
-    if(!d.audioContent){if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;window.speechSynthesis.speak(u);}return;}
+    if(!d.audioContent){if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;window.speechSynthesis.speak(u);}return;}
     var ctx=getAudioCtx();
     ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
       var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
       ctx.resume().then(function(){src.start(0);});
     });
   }).catch(function(){
-    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;window.speechSynthesis.speak(u);}
+    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;window.speechSynthesis.speak(u);}
   });
 }
 
