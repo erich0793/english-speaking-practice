@@ -624,6 +624,7 @@ function setTargetLang(lang){
   var dailyBanner=document.getElementById("dailyBanner");
   if(dailyBanner)dailyBanner.style.display=(lang==="en")?"":"none";
   applyTargetLang();
+  loadMyScenarios();
   // Reload data tabs so they show current language's content
   if(currentUser){
     var activeTab=document.querySelector(".tab.active");
@@ -757,7 +758,7 @@ function saveCurrentScenario(){
   var scenarios=getMyScenarios();
   if(scenarios.some(function(s){return s.name===name;})){showToast(LANG==="zh"?"已儲存過此情境":"Already saved!");return;}
   if(scenarios.length>=12){showToast(LANG==="zh"?"最多儲存 12 個情境":"Max 12 saved scenarios");return;}
-  scenarios.push({id:Date.now().toString(),name:name,sc:sc_ref});
+  scenarios.push({id:Date.now().toString(),name:name,lang:TARGET_LANG,sc:sc_ref});
   setMyScenarios(scenarios);
   [document.getElementById("saveScenarioBtn"),document.getElementById("smrSaveBtn")].forEach(function(btn){
     if(btn&&btn.style.display!=="none"){btn.textContent=tr("pr_scenario_saved");btn.disabled=true;}
@@ -783,7 +784,7 @@ function loadMyScenarios(){
   var list=document.getElementById("myScenariosList");
   var titleEl=document.getElementById("myScTitle");
   if(!wrap||!list)return;
-  var scenarios=getMyScenarios();
+  var scenarios=getMyScenarios().filter(function(s){return (s.lang||"en")===TARGET_LANG;});
   if(titleEl)titleEl.textContent=tr("my_scenarios_title");
   if(!scenarios.length){wrap.style.display="none";return;}
   wrap.style.display="block";
