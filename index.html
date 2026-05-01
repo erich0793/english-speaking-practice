@@ -585,7 +585,7 @@ var TOPIC_RC=null,TOPIC_IR=false;
 var LANG=localStorage.getItem("pref_lang")||"en";
 var TARGET_LANG=localStorage.getItem("pref_target_lang")||"en";
 var FONT_SIZE=localStorage.getItem("pref_fz")||"md";
-var FZ_SCALE={xs:0.82,sm:0.91,md:1,lg:1.1,xl:1.2};
+var FZ_SCALE={xs:0.80,sm:0.90,md:1,lg:1.2,xl:1.5};
 var TARGET_LANG_CONFIG={
   en:{name:"英文",nameEn:"English",country:"the United States",ttsLang:"en-US",ttsVoiceM:"en-US-Neural2-D",ttsVoiceF:"en-US-Neural2-F",sttLang:"en-US",
     errorTips:{grammar:"Articles (a/an/the), verb tenses, subject-verb agreement, prepositions.",grammar_advice:"Practice: 'I went' not 'I go yesterday'; 'an apple' not 'a apple'.",fluency:"Filler words (um, uh), long pauses, restarting mid-sentence.",fluency_advice:"It's better to pause silently than say 'um'. Slow down and breathe."}},
@@ -713,7 +713,19 @@ function setFontSize(fz){
   document.querySelectorAll(".fz-pill").forEach(function(b){b.classList.remove("active");});
   var btn=document.getElementById("fz-"+fz);if(btn)btn.classList.add("active");
   var z=FZ_SCALE[fz]||1;
-  document.querySelectorAll(".screen").forEach(function(s){s.style.zoom=z;});
+  if(z<=1){
+    // Shrinking: zoom entire screen (topbar shrinks too, stays fully visible)
+    document.querySelectorAll(".screen").forEach(function(s){s.style.zoom=z;});
+    ["tabContentPractice","tabContentSaved","tabContentWeak","tabContentForyou","tabContentAdmin"].forEach(function(id){
+      var el=document.getElementById(id);if(el)el.style.zoom=1;
+    });
+  } else {
+    // Enlarging: keep screen at 1x so topbar stays accessible, zoom only content areas
+    document.querySelectorAll(".screen").forEach(function(s){s.style.zoom=1;});
+    ["tabContentPractice","tabContentSaved","tabContentWeak","tabContentForyou","tabContentAdmin"].forEach(function(id){
+      var el=document.getElementById(id);if(el)el.style.zoom=z;
+    });
+  }
 }
 function applyLang(){
   document.getElementById("logoutBtn").textContent=tr("topbar_logout");
