@@ -620,6 +620,16 @@ function setTargetLang(lang){
   var dailyBanner=document.getElementById("dailyBanner");
   if(dailyBanner)dailyBanner.style.display=(lang==="en")?"":"none";
   applyTargetLang();
+  // Reload data tabs so they show current language's content
+  if(currentUser){
+    var activeTab=document.querySelector(".tab.active");
+    if(activeTab){
+      var tid=activeTab.id;
+      if(tid==="tabSaved")loadSaved();
+      else if(tid==="tabWeak")loadWeakness();
+      else if(tid==="tabForyou")loadForYou();
+    }
+  }
 }
 function applyTargetLang(){
   var cfg=targetLang();
@@ -827,7 +837,7 @@ function switchSavedTab(which){
 }
 function loadSaved(){
   if(!currentUser)return;
-  dbGet("saved_sentences","user_id=eq."+currentUser.id).then(function(rows){
+  dbGet("saved_sentences","user_id=eq."+currentUser.id+"&lang=eq."+TARGET_LANG).then(function(rows){
     SAVED_MAP={};
     var sentList=document.getElementById("savedSentList");
     var vocabList=document.getElementById("savedVocabList");
@@ -903,7 +913,7 @@ function updateSavedTabLabels(sentCount,vocabCount){
 }
 function saveSentence(original,corrected,note){
   if(!currentUser)return;
-  dbInsert("saved_sentences",{user_id:currentUser.id,original:original,corrected:corrected||null,note:note||null,scenario:currentMode||null}).then(function(){showToast(LANG==="zh"?"已收藏！":"Saved!");});
+  dbInsert("saved_sentences",{user_id:currentUser.id,original:original,corrected:corrected||null,note:note||null,scenario:currentMode||null,lang:TARGET_LANG}).then(function(){showToast(LANG==="zh"?"已收藏！":"Saved!");});
 }
 function deleteSaved(id){
   dbDelete("saved_sentences",id).then(function(){var el=document.getElementById("si-"+id);if(el)el.remove();});
@@ -970,7 +980,7 @@ function toggleErrInfo(type){
 }
 function loadWeakness(){
   if(!currentUser)return;
-  dbGet("session_errors","user_id=eq."+currentUser.id+"&limit=300").then(function(rows){
+  dbGet("session_errors","user_id=eq."+currentUser.id+"&lang=eq."+TARGET_LANG+"&limit=300").then(function(rows){
     var content=document.getElementById("weakContent");
     if(!rows||!rows.length){content.innerHTML='<div class="empty-msg">Complete at least one session to see your analysis.</div>';return;}
     var types={};
@@ -1015,7 +1025,7 @@ function loadWeakness(){
 function loadForYou(){
   if(!currentUser)return;
   var content=document.getElementById("foryouContent");
-  dbGet("session_errors","user_id=eq."+currentUser.id+"&order=created_at.desc&limit=200").then(function(rows){
+  dbGet("session_errors","user_id=eq."+currentUser.id+"&lang=eq."+TARGET_LANG+"&order=created_at.desc&limit=200").then(function(rows){
     if(!rows||!rows.length){
       content.innerHTML='<div class="fy-empty">'+escHtml(tr("fy_empty"))+'<br><br><button class="lesson-btn" onclick="showTab(\'practice\')">'+escHtml(tr("fy_go_practice"))+'</button></div>';
       return;
@@ -2317,7 +2327,7 @@ function endSess(){
     hideThinking();
     logUsage("claude_feedback");
     if(currentUser&&fb.corrections&&fb.corrections.length){
-      dbInsert("session_errors",fb.corrections.map(function(c){return{user_id:currentUser.id,error_type:c.error_type||"grammar",original:c.original,corrected:c.corrected,reason:c.reason||null,scenario:currentMode||null};}));
+      dbInsert("session_errors",fb.corrections.map(function(c){return{user_id:currentUser.id,error_type:c.error_type||"grammar",original:c.original,corrected:c.corrected,reason:c.reason||null,scenario:currentMode||null,lang:TARGET_LANG};}));
     }
     showFeedback(fb);
   })
