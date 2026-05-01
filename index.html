@@ -44,7 +44,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 /* Top bar */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid #e0e0e0}
 .topbar h1{font-size:17px;font-weight:500}
-.topbar-btns{display:flex;gap:8px}
+.topbar-btns{display:flex;gap:12px;align-items:center}
+.topbar-group{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.topbar-group-label{font-size:10px;color:#aaa;font-weight:500;letter-spacing:.3px}
+.topbar-group-pills{display:flex;gap:4px}
+.topbar-pill{padding:3px 10px;border-radius:12px;border:1.5px solid #ddd;background:#fff;font-size:11px;cursor:pointer;color:#888;transition:all .15s}
+.topbar-pill.active{border-color:#185FA5;background:#185FA5;color:#fff}
+.topbar-pill:hover:not(.active){border-color:#aaa;color:#555}
 .icon-btn{font-size:13px;padding:6px 12px;border-radius:20px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;color:#333}
 
 /* Tabs — 4 tabs */
@@ -210,9 +216,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .vocab-item-ex-zh{font-size:11px;color:#aaa;margin-top:2px;font-style:italic}
 .vocab-zh-toggle{font-size:10px;padding:1px 6px;border-radius:10px;border:1px solid #ddd;background:#f5f5f5;color:#999;cursor:pointer;margin-left:6px;vertical-align:middle;line-height:1.6}
 .vocab-zh-toggle.shown{background:#e8f0fc;border-color:#b3cff5;color:#185FA5}
-.tlang-btn{padding:5px 14px;border-radius:20px;border:1.5px solid #ddd;background:#fff;font-size:12px;cursor:pointer;color:#888;transition:all .15s}
-.tlang-btn.active{border-color:#185FA5;background:#185FA5;color:#fff}
-.tlang-btn:hover:not(.active){border-color:#aaa;color:#555}
 .sc-setup{background:#f8f9fc;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;border:1px solid #e8edf5}
 .sc-setup-row{display:flex;align-items:center;gap:10px}
 .sc-setup-label{font-size:11px;font-weight:600;color:#666;width:52px;flex-shrink:0}
@@ -388,7 +391,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
   <div class="topbar">
     <h1 id="appTitle">英文練習</h1>
     <div class="topbar-btns">
-      <button class="icon-btn" id="langToggle" onclick="toggleLang()">中文</button>
+      <div class="topbar-group">
+        <span class="topbar-group-label">練習語言</span>
+        <div class="topbar-group-pills">
+          <button class="topbar-pill tlang-pill active" id="tlang-en" onclick="setTargetLang('en')">English</button>
+          <button class="topbar-pill tlang-pill" id="tlang-ja" onclick="setTargetLang('ja')">日本語</button>
+          <button class="topbar-pill tlang-pill" id="tlang-de" onclick="setTargetLang('de')">Deutsch</button>
+        </div>
+      </div>
+      <div class="topbar-group">
+        <span class="topbar-group-label">顯示語言</span>
+        <div class="topbar-group-pills">
+          <button class="topbar-pill displang-pill" id="displang-zh" onclick="setDisplayLang('zh')">中文</button>
+          <button class="topbar-pill displang-pill" id="displang-en" onclick="setDisplayLang('en')">English</button>
+        </div>
+      </div>
       <button class="icon-btn" id="logoutBtn" onclick="logout()" style="color:#A32D2D">Logout</button>
     </div>
   </div>
@@ -407,11 +424,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
     <div class="level-bar" id="levelBar">
       <span class="level-bar-text" id="levelBarText">Level: Intermediate 🌿</span>
       <span class="level-bar-change" id="levelBarChange" onclick="showLevelScreen()">Change level</span>
-    </div>
-    <div id="targetLangBar" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-      <button class="tlang-btn active" id="tlang-en" onclick="setTargetLang('en')">🇺🇸 英文</button>
-      <button class="tlang-btn" id="tlang-ja" onclick="setTargetLang('ja')">🇯🇵 日文</button>
-      <button class="tlang-btn" id="tlang-de" onclick="setTargetLang('de')">🇩🇪 德文</button>
     </div>
     <div class="daily" id="dailyBanner" onclick="useDailyTopic()">
       <span class="daily-label">Today's topic</span>
@@ -603,28 +615,29 @@ function tr(k){return(UI_STRINGS[LANG]&&UI_STRINGS[LANG][k]!==undefined)?UI_STRI
 function setTargetLang(lang){
   TARGET_LANG=lang;
   localStorage.setItem("pref_target_lang",lang);
-  document.querySelectorAll(".tlang-btn").forEach(function(b){b.classList.remove("active");});
+  document.querySelectorAll(".tlang-pill").forEach(function(b){b.classList.remove("active");});
   var btn=document.getElementById("tlang-"+lang);if(btn)btn.classList.add("active");
-  var modeGrid=document.getElementById("modeGrid");
-  var scenarioLabel=document.getElementById("scenarioLabel");
   var dailyBanner=document.getElementById("dailyBanner");
-  var isEn=lang==="en";
-  if(modeGrid)modeGrid.style.display=isEn?"":"none";
-  if(scenarioLabel)scenarioLabel.style.display=isEn?"":"none";
-  if(dailyBanner)dailyBanner.style.display=isEn?"":"none";
+  if(dailyBanner)dailyBanner.style.display=(lang==="en")?"":"none";
   applyTargetLang();
 }
 function applyTargetLang(){
   var cfg=targetLang();
   var titleEl=document.getElementById("appTitle");
-  if(titleEl)titleEl.textContent=cfg.name+"練習";
+  if(titleEl)titleEl.textContent=(LANG==="zh"?cfg.name:cfg.nameEn)+" "+(LANG==="zh"?"練習":"Practice");
   SCENARIOS.free.system="You are a friendly "+cfg.nameEn+" conversation partner. Topic: TOPIC. Reply 2-3 natural sentences, ask one follow-up. Do NOT correct grammar. Only say spoken words.";
 }
-function toggleLang(){LANG=LANG==="zh"?"en":"zh";localStorage.setItem("pref_lang",LANG);applyLang();}
+function setDisplayLang(lang){
+  LANG=lang;
+  localStorage.setItem("pref_lang",lang);
+  document.querySelectorAll(".displang-pill").forEach(function(b){b.classList.remove("active");});
+  var dp=document.getElementById("displang-"+lang);if(dp)dp.classList.add("active");
+  applyLang();
+}
 function applyLang(){
-  document.querySelector(".topbar h1").textContent=tr("app_title");
-  document.getElementById("langToggle").textContent=tr("btn_lang");
   document.getElementById("logoutBtn").textContent=tr("btn_logout");
+  document.querySelectorAll(".displang-pill").forEach(function(b){b.classList.remove("active");});
+  var dpEl=document.getElementById("displang-"+LANG);if(dpEl)dpEl.classList.add("active");
   document.getElementById("tabPractice").textContent=tr("tab_practice");
   document.getElementById("tabSaved").textContent=tr("tab_saved");
   document.getElementById("tabWeak").textContent=tr("tab_analysis");
@@ -649,6 +662,7 @@ function applyLang(){
   if(!ON){var chat=document.getElementById("chat");var aiMsg=chat.querySelector(".aibbl");if(aiMsg&&!aiMsg.querySelector(".save-btn"))aiMsg.textContent=tr("chat_init");}
   updateLevelBar();
   applyLevelScreen();
+  applyTargetLang();
 }
 
 // ── Supabase ──
@@ -705,6 +719,7 @@ function initApp(){
   document.getElementById("dailyText").textContent=getTodayTopic().text;
   applyLang();
   setTargetLang(TARGET_LANG);
+  setDisplayLang(LANG);
   updateLevelBar();
   loadMyScenarios();
   if(currentUser&&currentUser.username===ADMIN_USERNAME){
@@ -1172,7 +1187,7 @@ function generateTopicScenario(topic,onSuccess,onError){
   };
   var levelHint=levelHints[levelKey]||levelHints.intermediate;
   var tl=tln();
-  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nTarget language: '+tl+'\nLearner level: '+levelHint+'\n\nIMPORTANT: The entire conversation must be conducted in '+tl+'. All phrases and vocabulary must be in '+tl+' (NOT in English unless '+tl+' IS English). Chinese translations go in zh/example_zh fields.\nDefault context: The scenario takes place in Taiwan unless the topic clearly specifies another location.\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character].\' Then describe their attitude. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion, write: \'You are a friendly '+tl+' conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words in '+tl+'.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "role": "If isRoleplay is true: a short phrase describing who AI plays, in the language of the topic (e.g. \'對方司機\', \'店員\'). Empty string if isRoleplay is false.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞後面一律加括號標注，例如：中央公園(Central Park)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版]",\n  "opening": "A natural '+tl+' opening line to start this conversation — if roleplay, speak directly AS the opposing character; if general, open as a conversation partner",\n  "phrases": [\n    {"en": "Useful '+tl+' phrase", "zh": "中文意思"}\n  ],\n  "vocab": [\n    {"word": "'+tl+' word", "zh": "中文", "example": "Example sentence in '+tl+'.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
+  var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nTarget language: '+tl+'\nLearner level: '+levelHint+'\n\nIMPORTANT: The entire conversation must be conducted in '+tl+'. All phrases and vocabulary must be in '+tl+' (NOT in English unless '+tl+' IS English). Chinese translations go in zh/example_zh fields.\nDefault context: The scenario takes place in Taiwan unless the topic clearly specifies another location.\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character].\' Then describe their attitude. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion, write: \'You are a friendly '+tl+' conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words in '+tl+'.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "role": "If isRoleplay is true: a short phrase describing who AI plays, in the language of the topic (e.g. \'對方司機\', \'店員\'). Empty string if isRoleplay is false.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞後面一律加括號標注，例如：中央公園(Central Park)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版]",\n  "opening": "A natural '+tl+' opening line to start this conversation — if roleplay, speak directly AS the opposing character; if general, open as a conversation partner",\n  "phrases": [\n    {"phrase": "Phrase in '+tl+' (NOT English unless '+tl+' IS English)", "zh": "Traditional Chinese meaning"}\n  ],\n  "vocab": [\n    {"word": "'+tl+' word", "zh": "中文", "example": "Example sentence in '+tl+'.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     model:"claude-sonnet-4-20250514",max_tokens:2000,
     messages:[{role:"user",content:prompt}]
@@ -1809,6 +1824,13 @@ function selectMode(mode){
     });
     PENDING_SC=freeSc;PENDING_TOPIC="";
     showPhraseReview(freeSc);
+  } else if(TARGET_LANG!=="en"){
+    generateTopicScenario(sc.name,function(generatedSc){
+      PENDING_SC=generatedSc;PENDING_TOPIC=sc.name;
+      showPhraseReview(generatedSc);
+    },function(){
+      setst(LANG==="zh"?"生成失敗，請重試":"Generation failed, please try again.");
+    });
   } else {
     document.getElementById("ti").value="";
     if(sc.phrases){showPhraseReview(sc);}
@@ -1849,9 +1871,10 @@ function showPhraseReview(sc){
   html+='<div class="phrase-review-sub">'+escHtml(tr("pr_sub"))+'</div>';
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
-    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(p.en)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
-      +'<button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(p.en)+'\');phraseMarkChecked(this)">🔊</button>'
-      +'<button type="button" class="phrase-save-btn" onclick="event.stopPropagation();event.preventDefault();savePhraseItem(this,\''+escAttr(p.en)+'\',\''+escAttr(p.zh)+'\');phraseMarkChecked(this)">⭐</button>'
+    var pText=p.phrase||p.en;
+    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(pText)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
+      +'<button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(pText)+'\');phraseMarkChecked(this)">🔊</button>'
+      +'<button type="button" class="phrase-save-btn" onclick="event.stopPropagation();event.preventDefault();savePhraseItem(this,\''+escAttr(pText)+'\',\''+escAttr(p.zh)+'\');phraseMarkChecked(this)">⭐</button>'
       +'</label>';
   });
   html+='</div>';
