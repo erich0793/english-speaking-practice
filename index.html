@@ -343,6 +343,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
   .topbar-pill{padding:3px 7px;font-size:10px}
   .icon-btn{font-size:11px;padding:5px 10px}
 }
+@media(min-width:820px){
+  .screen{max-width:1100px}
+  .topbar-selectors{flex-direction:row;gap:16px;align-items:center}
+  #tabContentPractice{display:grid;grid-template-columns:280px 1fr;gap:1.5rem;align-items:start}
+  #practiceLeft{position:sticky;top:1rem}
+  .modes{flex-wrap:wrap;overflow:visible;padding-bottom:0}
+  .mode-btn{flex:0 0 calc(33.3% - 5px);min-width:unset}
+  .chat{max-height:62vh}
+  .tab{font-size:13px;padding:10px 8px}
+}
 </style>
 </head>
 <body>
@@ -433,62 +443,66 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 
   <!-- PRACTICE TAB -->
   <div id="tabContentPractice">
-    <div class="level-bar" id="levelBar">
-      <span class="level-bar-text" id="levelBarText">Level: Intermediate 🌿</span>
-      <span class="level-bar-change" id="levelBarChange" onclick="showLevelScreen()">Change level</span>
+    <div id="practiceLeft">
+      <div class="level-bar" id="levelBar">
+        <span class="level-bar-text" id="levelBarText">Level: Intermediate 🌿</span>
+        <span class="level-bar-change" id="levelBarChange" onclick="showLevelScreen()">Change level</span>
+      </div>
+      <div class="daily" id="dailyBanner" onclick="useDailyTopic()">
+        <span class="daily-label">Today's topic</span>
+        <span class="daily-text" id="dailyText">Loading...</span>
+        <span class="daily-use">Use it →</span>
+      </div>
+      <p class="mode-title" id="scenarioLabel">Choose a scenario</p>
+      <div class="modes" id="modeGrid">
+        <button class="mode-btn" id="mode-free" onclick="selectMode('free')"><span class="mode-icon">💬</span><span class="mode-name">Free talk</span></button>
+        <button class="mode-btn" id="mode-restaurant" onclick="selectMode('restaurant')"><span class="mode-icon">🍽️</span><span class="mode-name">Restaurant</span></button>
+        <button class="mode-btn" id="mode-interview" onclick="selectMode('interview')"><span class="mode-icon">💼</span><span class="mode-name">Interview</span></button>
+        <button class="mode-btn" id="mode-shopping" onclick="selectMode('shopping')"><span class="mode-icon">🛍️</span><span class="mode-name">Shopping</span></button>
+        <button class="mode-btn" id="mode-directions" onclick="selectMode('directions')"><span class="mode-icon">🗺️</span><span class="mode-name">Directions</span></button>
+        <button class="mode-btn" id="mode-hotel" onclick="selectMode('hotel')"><span class="mode-icon">🏨</span><span class="mode-name">Hotel</span></button>
+        <button class="mode-btn" id="mode-airport" onclick="selectMode('airport')"><span class="mode-icon">✈️</span><span class="mode-name">Airport</span></button>
+        <button class="mode-btn" id="mode-doctor" onclick="selectMode('doctor')"><span class="mode-icon">🏥</span><span class="mode-name">Doctor</span></button>
+        <button class="mode-btn" id="mode-cafe" onclick="selectMode('cafe')"><span class="mode-icon">☕</span><span class="mode-name">Café</span></button>
+        <button class="mode-btn" id="mode-phone" onclick="selectMode('phone')"><span class="mode-icon">📞</span><span class="mode-name">Phone call</span></button>
+        <button class="mode-btn" id="mode-bank" onclick="selectMode('bank')"><span class="mode-icon">🏦</span><span class="mode-name">Bank</span></button>
+      </div>
+      <div class="my-scenarios-wrap" id="myScenarios" style="display:none">
+        <p class="mode-title" id="myScTitle">MY SCENARIOS</p>
+        <div class="my-scenarios-list" id="myScenariosList"></div>
+      </div>
+      <div class="row">
+        <input type="text" id="ti" placeholder="Or type your own topic...">
+        <button class="topic-mic-btn" id="topicMicBtn" onclick="toggleTopicMic()" title="Voice input">🎤</button>
+        <button class="abtn" onclick="startWithCustom()">Start</button>
+      </div>
     </div>
-    <div class="daily" id="dailyBanner" onclick="useDailyTopic()">
-      <span class="daily-label">Today's topic</span>
-      <span class="daily-text" id="dailyText">Loading...</span>
-      <span class="daily-use">Use it →</span>
+    <div id="practiceRight">
+      <div class="chat" id="chat">
+        <div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!</div></div>
+      </div>
+      <div class="st" id="st">Select a scenario or topic to begin</div>
+      <div class="tb" id="tb">Your speech will appear here...</div>
+      <p class="hint">🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop</p>
+      <p style="text-align:center;margin-bottom:.5rem;display:flex;justify-content:center;gap:8px">
+        <button class="abtn slow-btn" id="slowModeBtn" onclick="toggleSlowMode()" style="font-size:12px;padding:4px 10px">🐢 Slow mode</button>
+      </p>
+      <div class="ctrl">
+        <button class="mic" id="mb" onclick="toggleRec()">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+        </button>
+      </div>
+      <div class="acts">
+        <button class="abtn endbtn" id="eb" onclick="endSess()">End and get feedback</button>
+      </div>
+      <div class="smr" id="smr">
+        <h2 style="font-size:16px;font-weight:500;margin-bottom:1rem">Session Feedback</h2>
+        <div class="sgrid" id="sg"></div>
+        <div id="fbc"></div>
+        <button class="rbtn" onclick="restart()">Start a new session</button>
+      </div>
+      <p class="note">Works best on Chrome or Edge browser</p>
     </div>
-    <p class="mode-title" id="scenarioLabel">Choose a scenario</p>
-    <div class="modes" id="modeGrid">
-      <button class="mode-btn" id="mode-free" onclick="selectMode('free')"><span class="mode-icon">💬</span><span class="mode-name">Free talk</span></button>
-      <button class="mode-btn" id="mode-restaurant" onclick="selectMode('restaurant')"><span class="mode-icon">🍽️</span><span class="mode-name">Restaurant</span></button>
-      <button class="mode-btn" id="mode-interview" onclick="selectMode('interview')"><span class="mode-icon">💼</span><span class="mode-name">Interview</span></button>
-      <button class="mode-btn" id="mode-shopping" onclick="selectMode('shopping')"><span class="mode-icon">🛍️</span><span class="mode-name">Shopping</span></button>
-      <button class="mode-btn" id="mode-directions" onclick="selectMode('directions')"><span class="mode-icon">🗺️</span><span class="mode-name">Directions</span></button>
-      <button class="mode-btn" id="mode-hotel" onclick="selectMode('hotel')"><span class="mode-icon">🏨</span><span class="mode-name">Hotel</span></button>
-      <button class="mode-btn" id="mode-airport" onclick="selectMode('airport')"><span class="mode-icon">✈️</span><span class="mode-name">Airport</span></button>
-      <button class="mode-btn" id="mode-doctor" onclick="selectMode('doctor')"><span class="mode-icon">🏥</span><span class="mode-name">Doctor</span></button>
-      <button class="mode-btn" id="mode-cafe" onclick="selectMode('cafe')"><span class="mode-icon">☕</span><span class="mode-name">Café</span></button>
-      <button class="mode-btn" id="mode-phone" onclick="selectMode('phone')"><span class="mode-icon">📞</span><span class="mode-name">Phone call</span></button>
-      <button class="mode-btn" id="mode-bank" onclick="selectMode('bank')"><span class="mode-icon">🏦</span><span class="mode-name">Bank</span></button>
-    </div>
-    <div class="my-scenarios-wrap" id="myScenarios" style="display:none">
-      <p class="mode-title" id="myScTitle">MY SCENARIOS</p>
-      <div class="my-scenarios-list" id="myScenariosList"></div>
-    </div>
-    <div class="row">
-      <input type="text" id="ti" placeholder="Or type your own topic...">
-      <button class="topic-mic-btn" id="topicMicBtn" onclick="toggleTopicMic()" title="Voice input">🎤</button>
-      <button class="abtn" onclick="startWithCustom()">Start</button>
-    </div>
-    <div class="chat" id="chat">
-      <div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!</div></div>
-    </div>
-    <div class="st" id="st">Select a scenario or topic to begin</div>
-    <div class="tb" id="tb">Your speech will appear here...</div>
-    <p class="hint">🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop</p>
-    <p style="text-align:center;margin-bottom:.5rem;display:flex;justify-content:center;gap:8px">
-      <button class="abtn slow-btn" id="slowModeBtn" onclick="toggleSlowMode()" style="font-size:12px;padding:4px 10px">🐢 Slow mode</button>
-    </p>
-    <div class="ctrl">
-      <button class="mic" id="mb" onclick="toggleRec()">
-        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
-      </button>
-    </div>
-    <div class="acts">
-      <button class="abtn endbtn" id="eb" onclick="endSess()">End and get feedback</button>
-    </div>
-    <div class="smr" id="smr">
-      <h2 style="font-size:16px;font-weight:500;margin-bottom:1rem">Session Feedback</h2>
-      <div class="sgrid" id="sg"></div>
-      <div id="fbc"></div>
-      <button class="rbtn" onclick="restart()">Start a new session</button>
-    </div>
-    <p class="note">Works best on Chrome or Edge browser</p>
   </div>
 
   <!-- SAVED TAB -->
