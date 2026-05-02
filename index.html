@@ -303,6 +303,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 /* Slow mode topbar pill active override */
 #slowModeBtn.active{border-color:#E8A020!important;background:#FFF4E0!important;color:#7A4200!important;font-weight:500!important}
 
+/* Sample Dialogue */
+.sd-header{margin-bottom:4px}
+.sd-title{font-size:15px;font-weight:600;color:#185FA5}
+.sd-sub{font-size:12px;color:#888;margin-bottom:12px}
+.sd-dialog{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.sd-bubble{max-width:80%;padding:9px 13px;border-radius:14px;position:relative;transition:background .2s,outline .2s}
+.sd-a{align-self:flex-start;background:#f2f2f2;border-bottom-left-radius:3px}
+.sd-b{align-self:flex-end;background:#E6F1FB;border-bottom-right-radius:3px;text-align:right}
+.sd-label{font-size:10px;color:#aaa;margin-bottom:3px;font-weight:500;letter-spacing:.3px}
+.sd-b .sd-label{text-align:right}
+.sd-text{font-size:14px;color:#1a1a1a;line-height:1.5}
+.sd-trans{font-size:11px;color:#999;margin-top:4px;font-style:italic}
+.sd-playing{outline:2px solid #E8A020}
+.sd-a.sd-playing{background:#FFF4E0}
+.sd-b.sd-playing{background:#FFF0D0}
+.sd-controls{display:flex;justify-content:center;margin-bottom:10px}
+.sd-play-btn{font-size:13px;padding:6px 20px;border-radius:20px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-weight:500;transition:all .15s}
+.sd-play-btn:hover{background:#cce0f5}
+.sd-play-btn.sd-stop{border-color:#c0392b;background:#fdecea;color:#c0392b}
+
 /* Admin usage table */
 .usage-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
 .usage-stat{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:10px 12px;text-align:center}
@@ -589,6 +609,9 @@ var TOPIC_RC=null,TOPIC_IR=false;
 var LANG=localStorage.getItem("pref_lang")||"en";
 var TARGET_LANG=localStorage.getItem("pref_target_lang")||"en";
 var FONT_SIZE=localStorage.getItem("pref_fz")||"md";
+var DIALOG_SC=null;
+var DIALOG_PLAYING=false;
+var DIALOG_CURRENT=null;
 var FZ_SCALE={xs:0.80,sm:0.90,md:1,lg:1.2,xl:1.8};
 var TARGET_LANG_CONFIG={
   en:{name:"英文",nameEn:"English",country:"the United States",ttsLang:"en-US",ttsVoiceM:"en-US-Neural2-D",ttsVoiceF:"en-US-Neural2-F",sttLang:"en-US",
@@ -627,7 +650,8 @@ var UI_STRINGS={
     pr_save_scenario:"⭐ Save this scenario",pr_scenario_saved:"✓ Saved!",my_scenarios_title:"My Scenarios",
     fy_empty:"Complete at least one session to get your personalized lesson.",fy_go_practice:"Go to Practice →",fy_lesson_title:"Your Personalized Lesson",fy_lesson_sub:"Based on %1 errors across your sessions, we'll focus on:",fy_lesson_btn:"Start Lesson →",
     topbar_font_size:"Font",topbar_practice_lang:"Practice",topbar_display_lang:"Display",topbar_logout:"Logout",topbar_slow:"Slow",
-    my_scenarios_empty:"No saved scenarios for %1 yet."},
+    my_scenarios_empty:"No saved scenarios for %1 yet.",
+    sd_title:"Sample Dialogue",sd_sub:"See how this conversation might go",sd_next:"Next → Review Phrases",sd_skip:"Skip, start now",sd_play:"▶ Play Dialogue",sd_stop:"⏹ Stop",sd_loading:"Generating sample dialogue…",sd_spkA:"Native speaker",sd_spkB:"You"},
   zh:{app_title:"英語口說練習",btn_lang:"EN",btn_logout:"登出",
     level_change:"更改程度",level_title:"你的英文程度是？",level_sub:"我們會根據你的程度調整對話。",
     tab_practice:"練習",tab_saved:"⭐ 收藏",tab_analysis:"📊 分析",tab_foryou:"🎓 為你量身",
@@ -654,7 +678,8 @@ var UI_STRINGS={
     pr_save_scenario:"⭐ 儲存此情境",pr_scenario_saved:"✓ 已儲存！",my_scenarios_title:"我的情境",
     fy_empty:"完成至少一個練習課程來獲得你的專屬課程。",fy_go_practice:"去練習 →",fy_lesson_title:"你的專屬課程",fy_lesson_sub:"根據你 %1 次錯誤，我們將專注練習：",fy_lesson_btn:"開始課程 →",
     topbar_font_size:"字體",topbar_practice_lang:"練習語言",topbar_display_lang:"顯示語言",topbar_logout:"登出",topbar_slow:"慢速",
-    my_scenarios_empty:"尚未儲存%1的情境。"}
+    my_scenarios_empty:"尚未儲存%1的情境。",
+    sd_title:"對話示範",sd_sub:"先看看這段對話，了解情境怎麼進行",sd_next:"下一步 → 複習句子",sd_skip:"略過，直接開始",sd_play:"▶ 播放對話",sd_stop:"⏹ 停止",sd_loading:"正在生成對話示範…",sd_spkA:"母語者",sd_spkB:"你"}
 };
 var ST_ZH={
   "Please enter a topic first.":"請先輸入話題。",
@@ -868,7 +893,7 @@ function startMyScenario(id){
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("mode-free").classList.add("active");
   PENDING_SC=item.sc;PENDING_TOPIC=item.name;
-  showPhraseReview(item.sc);
+  showSampleDialog(item.sc);
 }
 function loadMyScenarios(){
   var wrap=document.getElementById("myScenarios");
@@ -1269,10 +1294,10 @@ function useDailyTopic(){
   document.getElementById("mode-free").classList.add("active");
   generateTopicScenario(t.text,function(sc){
     PENDING_TOPIC=t.text;PENDING_SC=sc;
-    showPhraseReview(sc);
+    showSampleDialog(sc);
   },function(){
     PENDING_TOPIC=t.text;
-    showPhraseReview(SCENARIOS.free);
+    showSampleDialog(SCENARIOS.free);
   });
 }
 function showTopicLoading(){
@@ -1936,20 +1961,137 @@ function selectMode(mode){
       opening:"Hi! What's on your mind today? Feel free to talk about anything you like!"
     });
     PENDING_SC=freeSc;PENDING_TOPIC="";
-    showPhraseReview(freeSc);
+    showSampleDialog(freeSc);
   } else if(TARGET_LANG!=="en"){
     generateTopicScenario(sc.name,function(generatedSc){
       PENDING_SC=generatedSc;PENDING_TOPIC=sc.name;
-      showPhraseReview(generatedSc);
+      showSampleDialog(generatedSc);
     },function(){
       setst(LANG==="zh"?"生成失敗，請重試":"Generation failed, please try again.");
     });
   } else {
     document.getElementById("ti").value="";
-    if(sc.phrases){showPhraseReview(sc);}
+    if(sc.phrases){showSampleDialog(sc);}
     else{startSession(sc.name,sc.system,sc.opening,sc);}
   }
 }
+function generateSampleDialog(sc,onSuccess,onError){
+  var tl=tln();
+  var scenario=sc.name||currentMode;
+  var country=targetLang().country;
+  var langNote=LANG==="zh"?"Traditional Chinese":"English";
+  var levelHints={beginner:"Keep sentences very short and simple (A1-A2 level).",intermediate:"Use natural conversational language (B1-B2 level).",advanced:"Use natural fluent language with some idioms (C1-C2 level)."};
+  var levelHint=levelHints[LEVEL||"intermediate"]||levelHints.intermediate;
+  var prompt='Create a realistic '+tl+' sample conversation for the scenario: "'+scenario+'" (taking place in '+country+').\n\nRequirements:\n- Exactly 10-12 turns alternating: A first, then B, then A, etc.\n- Speaker A is the native speaker / service provider / counterpart.\n- Speaker B is the '+tl+' language learner.\n- '+levelHint+'\n- All "text" fields must be in '+tl+' ONLY (never in another language).\n- All "translation" fields must be in '+langNote+'.\n- Natural spoken language, not textbook formal.\n\nReturn ONLY valid JSON (no markdown):\n{"speakerA":"[short label for A, in '+langNote+']","speakerB":"[short label for B, in '+langNote+']","dialog":[{"speaker":"A","text":"...","translation":"..."},{"speaker":"B","text":"...","translation":"..."},...]}';
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    model:"claude-sonnet-4-20250514",max_tokens:1800,
+    messages:[{role:"user",content:prompt}]
+  })}).then(function(r){return r.json();}).then(function(d){
+    var text=(d.content&&d.content[0]&&d.content[0].text)||"";
+    var m=text.match(/\{[\s\S]*\}/);
+    if(!m)throw new Error("no json");
+    var result=JSON.parse(m[0]);
+    if(!result.dialog||!result.dialog.length)throw new Error("invalid");
+    onSuccess(result);
+  }).catch(function(e){
+    console.error("generateSampleDialog:",e);
+    if(onError)onError(e);
+  });
+}
+
+function showSampleDialog(sc){
+  DIALOG_SC=sc;
+  DIALOG_PLAYING=false;
+  DIALOG_CURRENT=null;
+  ON=false;
+  closeVocabOverlay();
+  var chat=document.getElementById("chat");
+  chat.innerHTML="";
+  document.getElementById("smr").style.display="none";
+  document.getElementById("mb").disabled=true;
+  document.getElementById("eb").disabled=true;
+  var card=document.createElement("div");
+  card.className="phrase-review-card";
+  card.id="sampleDialogCard";
+  card.innerHTML='<div style="text-align:center;padding:2rem 1rem">'
+    +'<div style="font-size:28px;margin-bottom:12px">💬</div>'
+    +'<div style="font-size:14px;color:#333;font-weight:500;margin-bottom:8px">'+escHtml(tr("sd_loading"))+'</div>'
+    +'<div style="display:flex;gap:6px;justify-content:center;margin-top:8px"><span class="dot"></span><span class="dot d2"></span><span class="dot d3"></span></div>'
+    +'</div>';
+  chat.appendChild(card);
+  if(sc.sampleDialog){renderSampleDialog(sc.sampleDialog);return;}
+  generateSampleDialog(sc,function(result){
+    sc.sampleDialog=result;
+    renderSampleDialog(result);
+  },function(){
+    showPhraseReview(sc);
+  });
+}
+
+function renderSampleDialog(result){
+  var card=document.getElementById("sampleDialogCard");
+  if(!card)return;
+  var dialog=result.dialog||result;
+  var labelA=result.speakerA||tr("sd_spkA");
+  var labelB=result.speakerB||tr("sd_spkB");
+  DIALOG_CURRENT=dialog;
+  var html='<button type="button" class="phrase-skip" onclick="skipSampleDialog()">'+escHtml(tr("sd_skip"))+'</button>';
+  html+='<div class="sd-header"><span class="sd-title">💬 '+escHtml(tr("sd_title"))+'</span></div>';
+  html+='<div class="sd-sub">'+escHtml(tr("sd_sub"))+'</div>';
+  html+='<div class="sd-dialog" id="sdDialogContainer">';
+  dialog.forEach(function(line,i){
+    var isB=line.speaker==="B";
+    var lbl=isB?labelB:labelA;
+    html+='<div class="sd-bubble '+(isB?"sd-b":"sd-a")+'" id="sdLine'+i+'">';
+    html+='<div class="sd-label">'+escHtml(lbl)+'</div>';
+    html+='<div class="sd-text">'+escHtml(line.text)+'</div>';
+    html+='<div class="sd-trans">'+escHtml(line.translation)+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='<div class="sd-controls"><button class="sd-play-btn" id="sdPlayBtn" onclick="toggleDialogPlayback()">'+escHtml(tr("sd_play"))+'</button></div>';
+  html+='<div class="start-choice"><button class="phrase-start-btn" onclick="goToPhraseReview()">'+escHtml(tr("sd_next"))+'</button></div>';
+  card.innerHTML=html;
+}
+
+function toggleDialogPlayback(){
+  if(DIALOG_PLAYING){stopDialogPlayback();}
+  else{startDialogPlayback();}
+}
+function startDialogPlayback(){
+  if(!DIALOG_CURRENT||!DIALOG_CURRENT.length)return;
+  DIALOG_PLAYING=true;
+  var btn=document.getElementById("sdPlayBtn");
+  if(btn){btn.textContent=tr("sd_stop");btn.classList.add("sd-stop");}
+  playDialogLine(0);
+}
+function stopDialogPlayback(){
+  DIALOG_PLAYING=false;
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  document.querySelectorAll(".sd-bubble").forEach(function(el){el.classList.remove("sd-playing");});
+  var btn=document.getElementById("sdPlayBtn");
+  if(btn){btn.textContent=tr("sd_play");btn.classList.remove("sd-stop");}
+}
+function playDialogLine(idx){
+  if(!DIALOG_PLAYING||!DIALOG_CURRENT||idx>=DIALOG_CURRENT.length){stopDialogPlayback();return;}
+  document.querySelectorAll(".sd-bubble").forEach(function(el){el.classList.remove("sd-playing");});
+  var lineEl=document.getElementById("sdLine"+idx);
+  if(lineEl){lineEl.classList.add("sd-playing");lineEl.scrollIntoView({behavior:"smooth",block:"nearest"});}
+  speakTextWithCallback(DIALOG_CURRENT[idx].text,function(){
+    if(DIALOG_PLAYING)setTimeout(function(){playDialogLine(idx+1);},350);
+  });
+}
+function goToPhraseReview(){
+  stopDialogPlayback();
+  showPhraseReview(DIALOG_SC);
+}
+function skipSampleDialog(){
+  stopDialogPlayback();
+  PENDING_SC=DIALOG_SC;
+  showPhraseReview(DIALOG_SC);
+  setTimeout(skipAndChoose,30);
+}
+
 function showPhraseReview(sc){
   ON=false;
   closeVocabOverlay();
@@ -2125,7 +2267,7 @@ function startWithCustom(){
   }
   generateTopicScenario(v,function(sc){
     PENDING_TOPIC=v;PENDING_SC=sc;
-    showPhraseReview(sc);
+    showSampleDialog(sc);
   },function(){
     var sc=SCENARIOS.free;
     startSession(v,sc.system.replace("TOPIC",v),"Let's talk about "+v+". What's on your mind?",sc);
@@ -2526,6 +2668,29 @@ function speakText(text){
     });
   }).catch(function(){
     if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;window.speechSynthesis.speak(u);}
+  });
+}
+
+function speakTextWithCallback(text,onDone){
+  var tlcF=targetLang();
+  var rate=SLOW_MODE?0.72:0.88;
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.audioContent){
+      if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;u.onend=onDone||null;window.speechSynthesis.speak(u);}
+      else if(onDone)onDone();
+      return;
+    }
+    var ctx=getAudioCtx();
+    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
+      var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
+      if(onDone)src.onended=onDone;
+      ctx.resume().then(function(){src.start(0);});
+    });
+  }).catch(function(){
+    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;u.onend=onDone||null;window.speechSynthesis.speak(u);}
+    else if(onDone)onDone();
   });
 }
 
