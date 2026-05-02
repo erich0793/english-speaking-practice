@@ -56,7 +56,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .icon-btn{font-size:13px;padding:6px 12px;border-radius:20px;border:1px solid #e0e0e0;background:#fff;cursor:pointer;color:#333}
 
 /* Tabs — 4 tabs */
-.tabs{display:flex;gap:0;margin-bottom:1rem;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;background:#f5f5f5}
+.tabs{display:flex;gap:0;margin-bottom:1rem;border:1px solid #e0e0e0;border-radius:10px;overflow-x:auto;overflow-y:hidden;background:#f5f5f5;scrollbar-width:thin}
 .tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;cursor:pointer;color:#666;border:none;background:transparent}
 .tab.active{background:#fff;color:#185FA5;font-weight:500}
 
@@ -601,7 +601,7 @@ var silenceTimer=null,currentMode="";
 var CONF_SCORES=[],LAST_CONF=null;
 var TASK_DONE=false,TASK_DEF=null;
 var SAVED_MAP={};
-var SLOW_MODE=false;
+var SLOW_MODE=localStorage.getItem("pref_slow")==="1";
 var LEVEL=localStorage.getItem("pref_level")||"";
 var PENDING_TOPIC="";var PENDING_SC=null;var GENERATING_SCENARIO=false;var SESSION_SC=null;
 var TOPIC_RC=null,TOPIC_IR=false;
@@ -612,6 +612,12 @@ var FONT_SIZE=localStorage.getItem("pref_fz")||"md";
 var DIALOG_SC=null;
 var DIALOG_PLAYING=false;
 var DIALOG_CURRENT=null;
+var DIALOG_SRC=null;
+var DIALOG_FETCH_CTRL=null;
+var DIALOG_REQ_TOKEN=0;
+var DIALOG_LINE_TIMER=null;
+var DIALOG_GEN_CTRL=null;
+var DIALOG_GEN_TOKEN=0;
 var FZ_SCALE={xs:0.80,sm:0.90,md:1,lg:1.2,xl:1.8};
 var TARGET_LANG_CONFIG={
   en:{name:"英文",nameEn:"English",country:"the United States",ttsLang:"en-US",ttsVoiceM:"en-US-Neural2-D",ttsVoiceF:"en-US-Neural2-F",sttLang:"en-US",
@@ -704,6 +710,10 @@ var ST_ZH={
 };
 function tr(k){return(UI_STRINGS[LANG]&&UI_STRINGS[LANG][k]!==undefined)?UI_STRINGS[LANG][k]:((UI_STRINGS.en&&UI_STRINGS.en[k]!==undefined)?UI_STRINGS.en[k]:k);}
 function setTargetLang(lang){
+  if(DIALOG_PLAYING)stopDialogPlayback();
+  // Invalidate sample dialog caches built for the previous target language
+  Object.keys(SCENARIOS).forEach(function(k){if(SCENARIOS[k])delete SCENARIOS[k].sampleDialog;});
+  DIALOG_SC=null;DIALOG_CURRENT=null;
   TARGET_LANG=lang;
   localStorage.setItem("pref_target_lang",lang);
   document.querySelectorAll(".tlang-pill").forEach(function(b){b.classList.remove("active");});
@@ -764,7 +774,7 @@ function applyLang(){
   var fsEl=document.getElementById("topbarFontSizeLabel");if(fsEl)fsEl.textContent=tr("topbar_font_size");
   var plEl=document.getElementById("topbarPracticeLang");if(plEl)plEl.textContent=tr("topbar_practice_lang");
   var dlEl=document.getElementById("topbarDisplayLang");if(dlEl)dlEl.textContent=tr("topbar_display_lang");
-  var smBtn=document.getElementById("slowModeBtn");if(smBtn)smBtn.textContent="🐢 "+tr("topbar_slow");
+  var smBtn=document.getElementById("slowModeBtn");if(smBtn){smBtn.textContent="🐢 "+tr("topbar_slow");smBtn.classList.toggle("active",SLOW_MODE);}
   document.querySelectorAll(".displang-pill").forEach(function(b){b.classList.remove("active");});
   var dpEl=document.getElementById("displang-"+LANG);if(dpEl)dpEl.classList.add("active");
   document.getElementById("tabPractice").textContent=tr("tab_practice");
@@ -920,6 +930,7 @@ function loadMyScenarios(){
 
 // ── Tabs ──
 function showTab(tab){
+  if(DIALOG_PLAYING)stopDialogPlayback();
   ["practice","saved","weak","foryou","admin"].forEach(function(t){
     var c=document.getElementById("tabContent"+t.charAt(0).toUpperCase()+t.slice(1));
     if(c)c.style.display=t===tab?"block":"none";
@@ -1967,15 +1978,25 @@ function selectMode(mode){
       PENDING_SC=generatedSc;PENDING_TOPIC=sc.name;
       showSampleDialog(generatedSc);
     },function(){
+      PENDING_SC=null;PENDING_TOPIC="";
       setst(LANG==="zh"?"生成失敗，請重試":"Generation failed, please try again.");
     });
   } else {
     document.getElementById("ti").value="";
-    if(sc.phrases){showSampleDialog(sc);}
+    if(sc.phrases){
+      PENDING_SC=sc;PENDING_TOPIC=sc.name||"";
+      showSampleDialog(sc);
+    }
     else{startSession(sc.name,sc.system,sc.opening,sc);}
   }
 }
 function generateSampleDialog(sc,onSuccess,onError){
+  // Abort any in-flight generation and bump token so old responses are ignored
+  if(DIALOG_GEN_CTRL){try{DIALOG_GEN_CTRL.abort();}catch(e){}}
+  DIALOG_GEN_TOKEN++;
+  var token=DIALOG_GEN_TOKEN;
+  var ctrl=("AbortController" in window)?new AbortController():null;
+  DIALOG_GEN_CTRL=ctrl;
   var tl=tln();
   var scenario=sc.name||currentMode;
   var country=targetLang().country;
@@ -1983,17 +2004,29 @@ function generateSampleDialog(sc,onSuccess,onError){
   var levelHints={beginner:"Keep sentences very short and simple (A1-A2 level).",intermediate:"Use natural conversational language (B1-B2 level).",advanced:"Use natural fluent language with some idioms (C1-C2 level)."};
   var levelHint=levelHints[LEVEL||"intermediate"]||levelHints.intermediate;
   var prompt='Create a realistic '+tl+' sample conversation for the scenario: "'+scenario+'" (taking place in '+country+').\n\nRequirements:\n- Exactly 10-12 turns alternating: A first, then B, then A, etc.\n- Speaker A is the native speaker / service provider / counterpart.\n- Speaker B is the '+tl+' language learner.\n- '+levelHint+'\n- All "text" fields must be in '+tl+' ONLY (never in another language).\n- All "translation" fields must be in '+langNote+'.\n- Natural spoken language, not textbook formal.\n\nReturn ONLY valid JSON (no markdown):\n{"speakerA":"[short label for A, in '+langNote+']","speakerB":"[short label for B, in '+langNote+']","dialog":[{"speaker":"A","text":"...","translation":"..."},{"speaker":"B","text":"...","translation":"..."},...]}';
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+  // Hard timeout in case the proxy hangs (45s)
+  var hardTimeout=setTimeout(function(){if(token===DIALOG_GEN_TOKEN&&ctrl){try{ctrl.abort();}catch(e){}}},45000);
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl?ctrl.signal:undefined,body:JSON.stringify({
     model:"claude-sonnet-4-20250514",max_tokens:1800,
     messages:[{role:"user",content:prompt}]
   })}).then(function(r){return r.json();}).then(function(d){
+    clearTimeout(hardTimeout);
+    if(token!==DIALOG_GEN_TOKEN)return;
     var text=(d.content&&d.content[0]&&d.content[0].text)||"";
     var m=text.match(/\{[\s\S]*\}/);
     if(!m)throw new Error("no json");
     var result=JSON.parse(m[0]);
     if(!result.dialog||!result.dialog.length)throw new Error("invalid");
+    // Filter out empty lines so renderer & playback are robust
+    result.dialog=result.dialog.filter(function(ln){return ln&&ln.text&&String(ln.text).trim();});
+    if(!result.dialog.length)throw new Error("empty");
+    if(DIALOG_GEN_CTRL===ctrl)DIALOG_GEN_CTRL=null;
     onSuccess(result);
   }).catch(function(e){
+    clearTimeout(hardTimeout);
+    if(e&&e.name==="AbortError")return;
+    if(token!==DIALOG_GEN_TOKEN)return;
+    if(DIALOG_GEN_CTRL===ctrl)DIALOG_GEN_CTRL=null;
     console.error("generateSampleDialog:",e);
     if(onError)onError(e);
   });
@@ -2019,11 +2052,17 @@ function showSampleDialog(sc){
     +'<div style="display:flex;gap:6px;justify-content:center;margin-top:8px"><span class="dot"></span><span class="dot d2"></span><span class="dot d3"></span></div>'
     +'</div>';
   chat.appendChild(card);
-  if(sc.sampleDialog){renderSampleDialog(sc.sampleDialog);return;}
+  // Use cache only if it was built for the current target language
+  if(sc.sampleDialog&&sc.sampleDialog._lang===TARGET_LANG){renderSampleDialog(sc.sampleDialog);return;}
+  if(sc.sampleDialog&&sc.sampleDialog._lang!==TARGET_LANG)delete sc.sampleDialog;
   generateSampleDialog(sc,function(result){
+    // Guard against the user having navigated away (different sc) while we waited
+    if(DIALOG_SC!==sc)return;
+    result._lang=TARGET_LANG;
     sc.sampleDialog=result;
     renderSampleDialog(result);
   },function(){
+    if(DIALOG_SC!==sc)return;
     showPhraseReview(sc);
   });
 }
@@ -2067,6 +2106,10 @@ function startDialogPlayback(){
 }
 function stopDialogPlayback(){
   DIALOG_PLAYING=false;
+  DIALOG_REQ_TOKEN++;
+  if(DIALOG_LINE_TIMER){clearTimeout(DIALOG_LINE_TIMER);DIALOG_LINE_TIMER=null;}
+  if(DIALOG_FETCH_CTRL){try{DIALOG_FETCH_CTRL.abort();}catch(e){}DIALOG_FETCH_CTRL=null;}
+  if(DIALOG_SRC){try{DIALOG_SRC.onended=null;DIALOG_SRC.stop();}catch(e){}DIALOG_SRC=null;}
   if(window.speechSynthesis)window.speechSynthesis.cancel();
   document.querySelectorAll(".sd-bubble").forEach(function(el){el.classList.remove("sd-playing");});
   var btn=document.getElementById("sdPlayBtn");
@@ -2077,19 +2120,39 @@ function playDialogLine(idx){
   document.querySelectorAll(".sd-bubble").forEach(function(el){el.classList.remove("sd-playing");});
   var lineEl=document.getElementById("sdLine"+idx);
   if(lineEl){lineEl.classList.add("sd-playing");lineEl.scrollIntoView({behavior:"smooth",block:"nearest"});}
-  speakTextWithCallback(DIALOG_CURRENT[idx].text,function(){
-    if(DIALOG_PLAYING)setTimeout(function(){playDialogLine(idx+1);},350);
+  var lineText=(DIALOG_CURRENT[idx]&&DIALOG_CURRENT[idx].text)||"";
+  if(!lineText){if(DIALOG_PLAYING)playDialogLine(idx+1);return;}
+  speakTextWithCallback(lineText,function(){
+    if(DIALOG_PLAYING){
+      DIALOG_LINE_TIMER=setTimeout(function(){DIALOG_LINE_TIMER=null;playDialogLine(idx+1);},350);
+    }
   });
 }
 function goToPhraseReview(){
   stopDialogPlayback();
+  if(DIALOG_SC)PENDING_SC=DIALOG_SC;
   showPhraseReview(DIALOG_SC);
 }
 function skipSampleDialog(){
   stopDialogPlayback();
-  PENDING_SC=DIALOG_SC;
-  showPhraseReview(DIALOG_SC);
-  setTimeout(skipAndChoose,30);
+  if(DIALOG_SC)PENDING_SC=DIALOG_SC;
+  // Skip both the sample dialog and the phrase review — go straight to the start choice
+  ON=false;
+  closeVocabOverlay();
+  document.getElementById("chat").innerHTML="";
+  document.getElementById("smr").style.display="none";
+  document.getElementById("mb").disabled=true;
+  document.getElementById("eb").disabled=true;
+  var chat=document.getElementById("chat");
+  var card=document.createElement("div");card.className="phrase-review-card";
+  var html='<div class="phrase-review-header"><span class="phrase-review-label">'+escHtml(tr("pr_header"))+'</span></div>';
+  html+='<div class="phrase-review-sub" style="margin-bottom:1rem">'+escHtml(LANG==="zh"?"準備好開始了嗎？":"Ready to start?")+'</div>';
+  html+='<div class="start-choice">';
+  html+='<button class="phrase-start-btn" onclick="startFromPhraseReview(\'user\')">'+escHtml(tr("pr_start_i"))+'</button>';
+  html+='<button class="phrase-start-btn" onclick="startFromPhraseReview(\'ai\')">'+escHtml(tr("pr_start_ai"))+'</button>';
+  html+='</div>';
+  card.innerHTML=html;
+  chat.appendChild(card);
 }
 
 function showPhraseReview(sc){
@@ -2274,6 +2337,8 @@ function startWithCustom(){
   });
 }
 function startSession(topic,sysPrompt,opening,sc,firstSpeaker){
+  if(DIALOG_PLAYING)stopDialogPlayback();
+  DIALOG_SC=null;DIALOG_CURRENT=null;
   firstSpeaker=firstSpeaker||"ai";
   var levelPrompt=(LEVEL_CONFIG[LEVEL]?LEVEL_CONFIG[LEVEL].prompt:"");
   var slowPrompt=SLOW_MODE?" Use short simple sentences and basic vocabulary. Speak clearly with natural pauses. Avoid contractions and complex grammar.":"";
@@ -2388,10 +2453,14 @@ function showLevelScreen(){
   });
 }
 function selectLevel(level){
+  var prevLevel=LEVEL;
   LEVEL=level;localStorage.setItem("pref_level",level);
   var cfg=LEVEL_CONFIG[level];
-  if(cfg.slowDefault&&!SLOW_MODE)toggleSlowMode();
-  else if(!cfg.slowDefault&&SLOW_MODE)toggleSlowMode();
+  // Apply level's slow default only on the first level pick (no prior level stored).
+  // If the user has already set a level before, respect their persisted SLOW_MODE choice.
+  if(!prevLevel){
+    setSlowMode(!!cfg.slowDefault,true);
+  }
   updateLevelBar();
   document.getElementById("levelScreen").classList.remove("active");
   document.getElementById("appScreen").classList.add("active");
@@ -2415,12 +2484,18 @@ function applyLevelScreen(){
     if(dc)dc.textContent=LANG==="zh"?(cfg.desc_zh||cfg.desc):cfg.desc;
   });
 }
-function toggleSlowMode(){
-  SLOW_MODE=!SLOW_MODE;
+function setSlowMode(on,silent){
+  SLOW_MODE=!!on;
+  localStorage.setItem("pref_slow",SLOW_MODE?"1":"0");
   var btn=document.getElementById("slowModeBtn");
   if(btn)btn.classList.toggle("active",SLOW_MODE);
-  showToast(SLOW_MODE?"🐢 Slow mode ON — AI will speak slowly":"Slow mode OFF");
+  if(silent)return;
+  var msg=SLOW_MODE
+    ?(LANG==="zh"?"🐢 慢速模式開啟 — AI 會放慢速度":"🐢 Slow mode ON — AI will speak slowly")
+    :(LANG==="zh"?"慢速模式關閉":"Slow mode OFF");
+  showToast(msg);
 }
+function toggleSlowMode(){setSlowMode(!SLOW_MODE);}
 function toSSML(text){
   var s=text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   s=s.replace(/([.!?])\s+/g,'$1<break time="350ms"/> ');
@@ -2629,6 +2704,9 @@ function showFeedback(fb){
 }
 
 function restart(){
+  if(DIALOG_PLAYING)stopDialogPlayback();
+  DIALOG_SC=null;DIALOG_CURRENT=null;
+  closeVocabOverlay();
   window.speechSynthesis&&window.speechSynthesis.cancel();
   ON=false;HIST=[];UTTS=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
   TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;SESSION_SC=null;
@@ -2644,7 +2722,7 @@ function restart(){
 
 // ── Utils ──
 function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-function escAttr(s){return String(s||"").replace(/'/g,"\\'");}
+function escAttr(s){return String(s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"&quot;").replace(/[\r\n]+/g," ");}
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&SHARED_CTX&&SHARED_CTX.state==="suspended")SHARED_CTX.resume();});
 function showToast(msg){
@@ -2674,23 +2752,38 @@ function speakText(text){
 function speakTextWithCallback(text,onDone){
   var tlcF=targetLang();
   var rate=SLOW_MODE?0.72:0.88;
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
+  var fired=false;
+  var token=DIALOG_REQ_TOKEN;
+  function fire(){if(fired)return;if(token!==DIALOG_REQ_TOKEN)return;fired=true;if(onDone)onDone();}
+  // Safety timeout: estimate ~120ms per char + 1500ms padding; advance even if TTS hangs
+  var timeoutMs=Math.min(20000,Math.max(3000,(text.length*120)+1500));
+  var safety=setTimeout(fire,timeoutMs);
+  function done(){clearTimeout(safety);fire();}
+  if(DIALOG_FETCH_CTRL){try{DIALOG_FETCH_CTRL.abort();}catch(e){}}
+  var ctrl=("AbortController" in window)?new AbortController():null;
+  DIALOG_FETCH_CTRL=ctrl;
+  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl?ctrl.signal:undefined,body:JSON.stringify({input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
   .then(function(r){return r.json();})
   .then(function(d){
+    if(token!==DIALOG_REQ_TOKEN){clearTimeout(safety);return;}
     if(!d.audioContent){
-      if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;u.onend=onDone||null;window.speechSynthesis.speak(u);}
-      else if(onDone)onDone();
+      if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;u.onend=done;window.speechSynthesis.speak(u);}
+      else done();
       return;
     }
     var ctx=getAudioCtx();
     ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
+      if(token!==DIALOG_REQ_TOKEN){clearTimeout(safety);return;}
       var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
-      if(onDone)src.onended=onDone;
-      ctx.resume().then(function(){src.start(0);});
-    });
-  }).catch(function(){
-    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;u.onend=onDone||null;window.speechSynthesis.speak(u);}
-    else if(onDone)onDone();
+      DIALOG_SRC=src;
+      src.onended=function(){if(DIALOG_SRC===src)DIALOG_SRC=null;done();};
+      ctx.resume().then(function(){try{src.start(0);}catch(e){done();}});
+    },function(){done();});
+  }).catch(function(e){
+    if(e&&e.name==="AbortError"){clearTimeout(safety);return;}
+    if(token!==DIALOG_REQ_TOKEN){clearTimeout(safety);return;}
+    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;u.onend=done;window.speechSynthesis.speak(u);}
+    else done();
   });
 }
 
