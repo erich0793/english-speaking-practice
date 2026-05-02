@@ -322,6 +322,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .sd-play-btn{font-size:13px;padding:6px 20px;border-radius:20px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-weight:500;transition:all .15s}
 .sd-play-btn:hover{background:#cce0f5}
 .sd-play-btn.sd-stop{border-color:#c0392b;background:#fdecea;color:#c0392b}
+.sd-speak-btn{display:inline-block;font-size:11px;padding:2px 6px;border-radius:10px;border:1px solid #ccc;background:#fff;color:#666;cursor:pointer;margin-top:5px;transition:all .15s;opacity:.7}
+.sd-speak-btn:hover{opacity:1;border-color:#185FA5;color:#185FA5}
+.sd-speak-btn.sd-speak-active{border-color:#E8A020;background:#FFF4E0;color:#7A4200;opacity:1}
 
 /* Admin usage table */
 .usage-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
@@ -618,6 +621,7 @@ var DIALOG_REQ_TOKEN=0;
 var DIALOG_LINE_TIMER=null;
 var DIALOG_GEN_CTRL=null;
 var DIALOG_GEN_TOKEN=0;
+var DIALOG_SINGLE_TOKEN=0;
 var FZ_SCALE={xs:0.80,sm:0.90,md:1,lg:1.2,xl:1.8};
 var TARGET_LANG_CONFIG={
   en:{name:"英文",nameEn:"English",country:"the United States",ttsLang:"en-US",ttsVoiceM:"en-US-Neural2-D",ttsVoiceF:"en-US-Neural2-F",sttLang:"en-US",
@@ -2085,6 +2089,7 @@ function renderSampleDialog(result){
     html+='<div class="sd-label">'+escHtml(lbl)+'</div>';
     html+='<div class="sd-text">'+escHtml(line.text)+'</div>';
     html+='<div class="sd-trans">'+escHtml(line.translation)+'</div>';
+    html+='<button class="sd-speak-btn" id="sdSpeak'+i+'" onclick="playDialogSingleLine('+i+')">🔊</button>';
     html+='</div>';
   });
   html+='</div>';
@@ -2107,11 +2112,13 @@ function startDialogPlayback(){
 function stopDialogPlayback(){
   DIALOG_PLAYING=false;
   DIALOG_REQ_TOKEN++;
+  DIALOG_SINGLE_TOKEN++;
   if(DIALOG_LINE_TIMER){clearTimeout(DIALOG_LINE_TIMER);DIALOG_LINE_TIMER=null;}
   if(DIALOG_FETCH_CTRL){try{DIALOG_FETCH_CTRL.abort();}catch(e){}DIALOG_FETCH_CTRL=null;}
   if(DIALOG_SRC){try{DIALOG_SRC.onended=null;DIALOG_SRC.stop();}catch(e){}DIALOG_SRC=null;}
   if(window.speechSynthesis)window.speechSynthesis.cancel();
   document.querySelectorAll(".sd-bubble").forEach(function(el){el.classList.remove("sd-playing");});
+  document.querySelectorAll(".sd-speak-btn").forEach(function(b){b.classList.remove("sd-speak-active");b.textContent="🔊";});
   var btn=document.getElementById("sdPlayBtn");
   if(btn){btn.textContent=tr("sd_play");btn.classList.remove("sd-stop");}
 }
@@ -2132,6 +2139,39 @@ function goToPhraseReview(){
   stopDialogPlayback();
   if(DIALOG_SC)PENDING_SC=DIALOG_SC;
   showPhraseReview(DIALOG_SC);
+}
+function playDialogSingleLine(idx){
+  var btn=document.getElementById("sdSpeak"+idx);
+  // Toggle: if this line is already playing, stop it
+  if(btn&&btn.classList.contains("sd-speak-active")){
+    DIALOG_SINGLE_TOKEN++;
+    if(DIALOG_FETCH_CTRL){try{DIALOG_FETCH_CTRL.abort();}catch(e){}DIALOG_FETCH_CTRL=null;}
+    if(DIALOG_SRC){try{DIALOG_SRC.onended=null;DIALOG_SRC.stop();}catch(e){}DIALOG_SRC=null;}
+    if(window.speechSynthesis)window.speechSynthesis.cancel();
+    document.querySelectorAll(".sd-speak-btn").forEach(function(b){b.classList.remove("sd-speak-active");b.textContent="🔊";});
+    document.querySelectorAll(".sd-bubble").forEach(function(el){el.classList.remove("sd-playing");});
+    return;
+  }
+  // Stop any full playback first
+  if(DIALOG_PLAYING)stopDialogPlayback();
+  // Cancel any prior single-line playback
+  DIALOG_SINGLE_TOKEN++;
+  var token=DIALOG_SINGLE_TOKEN;
+  if(DIALOG_FETCH_CTRL){try{DIALOG_FETCH_CTRL.abort();}catch(e){}DIALOG_FETCH_CTRL=null;}
+  if(DIALOG_SRC){try{DIALOG_SRC.onended=null;DIALOG_SRC.stop();}catch(e){}DIALOG_SRC=null;}
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  document.querySelectorAll(".sd-speak-btn").forEach(function(b){b.classList.remove("sd-speak-active");b.textContent="🔊";});
+  document.querySelectorAll(".sd-bubble").forEach(function(el){el.classList.remove("sd-playing");});
+  var lineText=(DIALOG_CURRENT&&DIALOG_CURRENT[idx]&&DIALOG_CURRENT[idx].text)||"";
+  if(!lineText)return;
+  var bubble=document.getElementById("sdLine"+idx);
+  if(btn){btn.classList.add("sd-speak-active");btn.textContent="⏹";}
+  if(bubble){bubble.classList.add("sd-playing");bubble.scrollIntoView({behavior:"smooth",block:"nearest"});}
+  speakTextWithCallback(lineText,function(){
+    if(token!==DIALOG_SINGLE_TOKEN)return;
+    if(btn){btn.classList.remove("sd-speak-active");btn.textContent="🔊";}
+    if(bubble){bubble.classList.remove("sd-playing");}
+  });
 }
 function skipSampleDialog(){
   stopDialogPlayback();
