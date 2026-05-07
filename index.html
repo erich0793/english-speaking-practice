@@ -937,7 +937,7 @@ function showTab(tab){
   if(DIALOG_PLAYING)stopDialogPlayback();
   ["practice","saved","weak","foryou","admin"].forEach(function(t){
     var c=document.getElementById("tabContent"+t.charAt(0).toUpperCase()+t.slice(1));
-    if(c)c.style.display=t===tab?"block":"none";
+    if(c)c.style.display=t===tab?"":"none";
     var b=document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1));
     if(b)b.classList.toggle("active",t===tab);
   });
@@ -1059,16 +1059,23 @@ function saveSentence(original,corrected,note){
 }
 function deleteSaved(id){
   if(!confirm(LANG==="zh"?"確定要刪除？":"Delete this item?"))return;
-  dbDelete("saved_sentences",id).then(function(){var el=document.getElementById("si-"+id);if(el)el.remove();});
+  dbDelete("saved_sentences",id).then(function(r){
+    if(r&&!r.ok){showToast(LANG==="zh"?"刪除失敗，請重試":"Delete failed, please retry");return;}
+    var el=document.getElementById("si-"+id);if(el)el.remove();
+    delete SAVED_MAP[id];
+  }).catch(function(){showToast(LANG==="zh"?"刪除失敗，請重試":"Delete failed, please retry");});
 }
 
 // ── Practice a saved sentence/word ──
+var PRACTICING_SAVED=false;
 function practiceThisSentence(id){
+  if(PRACTICING_SAVED)return;
   var r=SAVED_MAP[id];
   if(!r)return;
   var isVocab=/[一-鿿]/.test(r.original)&&r.corrected;
   var target=r.corrected||(isVocab?null:r.original);
   if(!target)return;
+  PRACTICING_SAVED=true;
   showTab("practice");
   currentMode="practice";
   document.getElementById("chat").innerHTML='<div class="phrase-review-card" style="text-align:center;padding:2rem">'
@@ -1095,10 +1102,12 @@ function practiceThisSentence(id){
       cultural:null,task:taskLbl,
       taskCheck:function(utts){var n=Math.min(utts.length,3);var lbl=LANG==="zh"?"完成 3 個練習情境（"+n+"/3）":"Complete 3 practice situations ("+n+"/3)";return{done:utts.length>=3,steps:[{label:lbl,done:utts.length>=3}]};}
     });
+    PRACTICING_SAVED=false;
   }).catch(function(){
     var sys='You are an encouraging '+tln()+' speaking coach. The student is practicing the '+(isVocab?'word "'+target+'"':'phrase "'+target+'"')+'. Give 3 real-life situations one at a time. Only say spoken words.';
     var opening='Let\'s practice '+(isVocab?'the word "'+target+'"':'the phrase "'+target+'"')+'! Tell me about a recent situation where you might have used it.';
     startSession("Practice",sys,opening,{cultural:null,task:"Complete 3 situations.",taskCheck:function(u){var n=Math.min(u.length,3);return{done:u.length>=3,steps:[{label:"3 situations ("+n+"/3)",done:u.length>=3}]};}});
+    PRACTICING_SAVED=false;
   });
 }
 
@@ -1125,7 +1134,7 @@ function loadWeakness(){
   if(!currentUser)return;
   dbGet("session_errors","user_id=eq."+currentUser.id+"&lang=eq."+TARGET_LANG+"&limit=300").then(function(rows){
     var content=document.getElementById("weakContent");
-    if(!rows||!rows.length){content.innerHTML='<div class="empty-msg">Complete at least one session to see your analysis.</div>';return;}
+    if(!rows||!rows.length){content.innerHTML='<div class="empty-msg">'+escHtml(LANG==="zh"?"完成至少一次練習後才會出現分析。":"Complete at least one session to see your analysis.")+'</div>';return;}
     var types={};
     rows.forEach(function(r){var t=r.error_type||"grammar";if(!types[t])types[t]={count:0,examples:[]};types[t].count++;if(types[t].examples.length<5)types[t].examples.push({orig:r.original,fix:r.corrected,reason:r.reason,type:t});});
     var total=rows.length;
@@ -1969,8 +1978,18 @@ function selectMode(mode){
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("mode-"+mode).classList.add("active");
   var sc=SCENARIOS[mode];
-  if(mode==="free"){
-    // Free talk: show phrase review with generic free conversation opening
+  if(mode==="free"&&TARGET_LANG!=="en"){
+    // Non-English free talk: AI-generate phrases/vocab in target language
+    var freeTopic=LANG==="zh"?"自由對話":"Free conversation";
+    generateTopicScenario(freeTopic,function(generatedSc){
+      PENDING_SC=generatedSc;PENDING_TOPIC="";
+      showSampleDialog(generatedSc);
+    },function(){
+      PENDING_SC=null;PENDING_TOPIC="";
+      setst(LANG==="zh"?"生成失敗，請重試":"Generation failed, please try again.");
+    });
+  } else if(mode==="free"){
+    // English free talk: phrase review with generic free conversation opening
     var freeSc=Object.assign({},sc,{
       system:"You are a friendly "+tln()+" conversation partner. Have a natural, free-flowing conversation on any topic the student brings up. Reply 2-3 natural sentences, ask one follow-up question. Do NOT correct grammar. Only say spoken words.",
       opening:"Hi! What's on your mind today? Feel free to talk about anything you like!"
@@ -2230,7 +2249,7 @@ function showPhraseReview(sc){
   html+='<div class="phrase-list">';
   sc.phrases.forEach(function(p,i){
     var pText=p.phrase||p.en;
-    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this,'+i+')"><div class="phrase-text"><div class="phrase-en">'+escHtml(pText)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
+    html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this)"><div class="phrase-text"><div class="phrase-en">'+escHtml(pText)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
       +'<button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(pText)+'\');phraseMarkChecked(this)">🔊</button>'
       +'<button type="button" class="phrase-save-btn" onclick="event.stopPropagation();event.preventDefault();savePhraseItem(this,\''+escAttr(pText)+'\',\''+escAttr(p.zh)+'\');phraseMarkChecked(this)">⭐</button>'
       +'</label>';
@@ -2308,7 +2327,7 @@ function showVocabDetail(v,idx,chipEl){
   speakText(v.word);
 }
 function loadMoreVocab(){vocabPage++;renderVocabPage();}
-function phraseCbChange(cb,idx){
+function phraseCbChange(cb){
   var card=document.querySelector(".phrase-review-card");if(!card)return;
   var cbs=card.querySelectorAll(".phrase-cb");
   var checked=0;cbs.forEach(function(c){if(c.checked)checked++;});
@@ -2548,7 +2567,7 @@ var AUDIO_UNLOCKED=false,SHARED_CTX=null;
 function testTTS(){
   unlockAudio();setst("Calling Google TTS...");
   var tlcT=targetLang();
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:"Hello this is a test."},voice:{languageCode:tlcT.ttsLang,name:tlcT.ttsVoiceF},audioConfig:{audioEncoding:"MP3"}})})
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"google-tts",input:{text:"Hello this is a test."},voice:{languageCode:tlcT.ttsLang,name:tlcT.ttsVoiceF},audioConfig:{audioEncoding:"MP3"}})})
   .then(function(r){setst("HTTP "+r.status);return r.json();})
   .then(function(d){
     if(!d.audioContent){setst("No audio: "+JSON.stringify(d));return;}
@@ -2585,7 +2604,7 @@ function speak(text,onDone){
   var rate=SLOW_MODE?0.82:0.95;
   var input=SLOW_MODE?{ssml:toSSML(text)}:{text:text};
   var tlc=targetLang();
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:input,voice:{languageCode:tlc.ttsLang,name:VOICE_GENDER==="male"?tlc.ttsVoiceM:tlc.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"google-tts",input:input,voice:{languageCode:tlc.ttsLang,name:VOICE_GENDER==="male"?tlc.ttsVoiceM:tlc.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
@@ -2656,7 +2675,7 @@ function sendMsg(){
     updateTaskCard();
     speak(rep,function(){if(ON)setTimeout(function(){if(ON&&!IR&&!SPEAKING)toggleRec();},600);});
   })
-  .catch(function(){hideThinking();addMsg("ai","Connection issue. Try again.",false);setst("Error. Tap mic to retry.");});
+  .catch(function(){hideThinking();addMsg("ai",LANG==="zh"?ST_ZH["Connection issue. Try again."]:"Connection issue. Try again.",false);setst("Error. Tap mic to retry.");});
 }
 
 // ── End session ──
@@ -2694,12 +2713,15 @@ function endSess(){
 }
 
 var PUNCT_KEYWORDS=/\b(comma|period|punctuation|question mark|exclamation|capitali|full stop|apostrophe|semicolon|colon)\b/i;
+var PUNCT_KEYWORDS_JA=/(句読点|読点|句点|カンマ|ピリオド|疑問符|感嘆符)/;
+var PUNCT_KEYWORDS_DE=/\b(Komma|Punkt|Interpunktion|Fragezeichen|Ausrufezeichen|Großschreibung|Kleinschreibung|Apostroph|Semikolon|Doppelpunkt|Satzzeichen)\b/i;
+var PUNCT_KEYWORDS_ZH=/(標點|逗號|句號|問號|驚嘆號|分號|冒號|引號)/;
 function isPunctuationOnly(c){
   if(!c.reason)return false;
-  if(!PUNCT_KEYWORDS.test(c.reason))return false;
-  var orig=(c.original||"").replace(/[.,!?;:'"]/g,"").trim();
-  var fix=(c.corrected||"").replace(/[.,!?;:'"]/g,"").trim();
-  return orig.toLowerCase()===fix.toLowerCase();
+  var hasPunctKw=PUNCT_KEYWORDS.test(c.reason)||PUNCT_KEYWORDS_JA.test(c.reason)||PUNCT_KEYWORDS_DE.test(c.reason)||PUNCT_KEYWORDS_ZH.test(c.reason);
+  if(!hasPunctKw)return false;
+  var stripPunct=function(s){return(s||"").replace(/[.,!?;:'"。、！？；：「」『』]/g,"").trim();};
+  return stripPunct(c.original).toLowerCase()===stripPunct(c.corrected).toLowerCase();
 }
 function showFeedback(fb){
   if(fb.corrections)fb.corrections=fb.corrections.filter(function(c){return!isPunctuationOnly(c);});
@@ -2740,7 +2762,9 @@ function showFeedback(fb){
     smrSaveBtn.style.display="none";
   }
   panel.scrollIntoView({behavior:"smooth"});setst("Done — see feedback below!");
-  speak("Great practice session! Here is your feedback.",null);
+  // Skip end-of-session TTS for non-English target languages — speaking English in
+  // a Japanese/German voice sounds wrong, and the user can read the feedback panel.
+  if(TARGET_LANG==="en")speak("Great practice session! Here is your feedback.",null);
 }
 
 function restart(){
@@ -2775,7 +2799,7 @@ function showToast(msg){
 function speakText(text){
   var tlcF=targetLang();
   var rate=SLOW_MODE?0.72:0.88;
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"google-tts",input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.audioContent){if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;window.speechSynthesis.speak(u);}return;}
@@ -2802,7 +2826,7 @@ function speakTextWithCallback(text,onDone){
   if(DIALOG_FETCH_CTRL){try{DIALOG_FETCH_CTRL.abort();}catch(e){}}
   var ctrl=("AbortController" in window)?new AbortController():null;
   DIALOG_FETCH_CTRL=ctrl;
-  fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDSsVILnP0-tlpPxJYl2l3sY7HzwxkDWSE",{method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl?ctrl.signal:undefined,body:JSON.stringify({input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl?ctrl.signal:undefined,body:JSON.stringify({action:"google-tts",input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
   .then(function(r){return r.json();})
   .then(function(d){
     if(token!==DIALOG_REQ_TOKEN){clearTimeout(safety);return;}
