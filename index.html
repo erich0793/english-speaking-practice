@@ -153,6 +153,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .conf-warn{background:#FAEEDA;color:#633806}
 .conf-low{background:#FCEBEB;color:#791F1F}
 
+/* Filler word highlight */
+.filler{background:#FFF1B8;color:#7A5C00;border-radius:3px;padding:0 2px;font-style:italic}
+.ubbl .filler{background:rgba(255,235,150,.85);color:#5C4500}
+.filler-row{display:flex;justify-content:flex-end;padding-right:4px;margin-top:-4px}
+.filler-badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:10px;background:#FFF1B8;color:#7A5C00}
+.fb-fillers{padding:8px 10px;background:#FFF8DB;border-radius:8px;margin-top:6px;font-size:13px;color:#5C4500}
+.fb-fillers strong{color:#3C2D00}
+
+/* Replay button on user message */
+.replay-btn{background:rgba(255,255,255,.18);border:none;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;cursor:pointer;margin-left:6px;line-height:1.4}
+.replay-btn:hover{background:rgba(255,255,255,.32)}
+.replay-btn:disabled{opacity:.4;cursor:not-allowed}
+.ubbl-foot{display:flex;align-items:center;gap:4px;margin-top:6px;font-size:11px;opacity:.85}
+
+/* SRS review */
+.srs-banner{background:linear-gradient(120deg,#FFF1B8,#FFE4A1);border:1px solid #E0B860;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.srs-banner-text{font-size:13px;color:#5C4500;flex:1}
+.srs-banner-text strong{font-size:14px}
+.srs-banner-btn{background:#185FA5;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap}
+.srs-banner-btn:hover{background:#0C447C}
+.srs-card{background:#fff;border:1.5px solid #185FA5;border-radius:12px;padding:18px;margin-bottom:14px}
+.srs-card-head{font-size:12px;color:#185FA5;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.srs-card-prompt{font-size:14px;color:#666;margin-bottom:8px;line-height:1.5}
+.srs-card-target{font-size:18px;color:#1a1a1a;font-weight:500;line-height:1.5;margin-bottom:14px;background:#f5f5f5;padding:10px 14px;border-radius:8px}
+.srs-card-spoken{font-size:13px;color:#444;margin:8px 0;padding:10px 14px;background:#EFF4FA;border-radius:8px;min-height:36px;font-style:italic}
+.srs-card-result{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px}
+.srs-card-result.ok{background:#EAF3DE;color:#27500A}
+.srs-card-result.bad{background:#FCEBEB;color:#791F1F}
+.srs-card-actions{display:flex;gap:8px;flex-wrap:wrap}
+.srs-card-actions button{flex:1;min-width:90px;padding:9px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500}
+.srs-btn-mic{background:#A32D2D;color:#fff}
+.srs-btn-mic.listening{animation:ripple 1.2s infinite}
+.srs-btn-show{background:#f0f0f0;color:#333}
+.srs-btn-good{background:#27500A;color:#fff}
+.srs-btn-again{background:#A32D2D;color:#fff}
+.srs-btn-skip{background:#fff;color:#666;border:1px solid #ddd !important}
+.srs-progress{font-size:12px;color:#888;text-align:center;margin-bottom:10px}
+.srs-empty{text-align:center;color:#888;padding:30px 20px;font-size:13px}
+.srs-due-pill{display:inline-block;background:#FFF1B8;color:#7A5C00;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;margin-left:6px}
+
 /* Feedback */
 .smr{border:1px solid #e0e0e0;border-radius:12px;background:#fff;padding:1.25rem;display:none;margin-top:1rem}
 .sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1rem}
@@ -633,6 +673,237 @@ var TARGET_LANG_CONFIG={
 };
 function targetLang(){return TARGET_LANG_CONFIG[TARGET_LANG]||TARGET_LANG_CONFIG.en;}
 function tln(){return targetLang().nameEn;}
+
+// ── Filler word detection ──
+// Conservative patterns: only obvious filler sounds, not ambiguous words like
+// "like", "basically", "halt" that have legitimate uses.
+var FILLER_PATTERNS={
+  en:/\b(u+m+|u+h+|e+r+m+|hmm+|uhh+|umm+)\b/gi,
+  ja:/(えーと|えっと|あのー|あのう|そのー|なんか)/g,
+  de:/\b(ähm+|äh+|öhm+)\b/gi
+};
+var SESSION_FILLERS={};
+function detectFillers(text){
+  if(!text)return [];
+  var pat=FILLER_PATTERNS[TARGET_LANG]||FILLER_PATTERNS.en;
+  pat.lastIndex=0;
+  var m=text.match(pat)||[];
+  return m.map(function(s){return s.toLowerCase();});
+}
+function highlightFillers(text){
+  var safe=escHtml(text);
+  var pat=FILLER_PATTERNS[TARGET_LANG]||FILLER_PATTERNS.en;
+  return safe.replace(pat,'<span class="filler">$&</span>');
+}
+function trackSessionFillers(text){
+  var found=detectFillers(text);
+  found.forEach(function(f){SESSION_FILLERS[f]=(SESSION_FILLERS[f]||0)+1;});
+  return found.length;
+}
+function totalFillerCount(){
+  var n=0;for(var k in SESSION_FILLERS)n+=SESSION_FILLERS[k];return n;
+}
+
+// ── Recording (MediaRecorder for replay) ──
+var REC_STREAM=null,REC_MEDIA=null,REC_CHUNKS=[];
+var SESSION_RECORDING_URLS=[];
+var LATEST_AUDIO_URL=null;
+var REPLAY_AUDIO=null;
+function ensureRecStream(){
+  if(REC_STREAM)return Promise.resolve(REC_STREAM);
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return Promise.reject(new Error("no-media"));
+  return navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){REC_STREAM=s;return s;});
+}
+function startMediaRecording(){
+  if(!window.MediaRecorder)return;
+  ensureRecStream().then(function(stream){
+    try{
+      REC_CHUNKS=[];
+      var mr;
+      try{mr=new MediaRecorder(stream,{mimeType:"audio/webm"});}
+      catch(e){mr=new MediaRecorder(stream);}
+      mr.ondataavailable=function(ev){if(ev.data&&ev.data.size>0)REC_CHUNKS.push(ev.data);};
+      mr.onstop=function(){
+        if(!REC_CHUNKS.length){LATEST_AUDIO_URL=null;return;}
+        var blob=new Blob(REC_CHUNKS,{type:REC_CHUNKS[0].type||"audio/webm"});
+        var url=URL.createObjectURL(blob);
+        LATEST_AUDIO_URL=url;
+        SESSION_RECORDING_URLS.push(url);
+        REC_CHUNKS=[];
+      };
+      mr.start();
+      REC_MEDIA=mr;
+    }catch(e){REC_MEDIA=null;}
+  }).catch(function(){REC_MEDIA=null;});
+}
+function stopMediaRecording(cb){
+  if(!REC_MEDIA||REC_MEDIA.state==="inactive"){REC_MEDIA=null;if(cb)cb();return;}
+  var mr=REC_MEDIA;REC_MEDIA=null;
+  var done=false;
+  function fire(){if(done)return;done=true;if(cb)cb();}
+  mr.addEventListener("stop",fire,{once:true});
+  try{mr.stop();}catch(e){fire();}
+  setTimeout(fire,500);
+}
+function cleanupSessionRecordings(){
+  if(REPLAY_AUDIO){try{REPLAY_AUDIO.pause();}catch(e){}REPLAY_AUDIO=null;}
+  SESSION_RECORDING_URLS.forEach(function(u){try{URL.revokeObjectURL(u);}catch(e){}});
+  SESSION_RECORDING_URLS=[];LATEST_AUDIO_URL=null;
+}
+function replayUserAudio(url,btn){
+  if(!url)return;
+  if(REPLAY_AUDIO){try{REPLAY_AUDIO.pause();}catch(e){}REPLAY_AUDIO=null;}
+  var a=new Audio(url);REPLAY_AUDIO=a;
+  var origText=btn?btn.textContent:"";
+  if(btn){btn.textContent="⏸ "+(LANG==="zh"?"播放中":"Playing");}
+  a.onended=function(){if(btn)btn.textContent=origText;if(REPLAY_AUDIO===a)REPLAY_AUDIO=null;};
+  a.onerror=function(){if(btn)btn.textContent=origText;if(REPLAY_AUDIO===a)REPLAY_AUDIO=null;};
+  a.play().catch(function(){if(btn)btn.textContent=origText;});
+}
+
+// ── SRS (Spaced Repetition) ──
+var SRS_INTERVALS_MS=[
+  24*3600000,        // box 0 → 1 day
+  3*24*3600000,      // box 1 → 3 days
+  7*24*3600000,      // box 2 → 7 days
+  14*24*3600000,     // box 3 → 14 days
+  30*24*3600000,     // box 4 → 30 days
+  60*24*3600000      // box 5 → 60 days
+];
+function srsKey(){return "ep_srs_state_"+TARGET_LANG;}
+function srsLoad(){try{return JSON.parse(localStorage.getItem(srsKey())||"{}")||{};}catch(e){return {};}}
+function srsSave(s){try{localStorage.setItem(srsKey(),JSON.stringify(s));}catch(e){}}
+function srsGetCard(id){var s=srsLoad();return s[id]||null;}
+function srsGrade(id,correct){
+  var s=srsLoad();
+  var c=s[id]||{box:0,reviewCount:0};
+  c.box=correct?Math.min(5,(c.box||0)+1):0;
+  c.lastReviewAt=Date.now();
+  c.nextReviewAt=Date.now()+SRS_INTERVALS_MS[c.box];
+  c.reviewCount=(c.reviewCount||0)+1;
+  s[id]=c;srsSave(s);
+}
+function srsIsDue(id){
+  var c=srsGetCard(id);
+  if(!c||!c.nextReviewAt)return true;
+  return Date.now()>=c.nextReviewAt;
+}
+function srsDueCount(rows){
+  if(!rows)return 0;
+  var n=0;rows.forEach(function(r){if(srsIsDue(r.id))n++;});return n;
+}
+
+var SRS_QUEUE=[],SRS_INDEX=0,SRS_CURRENT=null,SRS_SPOKEN="",SRS_RC=null;
+function startSrsReview(){
+  var due=[];
+  for(var k in SAVED_MAP){if(srsIsDue(SAVED_MAP[k].id))due.push(SAVED_MAP[k]);}
+  if(!due.length){showToast(LANG==="zh"?"沒有要複習的":"Nothing to review");return;}
+  for(var i=due.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=due[i];due[i]=due[j];due[j]=t;}
+  SRS_QUEUE=due;SRS_INDEX=0;
+  renderSrsCard();
+}
+function renderSrsCard(){
+  var cont=document.getElementById("savedSentList");
+  if(!cont)return;
+  document.getElementById("savedVocabList").style.display="none";
+  cont.style.display="block";
+  var tabsWrap=document.querySelector(".saved-tabs-wrap");if(tabsWrap)tabsWrap.style.display="none";
+
+  if(SRS_INDEX>=SRS_QUEUE.length){
+    cont.innerHTML='<div class="srs-empty">'+escHtml(LANG==="zh"?"今天的複習完成了！👏":"Review complete! 👏")+'<br><br>'
+      +'<button class="srs-banner-btn" onclick="endSrsReview()">'+escHtml(LANG==="zh"?"返回":"Back")+'</button></div>';
+    return;
+  }
+  var r=SRS_QUEUE[SRS_INDEX];SRS_CURRENT=r;SRS_SPOKEN="";
+  var isVocab=/[一-鿿]/.test(r.original)&&r.corrected;
+  var prompt=isVocab
+    ?(LANG==="zh"?"用 "+targetLang().name+" 說出這個詞：":"Say this word in "+targetLang().nameEn+":")
+    :(LANG==="zh"?"說出正確的句子（提示如下）：":"Say the corrected version (hint below):");
+  var hint=r.original;
+  cont.innerHTML='<div class="srs-progress">'+escHtml(LANG==="zh"?"複習":"Review")+' '+(SRS_INDEX+1)+' / '+SRS_QUEUE.length+'</div>'
+    +'<div class="srs-card">'
+    +'<div class="srs-card-head">'+escHtml(prompt)+'</div>'
+    +'<div class="srs-card-target">'+escHtml(hint)+'</div>'
+    +(r.note?'<div style="font-size:12px;color:#888;margin-bottom:10px">'+escHtml(r.note)+'</div>':'')
+    +'<div class="srs-card-spoken" id="srsSpoken">'+escHtml(LANG==="zh"?"按下麥克風開始說話…":"Tap mic to speak…")+'</div>'
+    +'<div id="srsResult"></div>'
+    +'<div class="srs-card-actions">'
+    +'<button class="srs-btn-mic" id="srsMic" onclick="srsToggleMic()">🎤 '+escHtml(LANG==="zh"?"說話":"Speak")+'</button>'
+    +'<button class="srs-btn-show" onclick="srsReveal()">'+escHtml(LANG==="zh"?"顯示答案":"Show")+'</button>'
+    +'<button class="srs-btn-skip" onclick="srsSkip()">'+escHtml(LANG==="zh"?"略過":"Skip")+'</button>'
+    +'</div>'
+    +'<div class="srs-card-actions" id="srsGrade" style="margin-top:8px;display:none">'
+    +'<button class="srs-btn-good" onclick="srsAnswer(true)">✓ '+escHtml(LANG==="zh"?"記得":"Got it")+'</button>'
+    +'<button class="srs-btn-again" onclick="srsAnswer(false)">↻ '+escHtml(LANG==="zh"?"再練習":"Again")+'</button>'
+    +'</div>'
+    +'</div>'
+    +'<button class="srs-btn-skip" style="display:block;width:100%;padding:8px;margin-top:6px;background:#fff;color:#666;border:1px solid #ddd;border-radius:8px;cursor:pointer;font-size:12px" onclick="endSrsReview()">'+escHtml(LANG==="zh"?"結束複習":"End review")+'</button>';
+}
+function srsReveal(){
+  if(!SRS_CURRENT)return;
+  var target=SRS_CURRENT.corrected||SRS_CURRENT.original;
+  var resultEl=document.getElementById("srsResult");
+  if(resultEl)resultEl.innerHTML='<div class="srs-card-result ok"><strong>'+escHtml(LANG==="zh"?"正解：":"Answer: ")+'</strong>'+escHtml(target)+' <button class="replay-btn" style="background:#185FA5;color:#fff" onclick="speakText(\''+escAttr(target)+'\')">🔊</button></div>';
+  var grade=document.getElementById("srsGrade");if(grade)grade.style.display="flex";
+}
+function srsSkip(){srsStopMic();SRS_INDEX++;renderSrsCard();}
+function srsAnswer(correct){
+  if(!SRS_CURRENT)return;
+  srsStopMic();
+  srsGrade(SRS_CURRENT.id,correct);
+  SRS_INDEX++;renderSrsCard();
+}
+function endSrsReview(){
+  srsStopMic();
+  SRS_QUEUE=[];SRS_INDEX=0;SRS_CURRENT=null;SRS_SPOKEN="";
+  var tabsWrap=document.querySelector(".saved-tabs-wrap");if(tabsWrap)tabsWrap.style.display="";
+  loadSaved();
+}
+function srsStopMic(){
+  if(SRS_RC){try{SRS_RC.stop();}catch(e){}SRS_RC=null;}
+  var btn=document.getElementById("srsMic");if(btn)btn.classList.remove("listening");
+}
+function srsToggleMic(){
+  if(SRS_RC){srsStopMic();return;}
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showToast(LANG==="zh"?"瀏覽器不支援語音":"Speech not supported");return;}
+  var rc=new SR();rc.lang=targetLang().sttLang;rc.continuous=false;rc.interimResults=true;
+  SRS_RC=rc;
+  var spokenEl=document.getElementById("srsSpoken");
+  var micBtn=document.getElementById("srsMic");if(micBtn)micBtn.classList.add("listening");
+  rc.onresult=function(e){
+    var f="",n="";
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)f+=e.results[i][0].transcript;
+      else n+=e.results[i][0].transcript;
+    }
+    if(f)SRS_SPOKEN=(SRS_SPOKEN+" "+f).trim();
+    if(spokenEl)spokenEl.textContent=SRS_SPOKEN||n||"…";
+  };
+  rc.onend=function(){SRS_RC=null;if(micBtn)micBtn.classList.remove("listening");if(SRS_SPOKEN)checkSrsAnswer();};
+  rc.onerror=function(){SRS_RC=null;if(micBtn)micBtn.classList.remove("listening");};
+  try{rc.start();}catch(e){SRS_RC=null;if(micBtn)micBtn.classList.remove("listening");}
+}
+function checkSrsAnswer(){
+  if(!SRS_CURRENT)return;
+  var target=(SRS_CURRENT.corrected||SRS_CURRENT.original).toLowerCase();
+  var spoken=SRS_SPOKEN.toLowerCase();
+  var norm=function(s){return s.replace(/[.,!?;:'"。、！？；：「」『』]/g,"").replace(/\s+/g," ").trim();};
+  var nT=norm(target),nS=norm(spoken);
+  var match=(nT&&nS&&(nS===nT||nS.indexOf(nT)>=0||nT.indexOf(nS)>=0));
+  if(!match&&nT&&nS){
+    var tw=nT.split(" "),sw=nS.split(" "),hits=0;
+    tw.forEach(function(w){if(w&&sw.indexOf(w)>=0)hits++;});
+    if(tw.length>0&&hits/tw.length>=0.7)match=true;
+  }
+  var resultEl=document.getElementById("srsResult");
+  var targetText=SRS_CURRENT.corrected||SRS_CURRENT.original;
+  if(resultEl){
+    if(match)resultEl.innerHTML='<div class="srs-card-result ok">✓ '+escHtml(LANG==="zh"?"很接近！正解：":"Good! Answer: ")+'<strong>'+escHtml(targetText)+'</strong></div>';
+    else resultEl.innerHTML='<div class="srs-card-result bad">✗ '+escHtml(LANG==="zh"?"差一點，正解：":"Not quite. Answer: ")+'<strong>'+escHtml(targetText)+'</strong></div>';
+  }
+  var grade=document.getElementById("srsGrade");if(grade)grade.style.display="flex";
+}
 var UI_STRINGS={
   en:{app_title:"English Practice",btn_lang:"中文",btn_logout:"Logout",
     level_change:"Change level",level_title:"What's your English level?",level_sub:"We'll adjust the conversation to match you.",
@@ -979,6 +1250,8 @@ function switchSavedTab(which){
 }
 function loadSaved(){
   if(!currentUser)return;
+  // Restore tabs (in case SRS review left them hidden)
+  var sTabs=document.querySelector(".saved-tabs-wrap");if(sTabs)sTabs.style.display="";
   dbGet("saved_sentences","user_id=eq."+currentUser.id+"&lang=eq."+TARGET_LANG).then(function(rows){
     SAVED_MAP={};
     var sentList=document.getElementById("savedSentList");
@@ -995,6 +1268,17 @@ function loadSaved(){
     var isZh=/[一-鿿]/;
     var vocabRows=rows.filter(function(r){return r.corrected&&isZh.test(r.original);});
     var sentRows=rows.filter(function(r){return !isZh.test(r.original);});
+    // SRS due banner
+    var dueCount=srsDueCount(rows);
+    var srsBannerHtml=dueCount>0
+      ?'<div class="srs-banner"><div class="srs-banner-text">'
+        +escHtml(LANG==="zh"?"今天該複習：":"Due for review: ")
+        +'<strong>'+dueCount+'</strong> '
+        +escHtml(LANG==="zh"?"項":"item"+(dueCount>1?"s":""))
+        +'</div><button class="srs-banner-btn" onclick="startSrsReview()">'
+        +escHtml(LANG==="zh"?"開始複習 →":"Start review →")
+        +'</button></div>'
+      :'';
     var practiceLabel=isChinese?"🔄 練習":"🔄 Practice";
     var removeLabel=isChinese?"刪除":"Remove";
     // Sentences panel
@@ -1015,7 +1299,7 @@ function loadSaved(){
         +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">'+escHtml(removeLabel)+'</button>'
         +'</div></div></div>';
     }).join("");
-    sentList.innerHTML=sentHtml||'<div class="empty-msg">'+(isChinese?"還沒有收藏的句子。":"No saved sentences yet.")+'</div>';
+    sentList.innerHTML=srsBannerHtml+(sentHtml||'<div class="empty-msg">'+(isChinese?"還沒有收藏的句子。":"No saved sentences yet.")+'</div>');
     // Vocab panel
     var vocabHtml=vocabRows.map(function(r){
       var noteParts=(r.note||"").split(" / ");
@@ -2404,6 +2688,8 @@ function startSession(topic,sysPrompt,opening,sc,firstSpeaker){
   var finalPrompt=sysPrompt+levelPrompt+slowPrompt;
   TOPIC=topic;SYSPR=finalPrompt;HIST=[];UTTS=[];CONF_SCORES=[];ON=true;
   TASK_DONE=false;TASK_DEF=sc||null;LAST_CONF=null;
+  SESSION_FILLERS={};
+  cleanupSessionRecordings();
   document.getElementById("eb").disabled=false;
   document.getElementById("mb").disabled=false;
   document.getElementById("chat").innerHTML="";
@@ -2455,15 +2741,26 @@ function updateTaskCard(){
 
 // ── Chat helpers ──
 function setst(msg){if(LANG==="zh"&&ST_ZH[msg])msg=ST_ZH[msg];document.getElementById("st").textContent=msg;}
-function addMsg(role,text,canSave,confidence){
+function addMsg(role,text,canSave,confidence,audioUrl){
   var chat=document.getElementById("chat");
   var wrap=document.createElement("div");wrap.className="msg"+(role==="user"?" user":"");
   var av=document.createElement("div");av.className="av "+(role==="ai"?"aiav":"uav");av.textContent=role==="ai"?"AI":"Me";
-  var bb=document.createElement("div");bb.className="bbl "+(role==="ai"?"aibbl":"ubbl");bb.innerHTML=escHtml(text);
+  var bb=document.createElement("div");bb.className="bbl "+(role==="ai"?"aibbl":"ubbl");
+  // Highlight filler words for user messages
+  if(role==="user"){bb.innerHTML=highlightFillers(text);}
+  else{bb.innerHTML=escHtml(text);}
   if(role==="ai"&&canSave){
     var sb=document.createElement("button");sb.className="save-btn";sb.title="Save this sentence";sb.textContent="⭐";
     sb.onclick=function(){saveSentence(text,null,"AI expression");sb.textContent="✅";sb.disabled=true;};
     bb.appendChild(sb);
+  }
+  // Replay button for user messages with recorded audio
+  if(role==="user"&&audioUrl){
+    var foot=document.createElement("div");foot.className="ubbl-foot";
+    var rb=document.createElement("button");rb.className="replay-btn";rb.textContent="▶ "+(LANG==="zh"?"重聽":"Replay");
+    rb.onclick=function(){replayUserAudio(audioUrl,rb);};
+    foot.appendChild(rb);
+    bb.appendChild(foot);
   }
   wrap.appendChild(av);wrap.appendChild(bb);chat.appendChild(wrap);
   if(role==="user"&&typeof confidence==="number"&&confidence>0&&confidence<0.85){
@@ -2472,6 +2769,16 @@ function addMsg(role,text,canSave,confidence){
     badge.className="conf-badge "+(confidence>=0.65?"conf-warn":"conf-low");
     badge.textContent=confidence>=0.65?"⚠️ Some words may be unclear ("+Math.round(confidence*100)+"% clear)":"🔴 Hard to understand — try speaking slower ("+Math.round(confidence*100)+"% clear)";
     row.appendChild(badge);chat.appendChild(row);
+  }
+  // Filler word badge for user messages
+  if(role==="user"){
+    var fillerCount=trackSessionFillers(text);
+    if(fillerCount>0){
+      var frow=document.createElement("div");frow.className="filler-row";
+      var fbadge=document.createElement("span");fbadge.className="filler-badge";
+      fbadge.textContent=(LANG==="zh"?"⚠️ "+fillerCount+" 個贅詞":"⚠️ "+fillerCount+" filler"+(fillerCount>1?"s":""));
+      frow.appendChild(fbadge);chat.appendChild(frow);
+    }
   }
   chat.scrollTop=chat.scrollHeight;
 }
@@ -2642,8 +2949,14 @@ function initRec(){
     if(silenceTimer)clearTimeout(silenceTimer);
     if(CUR){silenceTimer=setTimeout(function(){if(CUR.trim()&&IR&&!SPEAKING)RC.stop();},2000);}
   };
-  RC.onend=function(){IR=false;document.getElementById("mb").classList.remove("listening");if(CUR.trim()&&ON&&!SPEAKING)sendMsg();else if(!SPEAKING)setst("Press mic to respond");};
-  RC.onerror=function(e){IR=false;document.getElementById("mb").classList.remove("listening");if(e.error!=="no-speech")setst("Error: "+e.error+". Try again.");else setst("Press mic to respond");};
+  RC.onend=function(){
+    IR=false;document.getElementById("mb").classList.remove("listening");
+    stopMediaRecording(function(){
+      if(CUR.trim()&&ON&&!SPEAKING)sendMsg();
+      else if(!SPEAKING)setst("Press mic to respond");
+    });
+  };
+  RC.onerror=function(e){IR=false;document.getElementById("mb").classList.remove("listening");stopMediaRecording();if(e.error!=="no-speech")setst("Error: "+e.error+". Try again.");else setst("Press mic to respond");};
   return true;
 }
 function toggleRec(){
@@ -2653,8 +2966,9 @@ function toggleRec(){
   if(IR){RC.stop();IR=false;}
   else{
     CUR="";LAST_CONF=null;document.getElementById("tb").textContent=tr("speech_placeholder");
-    try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");}
-    catch(e){RC=null;initRec();try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");}catch(e2){setst("Cannot start mic. Reload.");}}
+    LATEST_AUDIO_URL=null;
+    try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");startMediaRecording();}
+    catch(e){RC=null;initRec();try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");startMediaRecording();}catch(e2){setst("Cannot start mic. Reload.");}}
   }
 }
 
@@ -2663,7 +2977,8 @@ function sendMsg(){
   if(!CUR.trim())return;
   document.querySelectorAll(".kw:not(.used)").forEach(function(k){if(CUR.toLowerCase().indexOf(k.textContent.toLowerCase())>-1)k.classList.add("used");});
   var txt=CUR.trim(),conf=LAST_CONF;
-  UTTS.push(txt);addMsg("user",txt,false,conf);
+  UTTS.push(txt);addMsg("user",txt,false,conf,LATEST_AUDIO_URL);
+  LATEST_AUDIO_URL=null;
   CUR="";LAST_CONF=null;document.getElementById("tb").textContent=tr("speech_placeholder");
   setst("AI is thinking...");HIST.push({role:"user",content:txt});showThinking();
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:150,system:SYSPR,messages:HIST})})
@@ -2743,6 +3058,15 @@ function showFeedback(fb){
     fb.pronunciation.forEach(function(p){h+='<div class="fbi fpron"><strong>'+escHtml(p.word)+'</strong> — '+escHtml(p.tip)+'</div>';});
   }
   if(fb.strengths&&fb.strengths.length){h+='<div class="fbh">'+tr("fb_strengths")+'</div>';fb.strengths.forEach(function(s){h+='<div class="fbi fgd">'+escHtml(s)+'</div>';});}
+  // Filler word summary
+  var fillerTotal=totalFillerCount();
+  if(fillerTotal>0){
+    var fillerHead=LANG==="zh"?"贅詞統計":"Filler words used";
+    var fillerHint=LANG==="zh"?"練習時減少這些贅詞會更流暢。":"Reducing these will make you sound more fluent.";
+    var fillerList=Object.keys(SESSION_FILLERS).sort(function(a,b){return SESSION_FILLERS[b]-SESSION_FILLERS[a];})
+      .map(function(k){return '<strong>'+escHtml(k)+'</strong> ×'+SESSION_FILLERS[k];}).join(", ");
+    h+='<div class="fbh">'+escHtml(fillerHead)+'</div><div class="fb-fillers">'+fillerList+'<br><small>'+escHtml(fillerHint)+'</small></div>';
+  }
   if(fb.overall_tip)h+='<div class="tipbox"><strong>'+tr("fb_tip")+'</strong> '+escHtml(fb.overall_tip)+'</div>';
   document.getElementById("fbc").innerHTML=h;
   var smrSaveBtn=document.getElementById("smrSaveBtn");
@@ -2774,6 +3098,7 @@ function restart(){
   window.speechSynthesis&&window.speechSynthesis.cancel();
   ON=false;HIST=[];UTTS=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
   TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;SESSION_SC=null;
+  SESSION_FILLERS={};cleanupSessionRecordings();
   document.getElementById("ti").value="";
   document.getElementById("tb").textContent=tr("speech_placeholder");
   document.getElementById("smr").style.display="none";
