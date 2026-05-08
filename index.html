@@ -604,6 +604,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 
   <!-- SAVED TAB -->
   <div id="tabContentSaved" style="display:none">
+    <div id="srsBannerWrap"></div>
     <div class="saved-tabs-wrap">
       <button class="saved-tab-btn active" id="stab-sent" onclick="switchSavedTab('sent')">📝 <span id="stabSentLabel">Sentences</span></button>
       <button class="saved-tab-btn" id="stab-vocab" onclick="switchSavedTab('vocab')">📚 <span id="stabVocabLabel">Vocabulary</span></button>
@@ -710,7 +711,10 @@ var SESSION_RECORDING_URLS=[];
 var LATEST_AUDIO_URL=null;
 var REPLAY_AUDIO=null;
 function ensureRecStream(){
-  if(REC_STREAM)return Promise.resolve(REC_STREAM);
+  if(REC_STREAM&&REC_STREAM.getTracks().some(function(t){return t.readyState==="live";})){
+    return Promise.resolve(REC_STREAM);
+  }
+  REC_STREAM=null;
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return Promise.reject(new Error("no-media"));
   return navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){REC_STREAM=s;return s;});
 }
@@ -741,14 +745,21 @@ function stopMediaRecording(cb){
   var mr=REC_MEDIA;REC_MEDIA=null;
   var done=false;
   function fire(){if(done)return;done=true;if(cb)cb();}
-  mr.addEventListener("stop",fire,{once:true});
+  // Wrap original onstop so blob URL is set BEFORE cb fires (otherwise sendMsg
+  // sees a null LATEST_AUDIO_URL and the replay button is missing).
+  var origStop=mr.onstop;
+  mr.onstop=function(ev){if(origStop){try{origStop.call(mr,ev);}catch(e){}}fire();};
   try{mr.stop();}catch(e){fire();}
-  setTimeout(fire,500);
+  setTimeout(fire,800); // safety timeout
 }
 function cleanupSessionRecordings(){
   if(REPLAY_AUDIO){try{REPLAY_AUDIO.pause();}catch(e){}REPLAY_AUDIO=null;}
+  if(REC_MEDIA&&REC_MEDIA.state!=="inactive"){try{REC_MEDIA.stop();}catch(e){}}
+  REC_MEDIA=null;
   SESSION_RECORDING_URLS.forEach(function(u){try{URL.revokeObjectURL(u);}catch(e){}});
   SESSION_RECORDING_URLS=[];LATEST_AUDIO_URL=null;
+  // Release the mic so the browser tab indicator turns off
+  if(REC_STREAM){REC_STREAM.getTracks().forEach(function(t){try{t.stop();}catch(e){}});REC_STREAM=null;}
 }
 function replayUserAudio(url,btn){
   if(!url)return;
@@ -788,15 +799,19 @@ function srsIsDue(id){
   if(!c||!c.nextReviewAt)return true;
   return Date.now()>=c.nextReviewAt;
 }
+// Only sentences/vocab with both an "original" prompt and a "corrected" answer
+// make sense as recall cards. AI-saved entries (corrected=null) are reference
+// only and would show the answer as the prompt.
+function srsIsReviewable(r){return !!(r&&r.corrected&&r.corrected!==r.original);}
 function srsDueCount(rows){
   if(!rows)return 0;
-  var n=0;rows.forEach(function(r){if(srsIsDue(r.id))n++;});return n;
+  var n=0;rows.forEach(function(r){if(srsIsReviewable(r)&&srsIsDue(r.id))n++;});return n;
 }
 
 var SRS_QUEUE=[],SRS_INDEX=0,SRS_CURRENT=null,SRS_SPOKEN="",SRS_RC=null;
 function startSrsReview(){
   var due=[];
-  for(var k in SAVED_MAP){if(srsIsDue(SAVED_MAP[k].id))due.push(SAVED_MAP[k]);}
+  for(var k in SAVED_MAP){var r=SAVED_MAP[k];if(srsIsReviewable(r)&&srsIsDue(r.id))due.push(r);}
   if(!due.length){showToast(LANG==="zh"?"沒有要複習的":"Nothing to review");return;}
   for(var i=due.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=due[i];due[i]=due[j];due[j]=t;}
   SRS_QUEUE=due;SRS_INDEX=0;
@@ -808,6 +823,7 @@ function renderSrsCard(){
   document.getElementById("savedVocabList").style.display="none";
   cont.style.display="block";
   var tabsWrap=document.querySelector(".saved-tabs-wrap");if(tabsWrap)tabsWrap.style.display="none";
+  var srsBanner=document.getElementById("srsBannerWrap");if(srsBanner)srsBanner.innerHTML="";
 
   if(SRS_INDEX>=SRS_QUEUE.length){
     cont.innerHTML='<div class="srs-empty">'+escHtml(LANG==="zh"?"今天的複習完成了！👏":"Review complete! 👏")+'<br><br>'
@@ -1252,6 +1268,7 @@ function loadSaved(){
   if(!currentUser)return;
   // Restore tabs (in case SRS review left them hidden)
   var sTabs=document.querySelector(".saved-tabs-wrap");if(sTabs)sTabs.style.display="";
+  var srsBanner=document.getElementById("srsBannerWrap");if(srsBanner)srsBanner.innerHTML="";
   dbGet("saved_sentences","user_id=eq."+currentUser.id+"&lang=eq."+TARGET_LANG).then(function(rows){
     SAVED_MAP={};
     var sentList=document.getElementById("savedSentList");
@@ -1268,17 +1285,20 @@ function loadSaved(){
     var isZh=/[一-鿿]/;
     var vocabRows=rows.filter(function(r){return r.corrected&&isZh.test(r.original);});
     var sentRows=rows.filter(function(r){return !isZh.test(r.original);});
-    // SRS due banner
+    // SRS due banner — render in dedicated container above sub-tabs so it's
+    // visible regardless of which sub-tab (sent/vocab) is active.
     var dueCount=srsDueCount(rows);
-    var srsBannerHtml=dueCount>0
-      ?'<div class="srs-banner"><div class="srs-banner-text">'
-        +escHtml(LANG==="zh"?"今天該複習：":"Due for review: ")
-        +'<strong>'+dueCount+'</strong> '
-        +escHtml(LANG==="zh"?"項":"item"+(dueCount>1?"s":""))
-        +'</div><button class="srs-banner-btn" onclick="startSrsReview()">'
-        +escHtml(LANG==="zh"?"開始複習 →":"Start review →")
-        +'</button></div>'
-      :'';
+    if(srsBanner){
+      srsBanner.innerHTML=dueCount>0
+        ?'<div class="srs-banner"><div class="srs-banner-text">'
+          +escHtml(LANG==="zh"?"今天該複習：":"Due for review: ")
+          +'<strong>'+dueCount+'</strong> '
+          +escHtml(LANG==="zh"?"項":"item"+(dueCount>1?"s":""))
+          +'</div><button class="srs-banner-btn" onclick="startSrsReview()">'
+          +escHtml(LANG==="zh"?"開始複習 →":"Start review →")
+          +'</button></div>'
+        :'';
+    }
     var practiceLabel=isChinese?"🔄 練習":"🔄 Practice";
     var removeLabel=isChinese?"刪除":"Remove";
     // Sentences panel
@@ -1299,7 +1319,7 @@ function loadSaved(){
         +'<button class="del-btn" onclick="deleteSaved(\''+r.id+'\')">'+escHtml(removeLabel)+'</button>'
         +'</div></div></div>';
     }).join("");
-    sentList.innerHTML=srsBannerHtml+(sentHtml||'<div class="empty-msg">'+(isChinese?"還沒有收藏的句子。":"No saved sentences yet.")+'</div>');
+    sentList.innerHTML=sentHtml||'<div class="empty-msg">'+(isChinese?"還沒有收藏的句子。":"No saved sentences yet.")+'</div>';
     // Vocab panel
     var vocabHtml=vocabRows.map(function(r){
       var noteParts=(r.note||"").split(" / ");
