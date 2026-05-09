@@ -211,6 +211,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .rbtn{width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;background:#f0f0f0;font-size:14px;cursor:pointer;margin-top:.75rem}
 .fbi-save{position:absolute;top:6px;right:8px;font-size:14px;cursor:pointer;background:none;border:none;opacity:.5}
 .fbi-save:hover{opacity:1}
+.fbi-audio-row{display:flex;gap:6px;margin:5px 0 4px}
+.fbi-tts-btn{font-size:11px;padding:3px 8px;border-radius:12px;border:1px solid currentColor;background:transparent;cursor:pointer;opacity:.75;white-space:nowrap}
+.fbi-tts-btn:hover{opacity:1}
+.ferr .fbi-tts-btn{color:#791F1F}
+.fpron .fbi-tts-btn{color:#185FA5}
+.fbi-rec-btn{opacity:.65}
 
 /* Saved sentences */
 .saved-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
@@ -640,7 +646,7 @@ var SUPA_URL="https://xujxibajkncuubgwfgkq.supabase.co";
 var SUPA_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1anhpYmFqa25jdXViZ3dmZ2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzczMTAsImV4cCI6MjA5MTgxMzMxMH0.n10WhHlcgl7gbK9hG9v3op2LgTVRoUkqQeTPGj0t3zA";
 
 var currentUser=null,VOICE_GENDER="female";
-var RC=null,IR=false,CUR="",HIST=[],UTTS=[],TOPIC="",SYSPR="",ON=false,SPEAKING=false;
+var RC=null,IR=false,CUR="",HIST=[],UTTS=[],UTTS_AUDIO=[],TOPIC="",SYSPR="",ON=false,SPEAKING=false;
 var silenceTimer=null,currentMode="";
 var CONF_SCORES=[],LAST_CONF=null;
 var TASK_DONE=false,TASK_DEF=null;
@@ -2708,7 +2714,7 @@ function startSession(topic,sysPrompt,opening,sc,firstSpeaker){
   var levelPrompt=(LEVEL_CONFIG[LEVEL]?LEVEL_CONFIG[LEVEL].prompt:"");
   var slowPrompt=SLOW_MODE?" Use short simple sentences and basic vocabulary. Speak clearly with natural pauses. Avoid contractions and complex grammar.":"";
   var finalPrompt=sysPrompt+levelPrompt+slowPrompt;
-  TOPIC=topic;SYSPR=finalPrompt;HIST=[];UTTS=[];CONF_SCORES=[];ON=true;
+  TOPIC=topic;SYSPR=finalPrompt;HIST=[];UTTS=[];UTTS_AUDIO=[];CONF_SCORES=[];ON=true;
   TASK_DONE=false;TASK_DEF=sc||null;LAST_CONF=null;
   SESSION_FILLERS={};
   cleanupSessionRecordings();
@@ -2999,7 +3005,7 @@ function sendMsg(){
   if(!CUR.trim())return;
   document.querySelectorAll(".kw:not(.used)").forEach(function(k){if(CUR.toLowerCase().indexOf(k.textContent.toLowerCase())>-1)k.classList.add("used");});
   var txt=CUR.trim(),conf=LAST_CONF;
-  UTTS.push(txt);addMsg("user",txt,false,conf,LATEST_AUDIO_URL);
+  UTTS.push(txt);UTTS_AUDIO.push(LATEST_AUDIO_URL);addMsg("user",txt,false,conf,LATEST_AUDIO_URL);
   LATEST_AUDIO_URL=null;
   CUR="";LAST_CONF=null;document.getElementById("tb").textContent=tr("speech_placeholder");
   setst("AI is thinking...");HIST.push({role:"user",content:txt});showThinking();
@@ -3022,6 +3028,7 @@ function endSess(){
   ON=false;SPEAKING=false;IR=false;if(RC)try{RC.stop();}catch(e){}
   setst("Generating feedback...");document.getElementById("mb").disabled=true;document.getElementById("eb").disabled=true;showThinking();
   var utteranceLines=UTTS.map(function(u,i){var cs=CONF_SCORES[i];return(cs&&cs.confidence>0&&cs.confidence<0.75)?u+" [speech clarity: "+Math.round(cs.confidence*100)+"%]":u;});
+  var fbLangNote=LANG==="zh"?"Write ALL explanatory text fields (reason, note, strengths, overall_tip, pronunciation tips) in Traditional Chinese. Keep original/corrected/suggestion/word values in "+tln()+".":"";
   var prompt="Analyze these "+tln()+" utterances from a learner:\n"+utteranceLines.join("\n")+"\n\n"
     +"Return ONLY valid JSON, no markdown:\n"
     +'{"scores":{"grammar":0,"word_choice":0,"structure":0,"fluency":0},'
@@ -3032,6 +3039,7 @@ function endSess(){
     +"Scores 0-10. Max 3 corrections, 3 improvements. error_type: grammar/word_choice/structure/fluency. "
     +"pronunciation: up to 3 specific words from the utterances a non-native speaker likely mispronounced, with a tip on how to say them correctly. Only include if there are real concerns. "
     +"Use actual sentences from the learner. Do not invent examples. "
+    +(fbLangNote?fbLangNote+" ":"")
     +"IMPORTANT: This is spoken "+tln()+" practice. Do NOT flag corrections that are only about punctuation (missing commas, periods, question marks, capitalization). Only flag errors that affect spoken meaning: wrong words, wrong grammar, wrong verb tense, wrong word order.";
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})})
   .then(function(r){return r.json();})
@@ -3060,6 +3068,16 @@ function isPunctuationOnly(c){
   var stripPunct=function(s){return(s||"").replace(/[.,!?;:'"。、！？；：「」『』]/g,"").trim();};
   return stripPunct(c.original).toLowerCase()===stripPunct(c.corrected).toLowerCase();
 }
+// Find original recording URL for a given utterance text (fuzzy match)
+function findUtteranceAudio(origText){
+  if(!origText||!UTTS_AUDIO.length)return null;
+  var norm=origText.toLowerCase().replace(/[.,!?;:]/g,"").trim();
+  for(var i=0;i<UTTS.length;i++){
+    var u=(UTTS[i]||"").toLowerCase().replace(/[.,!?;:]/g,"").trim();
+    if(u===norm||u.indexOf(norm)>-1||norm.indexOf(u)>-1){return UTTS_AUDIO[i]||null;}
+  }
+  return null;
+}
 function showFeedback(fb){
   if(fb.corrections)fb.corrections=fb.corrections.filter(function(c){return!isPunctuationOnly(c);});
   var panel=document.getElementById("smr");panel.style.display="block";
@@ -3069,7 +3087,19 @@ function showFeedback(fb){
   var h="";
   if(fb.corrections&&fb.corrections.length){
     h+='<div class="fbh">'+tr("fb_corrections")+'</div>';
-    fb.corrections.forEach(function(c){h+='<div class="fbi ferr" style="padding-right:32px"><span class="orig">'+escHtml(c.original)+'</span> → <span class="fix">'+escHtml(c.corrected)+'</span><br><small>'+escHtml(c.reason||"")+'</small><button class="fbi-save" onclick="saveSentence(\''+escAttr(c.original)+'\',\''+escAttr(c.corrected)+'\',\''+escAttr(c.reason||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button></div>';});
+    fb.corrections.forEach(function(c){
+      var origAudio=findUtteranceAudio(c.original);
+      var listenLbl=LANG==="zh"?"聽標準發音":"Hear correct";
+      var myLbl=LANG==="zh"?"我的錄音":"My recording";
+      var audioRow='<div class="fbi-audio-row">'
+        +'<button class="fbi-tts-btn" onclick="speakText('+JSON.stringify(c.corrected)+')">🔊 '+escHtml(listenLbl)+'</button>'
+        +(origAudio?'<button class="fbi-tts-btn fbi-rec-btn" onclick="replayUserAudio(\''+escAttr(origAudio)+'\',this)">🎤 '+escHtml(myLbl)+'</button>':'')
+        +'</div>';
+      h+='<div class="fbi ferr" style="position:relative"><span class="orig">'+escHtml(c.original)+'</span> → <span class="fix">'+escHtml(c.corrected)+'</span><br>'
+        +audioRow
+        +'<small>'+escHtml(c.reason||"")+'</small>'
+        +'<button class="fbi-save" style="position:absolute;top:8px;right:8px" onclick="saveSentence(\''+escAttr(c.original)+'\',\''+escAttr(c.corrected)+'\',\''+escAttr(c.reason||"")+'\');this.textContent=\'✅\';this.disabled=true;">⭐</button></div>';
+    });
   }
   if(fb.improvements&&fb.improvements.length){
     h+='<div class="fbh">'+tr("fb_suggestions")+'</div>';
@@ -3077,7 +3107,7 @@ function showFeedback(fb){
   }
   if(fb.pronunciation&&fb.pronunciation.length){
     h+='<div class="fbh">'+tr("fb_pronunciation")+'</div>';
-    fb.pronunciation.forEach(function(p){h+='<div class="fbi fpron"><strong>'+escHtml(p.word)+'</strong> — '+escHtml(p.tip)+'</div>';});
+    fb.pronunciation.forEach(function(p){h+='<div class="fbi fpron"><button class="fbi-tts-btn" style="float:right;margin-left:8px" onclick="speakText('+JSON.stringify(p.word)+')">🔊</button><strong>'+escHtml(p.word)+'</strong> — '+escHtml(p.tip)+'</div>';});
   }
   if(fb.strengths&&fb.strengths.length){h+='<div class="fbh">'+tr("fb_strengths")+'</div>';fb.strengths.forEach(function(s){h+='<div class="fbi fgd">'+escHtml(s)+'</div>';});}
   // Filler word summary
@@ -3118,7 +3148,7 @@ function restart(){
   DIALOG_SC=null;DIALOG_CURRENT=null;
   closeVocabOverlay();
   window.speechSynthesis&&window.speechSynthesis.cancel();
-  ON=false;HIST=[];UTTS=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
+  ON=false;HIST=[];UTTS=[];UTTS_AUDIO=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
   TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;SESSION_SC=null;
   SESSION_FILLERS={};cleanupSessionRecordings();
   document.getElementById("ti").value="";
