@@ -2328,9 +2328,11 @@ function generateSampleDialog(sc,onSuccess,onError){
   var scenario=sc.name||currentMode;
   var country=targetLang().country;
   var langNote=LANG==="zh"?"Traditional Chinese":"English";
+  // Translation must be in a different language than the practice language to avoid duplication
+  var transNote=(TARGET_LANG==="en"&&LANG==="en")?"Traditional Chinese":langNote;
   var levelHints={beginner:"Keep sentences very short and simple (A1-A2 level).",intermediate:"Use natural conversational language (B1-B2 level).",advanced:"Use natural fluent language with some idioms (C1-C2 level)."};
   var levelHint=levelHints[LEVEL||"intermediate"]||levelHints.intermediate;
-  var prompt='Create a realistic '+tl+' sample conversation for the scenario: "'+scenario+'" (taking place in '+country+').\n\nRequirements:\n- Exactly 10-12 turns alternating: A first, then B, then A, etc.\n- Speaker A is the native speaker / service provider / counterpart.\n- Speaker B is the '+tl+' language learner.\n- '+levelHint+'\n- All "text" fields must be in '+tl+' ONLY (never in another language).\n- All "translation" fields must be in '+langNote+'.\n- Natural spoken language, not textbook formal.\n\nReturn ONLY valid JSON (no markdown):\n{"speakerA":"[short label for A, in '+langNote+']","speakerB":"[short label for B, in '+langNote+']","dialog":[{"speaker":"A","text":"...","translation":"..."},{"speaker":"B","text":"...","translation":"..."},...]}';
+  var prompt='Create a realistic '+tl+' sample conversation for the scenario: "'+scenario+'" (taking place in '+country+').\n\nRequirements:\n- Exactly 10-12 turns alternating: A first, then B, then A, etc.\n- Speaker A is the native speaker / service provider / counterpart.\n- Speaker B is the '+tl+' language learner.\n- '+levelHint+'\n- All "text" fields must be in '+tl+' ONLY (never in another language).\n- All "translation" fields must be in '+transNote+'.\n- Natural spoken language, not textbook formal.\n\nReturn ONLY valid JSON (no markdown):\n{"speakerA":"[short label for A, in '+langNote+']","speakerB":"[short label for B, in '+langNote+']","dialog":[{"speaker":"A","text":"...","translation":"..."},{"speaker":"B","text":"...","translation":"..."},...]}';
   // Hard timeout in case the proxy hangs (45s)
   var hardTimeout=setTimeout(function(){if(token===DIALOG_GEN_TOKEN&&ctrl){try{ctrl.abort();}catch(e){}}},45000);
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl?ctrl.signal:undefined,body:JSON.stringify({
