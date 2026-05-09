@@ -217,6 +217,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .ferr .fbi-tts-btn{color:#791F1F}
 .fpron .fbi-tts-btn{color:#185FA5}
 .fbi-rec-btn{opacity:.65}
+/* Universal disabled state for all TTS/replay buttons */
+button:disabled{opacity:.35 !important;cursor:not-allowed !important;pointer-events:none}
 
 /* Saved sentences */
 .saved-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
@@ -371,6 +373,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .sd-speak-btn{display:inline-block;font-size:11px;padding:2px 6px;border-radius:10px;border:1px solid #ccc;background:#fff;color:#666;cursor:pointer;margin-top:5px;transition:all .15s;opacity:.7}
 .sd-speak-btn:hover{opacity:1;border-color:#185FA5;color:#185FA5}
 .sd-speak-btn.sd-speak-active{border-color:#E8A020;background:#FFF4E0;color:#7A4200;opacity:1}
+.sd-save-btn{display:inline-block;font-size:11px;padding:2px 6px;border-radius:10px;border:1px solid #ccc;background:#fff;color:#666;cursor:pointer;margin-top:5px;margin-left:4px;transition:all .15s;opacity:.6}
+.sd-save-btn:hover{opacity:1;border-color:#E8A020;color:#7A4200}
+.sd-save-btn.saved{border-color:#639922;color:#27500A;background:#EAF3DE;opacity:1;cursor:default}
 
 /* Admin usage table */
 .usage-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
@@ -865,7 +870,7 @@ function srsReveal(){
   if(!SRS_CURRENT)return;
   var target=SRS_CURRENT.corrected||SRS_CURRENT.original;
   var resultEl=document.getElementById("srsResult");
-  if(resultEl)resultEl.innerHTML='<div class="srs-card-result ok"><strong>'+escHtml(LANG==="zh"?"正解：":"Answer: ")+'</strong>'+escHtml(target)+' <button class="replay-btn" style="background:#185FA5;color:#fff" onclick="speakText(\''+escAttr(target)+'\')">🔊</button></div>';
+  if(resultEl)resultEl.innerHTML='<div class="srs-card-result ok"><strong>'+escHtml(LANG==="zh"?"正解：":"Answer: ")+'</strong>'+escHtml(target)+' <button class="replay-btn" style="background:#185FA5;color:#fff" onclick="ttsClick(this,\''+escAttr(target)+'\')">🔊</button></div>';
   var grade=document.getElementById("srsGrade");if(grade)grade.style.display="flex";
 }
 function srsSkip(){srsStopMic();SRS_INDEX++;renderSrsCard();}
@@ -1312,7 +1317,7 @@ function loadSaved(){
       var speakTarget=r.corrected||r.original;
       return '<div class="saved-item" id="si-'+r.id+'">'
         +'<div style="display:flex;align-items:flex-start;gap:6px">'
-        +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(speakTarget)+'\')">🔊</button>'
+        +'<button type="button" class="saved-item-speak" onclick="ttsClick(this,\''+escAttr(speakTarget)+'\')">🔊</button>'
         +'<div style="flex:1">'
         +'<div class="orig-text">'+escHtml(r.original)+'</div>'
         +(r.corrected?'<div class="fix-text">✓ '+escHtml(r.corrected)+'</div>':'')
@@ -1333,7 +1338,7 @@ function loadSaved(){
       var exZh=noteParts.length>1?noteParts.slice(1).join(" / "):"";
       return '<div class="saved-item" id="si-'+r.id+'">'
         +'<div style="display:flex;align-items:flex-start;gap:6px">'
-        +'<button type="button" class="saved-item-speak" onclick="speakText(\''+escAttr(r.corrected)+'\')">🔊</button>'
+        +'<button type="button" class="saved-item-speak" onclick="ttsClick(this,\''+escAttr(r.corrected)+'\')">🔊</button>'
         +'<div style="flex:1">'
         +'<div style="display:flex;align-items:center">'
         +'<span class="vocab-item-word">'+escHtml(r.corrected)+'</span>'
@@ -1341,7 +1346,7 @@ function loadSaved(){
         +'</div>'
         +'<div class="vocab-item-zh" style="display:none">'+escHtml(r.original)+'</div>'
         +(exEn?'<div class="vocab-item-ex-en">'
-          +'<button type="button" class="vocab-item-ex-en-speak" onclick="speakText(\''+escAttr(exEn)+'\')">🔊</button>'
+          +'<button type="button" class="vocab-item-ex-en-speak" onclick="ttsClick(this,\''+escAttr(exEn)+'\')">🔊</button>'
           +'<span>'+escHtml(exEn)+'</span>'
           +'</div>':'')
         +(exZh?'<div class="vocab-item-ex-zh" style="display:none">'+escHtml(exZh)+'</div>':'')
@@ -2421,6 +2426,7 @@ function renderSampleDialog(result){
     html+='<div class="sd-text">'+escHtml(line.text)+'</div>';
     html+='<div class="sd-trans">'+escHtml(line.translation)+'</div>';
     html+='<button class="sd-speak-btn" id="sdSpeak'+i+'" onclick="playDialogSingleLine('+i+')">🔊</button>';
+    html+='<button class="sd-save-btn" id="sdSave'+i+'" onclick="sdSaveLine('+i+',this)">⭐ '+(LANG==="zh"?"儲存":"Save")+'</button>';
     html+='</div>';
   });
   html+='</div>';
@@ -2562,7 +2568,7 @@ function showPhraseReview(sc){
   sc.phrases.forEach(function(p,i){
     var pText=p.phrase||p.en;
     html+='<label class="phrase-item"><input type="checkbox" class="phrase-cb" onchange="phraseCbChange(this)"><div class="phrase-text"><div class="phrase-en">'+escHtml(pText)+'</div><div class="phrase-zh">'+escHtml(p.zh)+'</div></div>'
-      +'<button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();speakText(\''+escAttr(pText)+'\');phraseMarkChecked(this)">🔊</button>'
+      +'<button type="button" class="phrase-speak-btn" onclick="event.stopPropagation();event.preventDefault();ttsClick(this,\''+escAttr(pText)+'\');phraseMarkChecked(this)">🔊</button>'
       +'<button type="button" class="phrase-save-btn" onclick="event.stopPropagation();event.preventDefault();savePhraseItem(this,\''+escAttr(pText)+'\',\''+escAttr(p.zh)+'\');phraseMarkChecked(this)">⭐</button>'
       +'</label>';
   });
@@ -2627,10 +2633,10 @@ function showVocabDetail(v,idx,chipEl){
     +'<button type="button" class="vocab-overlay-close" onclick="closeVocabOverlay()">✕</button>'
     +'<div class="vocab-overlay-word">'+escHtml(v.word)
     +'<span class="vocab-zh-tag">'+escHtml(v.zh)+'</span>'
-    +'<button type="button" class="vocab-speak-btn" onclick="speakText(\''+escAttr(v.word)+'\')" title="Hear word">🔊</button>'
+    +'<button type="button" class="vocab-speak-btn" onclick="ttsClick(this,\''+escAttr(v.word)+'\')" title="Hear word">🔊</button>'
     +'</div>'
     +'<div class="vocab-overlay-ex">"'+escHtml(v.example)+'"'
-    +'<button type="button" class="vocab-speak-btn" onclick="speakText(\''+escAttr(v.example)+'\')" title="Hear example">🔊</button>'
+    +'<button type="button" class="vocab-speak-btn" onclick="ttsClick(this,\''+escAttr(v.example)+'\')" title="Hear example">🔊</button>'
     +'</div>'
     +(v.example_zh?'<div class="vocab-overlay-ex-zh">'+escHtml(v.example_zh)+'</div>':'')
     +'<button type="button" class="vocab-overlay-save" onclick="saveVocabItem(this,\''+escAttr(v.zh)+'\',\''+escAttr(v.word)+'\',\''+escAttr(v.example+(v.example_zh?' / '+v.example_zh:''))+'\')">⭐ '+(LANG==="zh"?"加入單字卡":"Save as flashcard")+'</button>'
@@ -3092,7 +3098,7 @@ function showFeedback(fb){
       var listenLbl=LANG==="zh"?"聽標準發音":"Hear correct";
       var myLbl=LANG==="zh"?"我的錄音":"My recording";
       var audioRow='<div class="fbi-audio-row">'
-        +'<button class="fbi-tts-btn" onclick="speakText('+JSON.stringify(c.corrected)+')">🔊 '+escHtml(listenLbl)+'</button>'
+        +'<button class="fbi-tts-btn" onclick="ttsClick(this,'+JSON.stringify(c.corrected)+')">🔊 '+escHtml(listenLbl)+'</button>'
         +(origAudio?'<button class="fbi-tts-btn fbi-rec-btn" onclick="replayUserAudio(\''+escAttr(origAudio)+'\',this)">🎤 '+escHtml(myLbl)+'</button>':'')
         +'</div>';
       h+='<div class="fbi ferr" style="position:relative"><span class="orig">'+escHtml(c.original)+'</span> → <span class="fix">'+escHtml(c.corrected)+'</span><br>'
@@ -3107,7 +3113,7 @@ function showFeedback(fb){
   }
   if(fb.pronunciation&&fb.pronunciation.length){
     h+='<div class="fbh">'+tr("fb_pronunciation")+'</div>';
-    fb.pronunciation.forEach(function(p){h+='<div class="fbi fpron"><button class="fbi-tts-btn" style="float:right;margin-left:8px" onclick="speakText('+JSON.stringify(p.word)+')">🔊</button><strong>'+escHtml(p.word)+'</strong> — '+escHtml(p.tip)+'</div>';});
+    fb.pronunciation.forEach(function(p){h+='<div class="fbi fpron"><button class="fbi-tts-btn" style="float:right;margin-left:8px" onclick="ttsClick(this,'+JSON.stringify(p.word)+')">🔊</button><strong>'+escHtml(p.word)+'</strong> — '+escHtml(p.tip)+'</div>';});
   }
   if(fb.strengths&&fb.strengths.length){h+='<div class="fbh">'+tr("fb_strengths")+'</div>';fb.strengths.forEach(function(s){h+='<div class="fbi fgd">'+escHtml(s)+'</div>';});}
   // Filler word summary
@@ -3173,21 +3179,34 @@ function showToast(msg){
 }
 
 // ── Pronunciation playback (non-blocking) ──
-function speakText(text){
+function speakText(text,onDone){
   var tlcF=targetLang();
   var rate=SLOW_MODE?0.72:0.88;
   fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"google-tts",input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
   .then(function(r){return r.json();})
   .then(function(d){
-    if(!d.audioContent){if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;window.speechSynthesis.speak(u);}return;}
+    if(!d.audioContent){
+      if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;if(onDone)u.onend=onDone;window.speechSynthesis.speak(u);}
+      else if(onDone)onDone();
+      return;
+    }
     var ctx=getAudioCtx();
     ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
       var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
+      if(onDone)src.onended=onDone;
       ctx.resume().then(function(){src.start(0);});
-    });
+    },function(){if(onDone)onDone();});
   }).catch(function(){
-    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;window.speechSynthesis.speak(u);}
+    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;if(onDone)u.onend=onDone;window.speechSynthesis.speak(u);}
+    else if(onDone)onDone();
   });
+}
+// Wrapper: disable button while TTS plays, re-enable on finish
+function ttsClick(btn,text){
+  if(btn.disabled)return;
+  btn.disabled=true;
+  var safety=setTimeout(function(){btn.disabled=false;},12000);
+  speakText(text,function(){clearTimeout(safety);btn.disabled=false;});
 }
 
 function speakTextWithCallback(text,onDone){
@@ -3232,6 +3251,12 @@ function closeVocabOverlay(){
   var el=document.getElementById("vocabOverlay");if(el)el.remove();
   document.querySelectorAll(".vocab-chip").forEach(function(c){c.classList.remove("active");});
   currentVocabIdx=-1;
+}
+function sdSaveLine(idx,btn){
+  var line=DIALOG_CURRENT&&DIALOG_CURRENT[idx];
+  if(!line)return;
+  saveSentence(line.text,null,line.translation||"");
+  btn.textContent="✅";btn.classList.add("saved");btn.disabled=true;
 }
 function savePhraseItem(btn,en,zh){
   saveSentence(en,null,zh);
