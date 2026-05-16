@@ -5,8 +5,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>語言口說練習</title>
 <style>
+/* ── Design tokens — foundation for theming / future dark mode ────
+   Only the most-used semantic colors are tokenized here. Component-specific
+   colors (success/warn/error backgrounds, fillers, badges) stay literal
+   because they're rarely reused and theming them needs custom palette work.
+   To preview dark mode: change html[data-theme="dark"] block below or
+   un-comment the prefers-color-scheme media query at the bottom of this style block. */
+:root{
+  --bg:#f5f5f5;
+  --text:#1a1a1a;
+  --text-muted:#666;
+  --text-faint:#888;
+  --text-ghost:#999;
+  --card:#fff;
+  --border:#e0e0e0;
+  --border-strong:#ccc;
+  --primary:#185FA5;
+  --primary-hover:#134a82;
+}
+html[data-theme="dark"]{
+  --bg:#16181c;
+  --text:#e8e8e8;
+  --text-muted:#aaa;
+  --text-faint:#888;
+  --text-ghost:#666;
+  --card:#1f2228;
+  --border:#2a2e36;
+  --border-strong:#3a3f48;
+  --primary:#4a90d9;
+  --primary-hover:#67a5e6;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;color:#1a1a1a;overflow-x:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
 .screen{display:none;max-width:640px;margin:0 auto;padding:1rem;min-height:100vh}
 .screen.active{display:block}
 
