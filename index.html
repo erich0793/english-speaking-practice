@@ -241,6 +241,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .srs-banner-text strong{font-size:14px}
 .srs-banner-btn{background:#185FA5;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap}
 .srs-banner-btn:hover{background:#0C447C}
+.mistake-banner{background:linear-gradient(120deg,#FCEBEB,#F8DDDD);border:1px solid #E2A6A6;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mistake-banner-text{font-size:13px;color:#791F1F;flex:1}
+.mistake-banner-text strong{font-size:14px}
+.mistake-banner-btn{background:#A32D2D;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap}
+.mistake-banner-btn:hover{background:#7E1F1F}
 .srs-card{background:#fff;border:1.5px solid #185FA5;border-radius:12px;padding:18px;margin-bottom:14px}
 .srs-card-head{font-size:12px;color:#185FA5;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
 .srs-card-prompt{font-size:14px;color:#666;margin-bottom:8px;line-height:1.5}
@@ -925,7 +930,11 @@ var SRS_INTERVALS_MS=[
   30*24*3600000,     // box 4 → 30 days
   60*24*3600000      // box 5 → 60 days
 ];
-function srsKey(){return "ep_srs_state_"+TARGET_LANG;}
+// Review mode: which storage namespace the active review session reads/writes.
+// "saved"    → saved_sentences SRS (the existing flow, keyed by ep_srs_state_<lang>)
+// "mistakes" → session_errors SRS (Mistake Cards, keyed by ep_mistake_srs_<lang>)
+var SRS_REVIEW_MODE="saved";
+function srsKey(){return (SRS_REVIEW_MODE==="mistakes"?"ep_mistake_srs_":"ep_srs_state_")+TARGET_LANG;}
 function srsLoad(){try{return JSON.parse(localStorage.getItem(srsKey())||"{}")||{};}catch(e){return {};}}
 function srsSave(s){try{localStorage.setItem(srsKey(),JSON.stringify(s));}catch(e){}}
 function srsGetCard(id){var s=srsLoad();return s[id]||null;}
@@ -951,9 +960,18 @@ function srsDueCount(rows){
   if(!rows)return 0;
   var n=0;rows.forEach(function(r){if(srsIsReviewable(r)&&srsIsDue(r.id))n++;});return n;
 }
+// Compute due count for the mistakes namespace without disturbing the active review mode.
+function mistakeDueCount(rows){
+  if(!rows||!rows.length)return 0;
+  var prev=SRS_REVIEW_MODE;SRS_REVIEW_MODE="mistakes";
+  var n=0;rows.forEach(function(r){if(srsIsReviewable(r)&&srsIsDue(r.id))n++;});
+  SRS_REVIEW_MODE=prev;return n;
+}
 
 var SRS_QUEUE=[],SRS_INDEX=0,SRS_CURRENT=null,SRS_SPOKEN="",SRS_RC=null;
+var MISTAKE_MAP={}; // session_errors rows keyed by id, populated by loadWeakness
 function startSrsReview(){
+  SRS_REVIEW_MODE="saved";
   var due=[];
   for(var k in SAVED_MAP){var r=SAVED_MAP[k];if(srsIsReviewable(r)&&srsIsDue(r.id))due.push(r);}
   if(!due.length){showToast(LANG==="zh"?"沒有要複習的":"Nothing to review");return;}
@@ -961,13 +979,46 @@ function startSrsReview(){
   SRS_QUEUE=due;SRS_INDEX=0;
   renderSrsCard();
 }
-function renderSrsCard(){
-  var cont=document.getElementById("savedSentList");
+// Mistake card review: pulls from session_errors via MISTAKE_MAP.
+// Entry point: button at top of Weakness tab.
+function startMistakeReview(){
+  SRS_REVIEW_MODE="mistakes";
+  var due=[],reviewable=[];
+  for(var k in MISTAKE_MAP){var r=MISTAKE_MAP[k];if(srsIsReviewable(r)){reviewable.push(r);if(srsIsDue(r.id))due.push(r);}}
+  // Fallback: if nothing is due, let the user review up to 10 random cards anyway
+  if(!due.length){
+    if(!reviewable.length){
+      SRS_REVIEW_MODE="saved";
+      showToast(LANG==="zh"?"沒有可複習的錯誤":"No mistakes to review");
+      return;
+    }
+    due=reviewable;
+  }
+  for(var i=due.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=due[i];due[i]=due[j];due[j]=t;}
+  if(due.length>20)due=due.slice(0,20);
+  SRS_QUEUE=due;SRS_INDEX=0;
+  // Switch to a full-screen card view inside the weakness tab
+  document.querySelectorAll(".tab-content").forEach(function(el){if(el.id!=="tabContentWeak")el.style.display="none";});
+  document.getElementById("weakContent").style.display="none";
+  // Reuse the savedSentList container — already styled for SRS rendering
+  var weakHost=document.getElementById("weakSrsHost");
+  if(!weakHost){
+    weakHost=document.createElement("div");weakHost.id="weakSrsHost";
+    document.getElementById("tabContentWeak").appendChild(weakHost);
+  }
+  weakHost.style.display="block";
+  renderSrsCard(weakHost);
+}
+function renderSrsCard(hostOverride){
+  var isMistake=SRS_REVIEW_MODE==="mistakes";
+  var cont=hostOverride||document.getElementById(isMistake?"weakSrsHost":"savedSentList");
   if(!cont)return;
-  document.getElementById("savedVocabList").style.display="none";
+  if(!isMistake){
+    document.getElementById("savedVocabList").style.display="none";
+    var tabsWrap=document.querySelector(".saved-tabs-wrap");if(tabsWrap)tabsWrap.style.display="none";
+    var srsBanner=document.getElementById("srsBannerWrap");if(srsBanner)srsBanner.innerHTML="";
+  }
   cont.style.display="block";
-  var tabsWrap=document.querySelector(".saved-tabs-wrap");if(tabsWrap)tabsWrap.style.display="none";
-  var srsBanner=document.getElementById("srsBannerWrap");if(srsBanner)srsBanner.innerHTML="";
 
   if(SRS_INDEX>=SRS_QUEUE.length){
     cont.innerHTML='<div class="srs-empty">'+escHtml(LANG==="zh"?"今天的複習完成了！👏":"Review complete! 👏")+'<br><br>'
@@ -975,10 +1026,15 @@ function renderSrsCard(){
     return;
   }
   var r=SRS_QUEUE[SRS_INDEX];SRS_CURRENT=r;SRS_SPOKEN="";
-  var isVocab=/[一-鿿]/.test(r.original)&&r.corrected;
-  var prompt=isVocab
-    ?(LANG==="zh"?"用 "+targetLang().name+" 說出這個詞：":"Say this word in "+targetLang().nameEn+":")
-    :(LANG==="zh"?"說出正確的句子（提示如下）：":"Say the corrected version (hint below):");
+  var isVocab=!isMistake&&/[一-鿿]/.test(r.original)&&r.corrected;
+  var prompt;
+  if(isMistake){
+    prompt=LANG==="zh"?"上次你說錯了，這次說對：":"You got this wrong before — say it correctly:";
+  } else if(isVocab){
+    prompt=LANG==="zh"?"用 "+targetLang().name+" 說出這個詞：":"Say this word in "+targetLang().nameEn+":";
+  } else {
+    prompt=LANG==="zh"?"說出正確的句子（提示如下）：":"Say the corrected version (hint below):";
+  }
   var hint=r.original;
   cont.innerHTML='<div class="srs-progress">'+escHtml(LANG==="zh"?"複習":"Review")+' '+(SRS_INDEX+1)+' / '+SRS_QUEUE.length+'</div>'
     +'<div class="srs-card">'
@@ -1015,9 +1071,17 @@ function srsAnswer(correct){
 }
 function endSrsReview(){
   srsStopMic();
+  var wasMistake=SRS_REVIEW_MODE==="mistakes";
   SRS_QUEUE=[];SRS_INDEX=0;SRS_CURRENT=null;SRS_SPOKEN="";
-  var tabsWrap=document.querySelector(".saved-tabs-wrap");if(tabsWrap)tabsWrap.style.display="";
-  loadSaved();
+  SRS_REVIEW_MODE="saved";
+  if(wasMistake){
+    var host=document.getElementById("weakSrsHost");if(host){host.style.display="none";host.innerHTML="";}
+    var weakContent=document.getElementById("weakContent");if(weakContent)weakContent.style.display="";
+    loadWeakness();
+  } else {
+    var tabsWrap=document.querySelector(".saved-tabs-wrap");if(tabsWrap)tabsWrap.style.display="";
+    loadSaved();
+  }
 }
 function srsStopMic(){
   if(SRS_RC){try{SRS_RC.stop();}catch(e){}SRS_RC=null;}
@@ -1580,14 +1644,31 @@ function loadWeakness(){
   if(!currentUser)return;
   dbGet("session_errors","user_id=eq."+currentUser.id+"&lang=eq."+TARGET_LANG+"&limit=300").then(function(rows){
     var content=document.getElementById("weakContent");
+    // Populate MISTAKE_MAP for the Mistake Cards SRS
+    MISTAKE_MAP={};
+    if(rows&&rows.length)rows.forEach(function(r){MISTAKE_MAP[r.id]=r;});
     if(!rows||!rows.length){content.innerHTML='<div class="empty-msg">'+escHtml(LANG==="zh"?"完成至少一次練習後才會出現分析。":"Complete at least one session to see your analysis.")+'</div>';return;}
     var types={};
     rows.forEach(function(r){var t=r.error_type||"grammar";if(!types[t])types[t]={count:0,examples:[]};types[t].count++;if(types[t].examples.length<5)types[t].examples.push({orig:r.original,fix:r.corrected,reason:r.reason,type:t});});
     var total=rows.length;
     var sorted=Object.keys(types).sort(function(a,b){return types[b].count-types[a].count;});
     var isZh=LANG==="zh";
+    // Mistake Cards review banner — reviewable rows have a real correction
+    var reviewableRows=rows.filter(srsIsReviewable);
+    var dueMistakes=mistakeDueCount(reviewableRows);
+    var html="";
+    if(reviewableRows.length){
+      var bannerLine=isZh
+        ?(dueMistakes>0?"今天該複習 <strong>"+dueMistakes+"</strong> 張錯誤卡":"目前沒有待複習的錯誤卡（共 "+reviewableRows.length+" 張）")
+        :(dueMistakes>0?'<strong>'+dueMistakes+'</strong> mistake card'+(dueMistakes>1?'s':'')+' due today':'No mistake cards due ('+reviewableRows.length+' total)');
+      var btnLabel=isZh?(dueMistakes>0?"開始複習 →":"複習隨機 10 張"):(dueMistakes>0?"Start review →":"Review 10 random");
+      html+='<div class="mistake-banner">'
+        +'<div class="mistake-banner-text">📝 '+bannerLine+'</div>'
+        +'<button class="mistake-banner-btn" onclick="startMistakeReview()">'+escHtml(btnLabel)+'</button>'
+        +'</div>';
+    }
     var freqTitle=isZh?'錯誤頻率 <span style="font-size:12px;color:#aaa;font-weight:400">(共 '+total+' 次)</span>':'Error frequency <span style="font-size:12px;color:#aaa;font-weight:400">('+total+' total)</span>';
-    var html='<div class="weakness-section"><h3>'+freqTitle+'</h3>';
+    html+='<div class="weakness-section"><h3>'+freqTitle+'</h3>';
     sorted.forEach(function(t){
       var pat=ERROR_PATTERNS[t]||{label:capitalize(t.replace(/_/g," ")),color:"c-other"};
       var label=isZh?(pat.label_zh||pat.label):pat.label;
