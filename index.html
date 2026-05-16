@@ -650,6 +650,24 @@ var PROXY="https://xujxibajkncuubgwfgkq.supabase.co/functions/v1/ai-proxy";
 var SUPA_URL="https://xujxibajkncuubgwfgkq.supabase.co";
 var SUPA_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1anhpYmFqa25jdXViZ3dmZ2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzczMTAsImV4cCI6MjA5MTgxMzMxMH0.n10WhHlcgl7gbK9hG9v3op2LgTVRoUkqQeTPGj0t3zA";
 
+// Incremented whenever the user starts, restarts, or ends a session.
+// In-flight fetch handlers compare against their captured token and drop
+// the response if it no longer matches — prevents stale AI replies from
+// arriving after End/Restart.
+var SESSION_TOKEN=0;
+function bumpSessionToken(){SESSION_TOKEN++;return SESSION_TOKEN;}
+
+// Unified AI chat call. opts: {messages, system, max_tokens, model, signal}
+// Returns Promise<string> resolving to first content text (or "" on miss).
+function aiCall(opts){
+  opts=opts||{};
+  var body={model:opts.model||"claude-sonnet-4-20250514",max_tokens:opts.max_tokens||800,messages:opts.messages||[]};
+  if(opts.system)body.system=opts.system;
+  return fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},signal:opts.signal,body:JSON.stringify(body)})
+    .then(function(r){return r.json();})
+    .then(function(d){return (d&&d.content&&d.content[0]&&d.content[0].text)||"";});
+}
+
 var currentUser=null,VOICE_GENDER="female";
 var RC=null,IR=false,CUR="",HIST=[],UTTS=[],UTTS_AUDIO=[],TOPIC="",SYSPR="",ON=false,SPEAKING=false;
 var silenceTimer=null,currentMode="";
@@ -1402,12 +1420,8 @@ function practiceThisSentence(id){
   var promptForOpening=isVocab
     ?'You are a '+tln()+' speaking coach. Generate ONE natural spoken question (1-2 sentences) that puts a learner in a realistic situation where they must use the '+tln()+' word "'+target+'" in their reply. Give only the question, nothing else.'
     :'You are a '+tln()+' speaking coach. Generate ONE natural spoken scenario question (1-2 sentences) that puts a learner in a realistic situation where they would naturally say the '+tln()+' phrase "'+target+'". Give only the question, nothing else.';
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-    model:"claude-sonnet-4-20250514",max_tokens:120,
-    messages:[{role:"user",content:promptForOpening}]
-  })}).then(function(resp){return resp.json();}).then(function(d){
-    var scenario=(d.content&&d.content[0]&&d.content[0].text)||"";
-    scenario=scenario.trim().replace(/^["']|["']$/g,"");
+  aiCall({max_tokens:120,messages:[{role:"user",content:promptForOpening}]}).then(function(scenario){
+    scenario=(scenario||"").trim().replace(/^["']|["']$/g,"");
     var sys=isVocab
       ?'You are an encouraging '+tln()+' speaking coach. The student is practicing the word "'+target+'" (meaning: '+r.original+'). Give 3 different real-life situations one at a time — each should naturally invite the student to use the word "'+target+'" in their response. After each response, briefly confirm if they used the word correctly and naturally. Only say spoken words. One situation at a time.'
       :'You are an encouraging '+tln()+' speaking coach. The student is practicing the phrase: "'+target+'". Give 3 different real-life situations one at a time where saying this phrase would fit naturally. After each response, note if they used the target phrase. Only say spoken words. One situation at a time.';
@@ -1665,12 +1679,9 @@ function generateTopicScenario(topic,onSuccess,onError){
   var levelHint=levelHints[levelKey]||levelHints.intermediate;
   var tl=tln();
   var prompt='Generate a conversation practice structure for the topic: "'+topic+'".\n\nTarget language: '+tl+'\nLearner level: '+levelHint+'\n\nIMPORTANT: The entire conversation must be conducted in '+tl+'. All phrases and vocabulary must be in '+tl+' (NOT in English unless '+tl+' IS English). Chinese translations go in zh/example_zh fields.\nDefault context: The scenario takes place in '+targetLang().country+' unless the topic clearly specifies another location.\n\nReturn ONLY valid JSON (no markdown, no extra text) with this exact structure:\n{\n  "system": "Write a system prompt (3-5 sentences) for the AI. RULE: if the topic involves roleplay, conflict, arguing, or interacting with a specific opposing person — write the prompt in second person, starting with \'You are [specific character].\' Then describe their attitude. End with: \'Stay fully in character. Never break character to coach, narrate, or sympathize as an outsider. Respond exactly as this person would speak in real life.\' If the topic is just general discussion, write: \'You are a friendly '+tl+' conversation partner. Discuss the topic naturally. Ask one follow-up question per turn. Only say spoken words in '+tl+'.\'",\n  "isRoleplay": true or false (true if the topic involves playing an opposing character or specific role),\n  "role": "If isRoleplay is true: a short phrase describing who AI plays, in the language of the topic (e.g. \'對方司機\', \'店員\'). Empty string if isRoleplay is false.",\n  "cultural": "A short tip or context note for this topic. Start with a relevant emoji.",\n  "cultural_zh": "文化或背景提示的中文版。專有名詞後面一律加括號標注，例如：中央公園(Central Park)。",\n  "task": "Your mission: [1–2 specific achievable goals for this conversation topic]",\n  "task_zh": "你的任務：[任務的中文版]",\n  "opening": "A natural '+tl+' opening line to start this conversation — if roleplay, speak directly AS the opposing character; if general, open as a conversation partner",\n  "phrases": [\n    {"phrase": "Phrase in '+tl+' (NOT English unless '+tl+' IS English)", "zh": "Traditional Chinese meaning"}\n  ],\n  "vocab": [\n    {"word": "'+tl+' word", "zh": "中文", "example": "Example sentence in '+tl+'.", "example_zh": "例句的中文翻譯。"}\n  ]\n}\n\nProvide exactly 8 phrases and 8 vocabulary words. All content must match the learner level specified above.';
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-    model:"claude-sonnet-4-20250514",max_tokens:2000,
-    messages:[{role:"user",content:prompt}]
-  })}).then(function(r){return r.json();}).then(function(d){
+  aiCall({max_tokens:2000,messages:[{role:"user",content:prompt}]}).then(function(text){
     GENERATING_SCENARIO=false;
-    var text=(d.content&&d.content[0]&&d.content[0].text)||"";
+    text=text||"";
     var m=text.match(/\{[\s\S]*\}/);
     if(!m)throw new Error("no json");
     var sc=JSON.parse(m[0]);
@@ -2346,13 +2357,10 @@ function generateSampleDialog(sc,onSuccess,onError){
   var prompt='Create a realistic '+tl+' sample conversation for the scenario: "'+scenario+'" (taking place in '+country+').\n\nRequirements:\n- Exactly 10-12 turns alternating: A first, then B, then A, etc.\n- Speaker A is the native speaker / service provider / counterpart.\n- Speaker B is the '+tl+' language learner.\n- '+levelHint+'\n- All "text" fields must be in '+tl+' ONLY (never in another language).\n- All "translation" fields must be in '+transNote+'.\n- Natural spoken language, not textbook formal.\n\nReturn ONLY valid JSON (no markdown):\n{"speakerA":"[short label for A, in '+langNote+']","speakerB":"[short label for B, in '+langNote+']","dialog":[{"speaker":"A","text":"...","translation":"..."},{"speaker":"B","text":"...","translation":"..."},...]}';
   // Hard timeout in case the proxy hangs (45s)
   var hardTimeout=setTimeout(function(){if(token===DIALOG_GEN_TOKEN&&ctrl){try{ctrl.abort();}catch(e){}}},45000);
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl?ctrl.signal:undefined,body:JSON.stringify({
-    model:"claude-sonnet-4-20250514",max_tokens:1800,
-    messages:[{role:"user",content:prompt}]
-  })}).then(function(r){return r.json();}).then(function(d){
+  aiCall({max_tokens:1800,messages:[{role:"user",content:prompt}],signal:ctrl?ctrl.signal:undefined}).then(function(text){
     clearTimeout(hardTimeout);
     if(token!==DIALOG_GEN_TOKEN)return;
-    var text=(d.content&&d.content[0]&&d.content[0].text)||"";
+    text=text||"";
     var m=text.match(/\{[\s\S]*\}/);
     if(!m)throw new Error("no json");
     var result=JSON.parse(m[0]);
@@ -2720,6 +2728,7 @@ function startSession(topic,sysPrompt,opening,sc,firstSpeaker){
   var levelPrompt=(LEVEL_CONFIG[LEVEL]?LEVEL_CONFIG[LEVEL].prompt:"");
   var slowPrompt=SLOW_MODE?" Use short simple sentences and basic vocabulary. Speak clearly with natural pauses. Avoid contractions and complex grammar.":"";
   var finalPrompt=sysPrompt+levelPrompt+slowPrompt;
+  bumpSessionToken();
   TOPIC=topic;SYSPR=finalPrompt;HIST=[];UTTS=[];UTTS_AUDIO=[];CONF_SCORES=[];ON=true;
   TASK_DONE=false;TASK_DEF=sc||null;LAST_CONF=null;
   SESSION_FILLERS={};
@@ -3015,16 +3024,24 @@ function sendMsg(){
   LATEST_AUDIO_URL=null;
   CUR="";LAST_CONF=null;document.getElementById("tb").textContent=tr("speech_placeholder");
   setst("AI is thinking...");HIST.push({role:"user",content:txt});showThinking();
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:150,system:SYSPR,messages:HIST})})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    var rep=d.content&&d.content[0]?d.content[0].text:"That's interesting! Can you tell me more?";
+  var token=SESSION_TOKEN;
+  aiCall({max_tokens:150,system:SYSPR,messages:HIST})
+  .then(function(rep){
+    if(token!==SESSION_TOKEN)return; // session ended/restarted — drop response
+    rep=rep||"That's interesting! Can you tell me more?";
     hideThinking();addMsg("ai",rep,true);HIST.push({role:"assistant",content:rep});
     logUsage("claude_chat");
     updateTaskCard();
-    speak(rep,function(){if(ON)setTimeout(function(){if(ON&&!IR&&!SPEAKING)toggleRec();},600);});
+    speak(rep,function(){if(ON&&token===SESSION_TOKEN)setTimeout(function(){if(ON&&!IR&&!SPEAKING&&token===SESSION_TOKEN)toggleRec();},600);});
   })
-  .catch(function(){hideThinking();addMsg("ai",LANG==="zh"?ST_ZH["Connection issue. Try again."]:"Connection issue. Try again.",false);setst("Error. Tap mic to retry.");});
+  .catch(function(){
+    if(token!==SESSION_TOKEN)return;
+    hideThinking();
+    // Roll back the user turn so retry doesn't see a one-sided history
+    if(HIST.length&&HIST[HIST.length-1].role==="user")HIST.pop();
+    addMsg("ai",LANG==="zh"?ST_ZH["Connection issue. Try again."]:"Connection issue. Try again.",false);
+    setst("Error. Tap mic to retry.");
+  });
 }
 
 // ── End session ──
@@ -3032,6 +3049,8 @@ function endSess(){
   if(!UTTS.length){setst("Please have at least one exchange.");return;}
   window.speechSynthesis&&window.speechSynthesis.cancel();
   ON=false;SPEAKING=false;IR=false;if(RC)try{RC.stop();}catch(e){}
+  // Bump token so any in-flight sendMsg response gets dropped
+  var token=bumpSessionToken();
   setst("Generating feedback...");document.getElementById("mb").disabled=true;document.getElementById("eb").disabled=true;showThinking();
   var utteranceLines=UTTS.map(function(u,i){var cs=CONF_SCORES[i];return(cs&&cs.confidence>0&&cs.confidence<0.75)?u+" [speech clarity: "+Math.round(cs.confidence*100)+"%]":u;});
   var fbLangNote=LANG==="zh"?"Write ALL explanatory text fields (reason, note, strengths, overall_tip, pronunciation tips) in Traditional Chinese. Keep original/corrected/suggestion/word values in "+tln()+".":"";
@@ -3047,10 +3066,10 @@ function endSess(){
     +"Use actual sentences from the learner. Do not invent examples. "
     +(fbLangNote?fbLangNote+" ":"")
     +"IMPORTANT: This is spoken "+tln()+" practice. Do NOT flag corrections that are only about punctuation (missing commas, periods, question marks, capitalization). Only flag errors that affect spoken meaning: wrong words, wrong grammar, wrong verb tense, wrong word order.";
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    var raw=d.content&&d.content[0]?d.content[0].text:"{}";
+  aiCall({max_tokens:1200,messages:[{role:"user",content:prompt}]})
+  .then(function(raw){
+    if(token!==SESSION_TOKEN)return; // user restarted while feedback was generating
+    raw=raw||"{}";
     var s=raw.indexOf("{"),e=raw.lastIndexOf("}");
     var fb=JSON.parse(s>=0&&e>=0?raw.substring(s,e+1):"{}");
     hideThinking();
@@ -3060,7 +3079,10 @@ function endSess(){
     }
     showFeedback(fb);
   })
-  .catch(function(){hideThinking();setst("Feedback failed. Try again.");ON=true;document.getElementById("mb").disabled=false;document.getElementById("eb").disabled=false;});
+  .catch(function(){
+    if(token!==SESSION_TOKEN)return;
+    hideThinking();setst("Feedback failed. Try again.");ON=true;document.getElementById("mb").disabled=false;document.getElementById("eb").disabled=false;
+  });
 }
 
 var PUNCT_KEYWORDS=/\b(comma|period|punctuation|question mark|exclamation|capitali|full stop|apostrophe|semicolon|colon)\b/i;
@@ -3154,6 +3176,7 @@ function restart(){
   DIALOG_SC=null;DIALOG_CURRENT=null;
   closeVocabOverlay();
   window.speechSynthesis&&window.speechSynthesis.cancel();
+  bumpSessionToken();
   ON=false;HIST=[];UTTS=[];UTTS_AUDIO=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
   TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;SESSION_SC=null;
   SESSION_FILLERS={};cleanupSessionRecordings();
@@ -3305,12 +3328,8 @@ function startFromPhraseReview(firstSpeaker){
   if(customRP&&firstSpeaker==="ai"){
     setst(LANG==="zh"?"準備中⋯⋯":"Getting into character...");
     var _sc=sc,_topic=topic,_sys=sys,_fs=firstSpeaker;
-    fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      model:"claude-sonnet-4-20250514",max_tokens:80,
-      messages:[{role:"user",content:"[Scenario: "+_topic+". Start now — say only your natural in-character opening line. No stage directions, no quotes, just spoken words.]"}],
-      system:_sys
-    })}).then(function(r){return r.json();}).then(function(d){
-      var op=((d.content&&d.content[0]&&d.content[0].text)||"").trim();
+    aiCall({max_tokens:80,system:_sys,messages:[{role:"user",content:"[Scenario: "+_topic+". Start now — say only your natural in-character opening line. No stage directions, no quotes, just spoken words.]"}]}).then(function(op){
+      op=(op||"").trim();
       startSession(_topic,_sys,op||_sc.opening||"",_sc,_fs);
     }).catch(function(){
       var op=(_sc.opening||"").replace("TOPIC",_topic);
