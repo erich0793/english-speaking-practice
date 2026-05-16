@@ -67,9 +67,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .level-name{font-size:15px;font-weight:500;color:#1a1a1a;display:block}
 .level-desc{font-size:12px;color:#888;margin-top:2px;display:block}
 .level-bar{display:flex;align-items:center;justify-content:space-between;background:#f0f4ff;border-radius:8px;padding:6px 12px;margin-bottom:10px;font-size:12px}
+.level-bar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .level-bar-text{color:#333}
-.level-bar-change{color:#185FA5;cursor:pointer;font-weight:500}
+.level-bar-change{color:#185FA5;cursor:pointer;font-weight:500;flex-shrink:0}
 .level-bar-change:hover{text-decoration:underline}
+/* Daily streak badge — Duolingo-style habit tracker */
+.streak-badge{background:#f0f0f0;border-radius:10px;padding:2px 8px;font-size:11px;color:#888;font-weight:600;cursor:pointer;transition:transform .15s;user-select:none}
+.streak-badge:hover{transform:scale(1.05)}
+.streak-badge.active{background:linear-gradient(90deg,#FFC107,#FF7043);color:#fff;box-shadow:0 1px 3px rgba(255,112,67,.3)}
+.streak-modal{position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px}
+.streak-modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.streak-modal-card{position:relative;background:#fff;border-radius:16px;padding:22px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 6px 30px rgba(0,0,0,.2)}
+.streak-modal-title{font-size:20px;font-weight:600;margin-bottom:10px}
+.streak-modal-current{font-size:32px;font-weight:700;background:linear-gradient(90deg,#FFC107,#FF7043);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.streak-modal-longest{font-size:13px;color:#888;margin-bottom:18px}
+.streak-week{display:flex;justify-content:space-between;gap:4px;margin-bottom:18px}
+.streak-day{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.streak-day-dot{width:24px;height:24px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.streak-day.done .streak-day-dot{background:linear-gradient(135deg,#FFC107,#FF7043);box-shadow:0 1px 3px rgba(255,112,67,.4)}
+.streak-day.done .streak-day-dot::after{content:"🔥"}
+.streak-day-lbl{font-size:10px;color:#888;font-weight:500}
+.streak-day.today .streak-day-lbl{color:#185FA5;font-weight:700}
+.streak-modal-close{margin-top:4px;width:100%;padding:10px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-size:14px;cursor:pointer}
 
 /* Top bar */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid #e0e0e0}
@@ -605,9 +624,13 @@ button:disabled{opacity:.35 !important;cursor:not-allowed !important;pointer-eve
   <div id="tabContentPractice">
     <div id="practiceLeft">
       <div class="level-bar" id="levelBar">
-        <span class="level-bar-text" id="levelBarText">Level: Intermediate 🌿</span>
+        <div class="level-bar-left">
+          <span class="streak-badge" id="streakBadge" onclick="showStreakModal()">🔥 0</span>
+          <span class="level-bar-text" id="levelBarText">Level: Intermediate 🌿</span>
+        </div>
         <span class="level-bar-change" id="levelBarChange" onclick="showLevelScreen()">Change level</span>
       </div>
+      <div id="streakModal" class="streak-modal" style="display:none"></div>
       <div class="daily" id="dailyBanner" onclick="useDailyTopic()">
         <span class="daily-label">Today's topic</span>
         <span class="daily-text" id="dailyText">Loading...</span>
@@ -1274,6 +1297,7 @@ function initApp(){
   setDisplayLang(LANG);
   setFontSize(FONT_SIZE);
   updateLevelBar();
+  refreshStreakUI();
   loadMyScenarios();
   if(currentUser&&currentUser.username===ADMIN_USERNAME){
     document.getElementById("tabAdmin").style.display="";
@@ -3324,6 +3348,7 @@ function endSess(){
       dbInsert("session_errors",fb.corrections.map(function(c){return{user_id:currentUser.id,error_type:c.error_type||"grammar",original:c.original,corrected:c.corrected,reason:c.reason||null,scenario:currentMode||null,lang:TARGET_LANG};}));
     }
     showFeedback(fb);
+    recordSessionForStreak();
   })
   .catch(function(){
     if(token!==SESSION_TOKEN)return;
@@ -3436,6 +3461,98 @@ function restart(){
   document.getElementById("chat").innerHTML='<div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">'+escHtml(tr("chat_init"))+'</div></div>';
   setst(tr("status_init"));
 }
+
+// ── Streak (daily practice habit) ──
+// Storage shape: {current:N, longest:N, lastDate:"YYYY-MM-DD", days:{"YYYY-MM-DD":sessionCount}}
+function _dayKey(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),da=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+da;}
+function _todayKey(){return _dayKey(new Date());}
+function _yesterdayKey(){var d=new Date();d.setDate(d.getDate()-1);return _dayKey(d);}
+function loadStreak(){
+  try{var s=JSON.parse(localStorage.getItem("streak_data"));if(s&&typeof s==="object")return Object.assign({current:0,longest:0,lastDate:null,days:{}},s);}catch(e){}
+  return {current:0,longest:0,lastDate:null,days:{}};
+}
+function saveStreak(s){localStorage.setItem("streak_data",JSON.stringify(s));}
+function refreshStreakUI(){
+  var s=loadStreak();
+  // Lazy reset: if last activity was more than 1 day ago, current streak is broken
+  if(s.lastDate&&s.lastDate!==_todayKey()&&s.lastDate!==_yesterdayKey()){
+    s.current=0;
+    saveStreak(s);
+  }
+  var badge=document.getElementById("streakBadge");
+  if(!badge)return;
+  badge.textContent="🔥 "+s.current;
+  if(s.current>0)badge.classList.add("active");
+  else badge.classList.remove("active");
+}
+// Called when a session is successfully completed (after endSess yields feedback)
+function recordSessionForStreak(){
+  var s=loadStreak();
+  var today=_todayKey();
+  s.days=s.days||{};
+  if(s.lastDate===today){
+    // Already counted today — just bump session count
+    s.days[today]=(s.days[today]||0)+1;
+    saveStreak(s);
+    refreshStreakUI();
+    return;
+  }
+  var newStreak=(s.lastDate===_yesterdayKey())?s.current+1:1;
+  s.current=newStreak;
+  s.lastDate=today;
+  s.days[today]=(s.days[today]||0)+1;
+  // Prune entries older than 30 days
+  var cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+  var cutoffKey=_dayKey(cutoff);
+  Object.keys(s.days).forEach(function(k){if(k<cutoffKey)delete s.days[k];});
+  if(newStreak>s.longest)s.longest=newStreak;
+  saveStreak(s);
+  refreshStreakUI();
+  // Celebrate milestone increments
+  var msg;
+  if(LANG==="zh"){
+    msg=newStreak===1?"🎉 開始新的連續紀錄！":"🔥 連續 "+newStreak+" 天！繼續加油！";
+    if(newStreak===7)msg="🏆 一週連續達成！太棒了！";
+    else if(newStreak===30)msg="🏆 一個月連續！你超強！";
+  }else{
+    msg=newStreak===1?"🎉 New streak started!":"🔥 "+newStreak+" day streak! Keep it up!";
+    if(newStreak===7)msg="🏆 1 week streak! Amazing!";
+    else if(newStreak===30)msg="🏆 30 day streak! You're a legend!";
+  }
+  showToast(msg);
+}
+function showStreakModal(){
+  var s=loadStreak();
+  var today=new Date();
+  var todayK=_dayKey(today);
+  var dayLabels=LANG==="zh"?["日","一","二","三","四","五","六"]:["S","M","T","W","T","F","S"];
+  var dots="";
+  for(var i=6;i>=0;i--){
+    var d=new Date();d.setDate(today.getDate()-i);
+    var k=_dayKey(d);
+    var has=s.days&&s.days[k]>0;
+    var isToday=k===todayK;
+    dots+='<div class="streak-day '+(has?'done ':'')+(isToday?'today':'')+'">'
+      +'<div class="streak-day-dot"></div>'
+      +'<div class="streak-day-lbl">'+dayLabels[d.getDay()]+'</div>'
+      +'</div>';
+  }
+  var title=LANG==="zh"?"連續練習":"Practice Streak";
+  var currentLbl=LANG==="zh"?(s.current+" 天"):s.current+" day"+(s.current===1?"":"s");
+  var longestLbl=LANG==="zh"?"最長："+s.longest+" 天":"Longest: "+s.longest+" day"+(s.longest===1?"":"s");
+  var closeLbl=LANG==="zh"?"關閉":"Close";
+  var modal=document.getElementById("streakModal");
+  modal.innerHTML='<div class="streak-modal-bg" onclick="hideStreakModal()"></div>'
+    +'<div class="streak-modal-card">'
+    +'<div class="streak-modal-title">🔥 '+escHtml(title)+'</div>'
+    +'<div class="streak-modal-current">'+escHtml(currentLbl)+'</div>'
+    +'<div class="streak-modal-longest">'+escHtml(longestLbl)+'</div>'
+    +'<div class="streak-week">'+dots+'</div>'
+    +'<button class="streak-modal-close" onclick="hideStreakModal()">'+escHtml(closeLbl)+'</button>'
+    +'</div>';
+  modal.style.display="flex";
+}
+function hideStreakModal(){var m=document.getElementById("streakModal");if(m){m.style.display="none";m.innerHTML="";}}
 
 // ── Utils ──
 function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
