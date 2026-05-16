@@ -128,6 +128,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .ubbl{background:#185FA5;color:#fff;border-top-right-radius:4px}
 .save-btn{position:absolute;top:6px;right:6px;font-size:16px;cursor:pointer;opacity:.4;background:none;border:none;padding:0;line-height:1}
 .save-btn:hover{opacity:1}
+/* Per-message translation: tap to peek at meaning without leaving the conversation flow */
+.trans-btn{position:absolute;top:8px;right:30px;font-size:10px;cursor:pointer;opacity:.5;background:none;border:1px solid #888;border-radius:8px;padding:1px 6px;color:#666;line-height:1.3;font-weight:500}
+.trans-btn:hover{opacity:1}
+.trans-btn.active{opacity:.9;background:#f0f4ff;border-color:#185FA5;color:#185FA5}
+.bbl-trans{font-size:12px;color:#888;font-style:italic;margin-top:6px;padding-top:6px;border-top:1px dashed #e0e0e0;line-height:1.5}
 .dot{width:7px;height:7px;border-radius:50%;background:#999;display:inline-block;animation:bop 1s infinite}
 .d2{animation-delay:.15s}.d3{animation-delay:.3s}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
@@ -2885,6 +2890,15 @@ function addMsg(role,text,canSave,confidence,audioUrl){
     sb.onclick=function(){saveSentence(text,null,"AI expression");sb.textContent="✅";sb.disabled=true;};
     bb.appendChild(sb);
   }
+  // AI translation peek button (skip the chat-init placeholder and trivial messages)
+  if(role==="ai"&&text&&text.length>3){
+    var tb=document.createElement("button");
+    tb.className="trans-btn";
+    tb.textContent=LANG==="zh"?"中":"譯";
+    tb.title=LANG==="zh"?"顯示中文翻譯":"Show translation";
+    tb.onclick=function(){toggleTranslation(bb,tb,text);};
+    bb.appendChild(tb);
+  }
   // Replay button for user messages with recorded audio
   if(role==="user"&&audioUrl){
     var foot=document.createElement("div");foot.className="ubbl-foot";
@@ -3175,6 +3189,42 @@ function sendMsg(){
     if(HIST.length&&HIST[HIST.length-1].role==="user")HIST.pop();
     addMsg("ai",LANG==="zh"?ST_ZH["Connection issue. Try again."]:"Connection issue. Try again.",false);
     setst("Error. Tap mic to retry.");
+  });
+}
+
+// ── Per-message translation peek ──
+// Keyed by original text so the same line shared across sessions hits cache.
+var TRANS_CACHE={};
+function toggleTranslation(bbl,btn,text){
+  var existing=bbl.querySelector(".bbl-trans");
+  if(existing){
+    // Toggle visibility
+    if(existing.style.display==="none"){existing.style.display="block";btn.classList.add("active");}
+    else{existing.style.display="none";btn.classList.remove("active");}
+    return;
+  }
+  if(btn.disabled)return;
+  var transLang=LANG==="zh"?"Traditional Chinese":(TARGET_LANG==="en"?"Traditional Chinese":"English");
+  var transNoteLabel=LANG==="zh"?"翻譯中…":"Translating…";
+  var div=document.createElement("div");div.className="bbl-trans";div.textContent=transNoteLabel;
+  bbl.appendChild(div);
+  btn.disabled=true;btn.classList.add("active");
+  var cacheKey=LANG+"|"+text;
+  if(TRANS_CACHE[cacheKey]){
+    div.textContent=TRANS_CACHE[cacheKey];
+    btn.disabled=false;
+    return;
+  }
+  var prompt='Translate the following '+tln()+' sentence to '+transLang+'. Return ONLY the translation, no quotes, no explanation:\n\n'+text;
+  aiCall({max_tokens:200,messages:[{role:"user",content:prompt}]}).then(function(out){
+    var trans=(out||"").trim().replace(/^["']|["']$/g,"");
+    if(!trans){div.remove();btn.disabled=false;btn.classList.remove("active");return;}
+    TRANS_CACHE[cacheKey]=trans;
+    div.textContent=trans;
+    btn.disabled=false;
+  }).catch(function(){
+    div.remove();btn.disabled=false;btn.classList.remove("active");
+    showToast(LANG==="zh"?"翻譯失敗":"Translation failed");
   });
 }
 
