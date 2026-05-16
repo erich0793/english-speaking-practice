@@ -2914,18 +2914,6 @@ function toSSML(text){
 
 // ── TTS ──
 var AUDIO_UNLOCKED=false,SHARED_CTX=null;
-function testTTS(){
-  unlockAudio();setst("Calling Google TTS...");
-  var tlcT=targetLang();
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"google-tts",input:{text:"Hello this is a test."},voice:{languageCode:tlcT.ttsLang,name:tlcT.ttsVoiceF},audioConfig:{audioEncoding:"MP3"}})})
-  .then(function(r){setst("HTTP "+r.status);return r.json();})
-  .then(function(d){
-    if(!d.audioContent){setst("No audio: "+JSON.stringify(d));return;}
-    setst("Got audio, playing...");
-    var ctx=getAudioCtx();
-    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);src.onended=function(){setst("Test done!");};ctx.resume().then(function(){src.start(0);});},function(){speakFallback("Hello this is a test.",null);});
-  }).catch(function(e){setst("Error: "+e.message);});
-}
 function getAudioCtx(){if(!SHARED_CTX)SHARED_CTX=new(window.AudioContext||window.webkitAudioContext)();if(SHARED_CTX.state==="suspended")SHARED_CTX.resume();return SHARED_CTX;}
 function unlockAudio(){
   if(AUDIO_UNLOCKED)return;var ctx=getAudioCtx();
@@ -2937,6 +2925,8 @@ function setSpeaking(val){
   if(val){mb.classList.remove("listening");mb.classList.add("speaking");setst("AI is speaking...");}
   else{mb.classList.remove("speaking");setst("Press mic to respond");}
 }
+// Fallback path with sophisticated voice picking (used by speak() — the AI conversation path).
+// Other callers fall through to the simpler default fallback in playTTS.
 function speakFallback(text,onDone){
   if(!window.speechSynthesis){if(onDone)onDone();return;}
   window.speechSynthesis.cancel();
@@ -2944,31 +2934,86 @@ function speakFallback(text,onDone){
   var utter=new SpeechSynthesisUtterance(text);utter.lang=tlCode;utter.rate=0.95;
   var voices=window.speechSynthesis.getVoices();
   var v=VOICE_GENDER==="male"?(voices.find(function(v){return v.lang===tlCode&&v.name.indexOf("Male")>-1;})||voices.find(function(v){return v.lang===tlCode;}))||voices.find(function(v){return v.lang.startsWith(tlPrefix);}):(voices.find(function(v){return v.lang===tlCode&&v.name.indexOf("Female")>-1;})||voices.find(function(v){return v.lang===tlCode;}))||voices.find(function(v){return v.lang.startsWith(tlPrefix);});
-  if(v)utter.voice=v;setSpeaking(true);
-  utter.onend=function(){setSpeaking(false);if(onDone)onDone();};
-  utter.onerror=function(){setSpeaking(false);if(onDone)onDone();};
+  if(v)utter.voice=v;
+  utter.onend=function(){if(onDone)onDone();};
+  utter.onerror=function(){if(onDone)onDone();};
   window.speechSynthesis.speak(utter);
 }
-function speak(text,onDone){
-  setSpeaking(true);
-  var rate=SLOW_MODE?0.82:0.95;
-  var input=SLOW_MODE?{ssml:toSSML(text)}:{text:text};
+// Unified TTS engine used by all three public functions below.
+// opts:
+//   rate         speakingRate (default 0.95)
+//   ssmlIfSlow   if true and SLOW_MODE, send SSML for natural slow speech
+//   trackUsage   if true, logUsage("tts", text.length)
+//   safetyMs     timeout in ms to force-end if audio never reports onended
+//   signal       AbortSignal
+//   tokenGet     function returning current token; if it changes vs captured, drop response
+//   onSrc        called with AudioBufferSourceNode after start (for external stop control)
+//   fallback     custom fallback(text, done) used when Google TTS unavailable; default uses speechSynthesis
+//   onDone       called exactly once when playback ends, errors, or is aborted
+function playTTS(text,opts){
+  opts=opts||{};
   var tlc=targetLang();
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"google-tts",input:input,voice:{languageCode:tlc.ttsLang,name:VOICE_GENDER==="male"?tlc.ttsVoiceM:tlc.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.audioContent){setSpeaking(false);speakFallback(text,onDone);return;}
-    logUsage("tts",text.length);
+  var rate=opts.rate||0.95;
+  var input=opts.ssmlIfSlow&&SLOW_MODE?{ssml:toSSML(text)}:{text:text};
+  var token=opts.tokenGet?opts.tokenGet():null;
+  var fired=false,safety=null,srcRef=null;
+  function tokenValid(){return !opts.tokenGet||opts.tokenGet()===token;}
+  function finish(){
+    if(fired)return;
+    fired=true;
+    if(safety){clearTimeout(safety);safety=null;}
+    if(opts.onDone)opts.onDone();
+  }
+  function doFallback(){
+    if(fired)return;
+    if(opts.fallback){opts.fallback(text,finish);return;}
+    if(!window.speechSynthesis){finish();return;}
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang=tlc.ttsLang;if(SLOW_MODE)u.rate=0.75;
+    u.onend=finish;u.onerror=finish;
+    window.speechSynthesis.speak(u);
+  }
+  if(opts.safetyMs){
+    safety=setTimeout(function(){
+      if(srcRef){try{srcRef.stop();}catch(e){}}
+      finish();
+    },opts.safetyMs);
+  }
+  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},signal:opts.signal,body:JSON.stringify({
+    action:"google-tts",input:input,
+    voice:{languageCode:tlc.ttsLang,name:VOICE_GENDER==="male"?tlc.ttsVoiceM:tlc.ttsVoiceF},
+    audioConfig:{audioEncoding:"MP3",speakingRate:rate}
+  })}).then(function(r){return r.json();}).then(function(d){
+    if(!tokenValid()){finish();return;}
+    if(!d.audioContent){doFallback();return;}
+    if(opts.trackUsage)logUsage("tts",text.length);
     var ctx=getAudioCtx();
     ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
+      if(!tokenValid()){finish();return;}
       var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
-      var speedFactor=SLOW_MODE?1.3:1;
-      var done=false,estMs=Math.max(3000,Math.round((text.split(" ").length/2.5)*1000*speedFactor)+1500);
-      var ft=setTimeout(function(){if(!done){done=true;try{src.stop();}catch(e){}setSpeaking(false);if(onDone)onDone();}},estMs);
-      src.onended=function(){if(!done){done=true;clearTimeout(ft);setSpeaking(false);if(onDone)onDone();}};
-      ctx.resume().then(function(){src.start(0);});
-    },function(){setSpeaking(false);speakFallback(text,onDone);});
-  }).catch(function(e){console.log("TTS error",e);setSpeaking(false);speakFallback(text,onDone);});
+      srcRef=src;
+      src.onended=function(){srcRef=null;finish();};
+      if(opts.onSrc)opts.onSrc(src);
+      ctx.resume().then(function(){try{src.start(0);}catch(e){finish();}});
+    },function(){doFallback();});
+  }).catch(function(e){
+    if(e&&e.name==="AbortError"){if(safety){clearTimeout(safety);safety=null;}fired=true;return;}
+    if(!tokenValid()){finish();return;}
+    doFallback();
+  });
+}
+// Conversation AI voice: tracks SPEAKING state, uses sophisticated fallback voices.
+function speak(text,onDone){
+  setSpeaking(true);
+  var estMs=Math.max(3000,Math.round((text.split(" ").length/2.5)*1000*(SLOW_MODE?1.3:1))+1500);
+  playTTS(text,{
+    rate:SLOW_MODE?0.82:0.95,
+    ssmlIfSlow:true,
+    trackUsage:true,
+    safetyMs:estMs,
+    fallback:speakFallback,
+    onDone:function(){setSpeaking(false);if(onDone)onDone();}
+  });
 }
 
 // ── STT ──
@@ -3201,28 +3246,9 @@ function showToast(msg){
   document.body.appendChild(t);setTimeout(function(){t.remove();},2500);
 }
 
-// ── Pronunciation playback (non-blocking) ──
+// ── Pronunciation playback (non-blocking, for tap-to-hear buttons) ──
 function speakText(text,onDone){
-  var tlcF=targetLang();
-  var rate=SLOW_MODE?0.72:0.88;
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"google-tts",input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.audioContent){
-      if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;if(onDone)u.onend=onDone;window.speechSynthesis.speak(u);}
-      else if(onDone)onDone();
-      return;
-    }
-    var ctx=getAudioCtx();
-    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
-      var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
-      if(onDone)src.onended=onDone;
-      ctx.resume().then(function(){src.start(0);});
-    },function(){if(onDone)onDone();});
-  }).catch(function(){
-    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;if(onDone)u.onend=onDone;window.speechSynthesis.speak(u);}
-    else if(onDone)onDone();
-  });
+  playTTS(text,{rate:SLOW_MODE?0.72:0.88,onDone:onDone});
 }
 // Wrapper: disable button while TTS plays, re-enable on finish
 function ttsClick(btn,text){
@@ -3231,42 +3257,19 @@ function ttsClick(btn,text){
   var safety=setTimeout(function(){btn.disabled=false;},12000);
   speakText(text,function(){clearTimeout(safety);btn.disabled=false;});
 }
-
+// Sample-dialogue playback: aborts previous, tracks DIALOG_SRC so user can stop mid-line.
 function speakTextWithCallback(text,onDone){
-  var tlcF=targetLang();
-  var rate=SLOW_MODE?0.72:0.88;
-  var fired=false;
-  var token=DIALOG_REQ_TOKEN;
-  function fire(){if(fired)return;if(token!==DIALOG_REQ_TOKEN)return;fired=true;if(onDone)onDone();}
-  // Safety timeout: estimate ~120ms per char + 1500ms padding; advance even if TTS hangs
-  var timeoutMs=Math.min(20000,Math.max(3000,(text.length*120)+1500));
-  var safety=setTimeout(fire,timeoutMs);
-  function done(){clearTimeout(safety);fire();}
   if(DIALOG_FETCH_CTRL){try{DIALOG_FETCH_CTRL.abort();}catch(e){}}
   var ctrl=("AbortController" in window)?new AbortController():null;
   DIALOG_FETCH_CTRL=ctrl;
-  fetch(PROXY,{method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl?ctrl.signal:undefined,body:JSON.stringify({action:"google-tts",input:{text:text},voice:{languageCode:tlcF.ttsLang,name:VOICE_GENDER==="male"?tlcF.ttsVoiceM:tlcF.ttsVoiceF},audioConfig:{audioEncoding:"MP3",speakingRate:rate}})})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(token!==DIALOG_REQ_TOKEN){clearTimeout(safety);return;}
-    if(!d.audioContent){
-      if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;u.onend=done;window.speechSynthesis.speak(u);}
-      else done();
-      return;
-    }
-    var ctx=getAudioCtx();
-    ctx.decodeAudioData(base64ToArrayBuffer(d.audioContent),function(buf){
-      if(token!==DIALOG_REQ_TOKEN){clearTimeout(safety);return;}
-      var src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);
-      DIALOG_SRC=src;
-      src.onended=function(){if(DIALOG_SRC===src)DIALOG_SRC=null;done();};
-      ctx.resume().then(function(){try{src.start(0);}catch(e){done();}});
-    },function(){done();});
-  }).catch(function(e){
-    if(e&&e.name==="AbortError"){clearTimeout(safety);return;}
-    if(token!==DIALOG_REQ_TOKEN){clearTimeout(safety);return;}
-    if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(text);u.lang=tlcF.ttsLang;if(SLOW_MODE)u.rate=0.75;u.onend=done;window.speechSynthesis.speak(u);}
-    else done();
+  var safetyMs=Math.min(20000,Math.max(3000,(text.length*120)+1500));
+  playTTS(text,{
+    rate:SLOW_MODE?0.72:0.88,
+    signal:ctrl?ctrl.signal:undefined,
+    safetyMs:safetyMs,
+    tokenGet:function(){return DIALOG_REQ_TOKEN;},
+    onSrc:function(src){DIALOG_SRC=src;},
+    onDone:function(){if(DIALOG_SRC)DIALOG_SRC=null;if(onDone)onDone();}
   });
 }
 
