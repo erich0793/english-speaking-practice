@@ -143,6 +143,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 @keyframes ripple{0%,100%{box-shadow:0 0 0 0 rgba(163,45,45,.3)}50%{box-shadow:0 0 0 14px rgba(163,45,45,0)}}
 .acts{display:flex;gap:8px;justify-content:center;margin-bottom:1rem}
 .endbtn{border-color:#A32D2D;color:#A32D2D}
+.hintbtn{border-color:#E0B860;color:#7A5C00;background:#FFF8E1}
+.hintbtn:disabled{opacity:.4;cursor:not-allowed}
+/* Hint suggestion panel — appears between transcript and mic when user taps 💡 */
+.hint-panel{background:#FFF8E1;border:1px solid #E0B860;border-radius:10px;padding:10px 12px;margin-bottom:.75rem;animation:hintFade .2s ease-out}
+.hint-panel-head{font-size:12px;color:#7A5C00;font-weight:500;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.hint-panel-close{background:none;border:none;cursor:pointer;font-size:20px;color:#7A5C00;line-height:1;padding:0 4px}
+.hint-item{background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:5px;font-size:14px;line-height:1.5}
+.hint-item:last-child{margin-bottom:0}
+.hint-item-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hint-item-text{color:#1a1a1a;flex:1}
+.hint-item-zh{font-size:12px;color:#888;margin-top:3px}
+.hint-tts{font-size:15px;background:none;border:none;cursor:pointer;opacity:.55;flex-shrink:0;padding:0}
+.hint-tts:hover{opacity:1}
+@keyframes hintFade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
 /* Task card */
 .task-card{background:#fff;border:1.5px solid #185FA5;border-radius:12px;padding:12px 14px;width:100%;text-align:left}
@@ -625,12 +639,14 @@ button:disabled{opacity:.35 !important;cursor:not-allowed !important;pointer-eve
       <div class="st" id="st">Select a scenario or topic to begin</div>
       <div class="tb" id="tb">Your speech will appear here...</div>
       <p class="hint">🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop</p>
+      <div id="hintPanel" class="hint-panel" style="display:none"></div>
       <div class="ctrl">
         <button class="mic" id="mb" onclick="toggleRec()">
           <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
         </button>
       </div>
       <div class="acts">
+        <button class="abtn hintbtn" id="hb" onclick="getHints()">💡 <span id="hbLabel">Hint</span></button>
         <button class="abtn endbtn" id="eb" onclick="endSess()">End and get feedback</button>
       </div>
       <div class="smr" id="smr">
@@ -1183,6 +1199,7 @@ function applyLang(){
   if(!ON){setst(tr("status_init"));document.getElementById("tb").textContent=tr("speech_placeholder");}
   document.querySelector(".hint").innerHTML=tr("hint_text");
   document.getElementById("eb").textContent=tr("btn_end");
+  var hbLabel=document.getElementById("hbLabel");if(hbLabel)hbLabel.textContent=LANG==="zh"?"提示":"Hint";
   document.querySelector(".note").textContent=tr("note_browser");
   var smrH2=document.querySelector("#smr h2");if(smrH2)smrH2.textContent=tr("smr_title");
   document.querySelector(".rbtn").textContent=tr("btn_restart");
@@ -3124,6 +3141,7 @@ function toggleRec(){
   unlockAudio();if(!RC&&!initRec())return;
   if(IR){RC.stop();IR=false;}
   else{
+    closeHint(); // user is replying — clear suggestion panel
     CUR="";LAST_CONF=null;document.getElementById("tb").textContent=tr("speech_placeholder");
     LATEST_AUDIO_URL=null;
     try{RC.start();IR=true;document.getElementById("mb").classList.add("listening");startMediaRecording();}
@@ -3160,9 +3178,71 @@ function sendMsg(){
   });
 }
 
+// ── Hint: suggest replies when learner is stuck ──
+function getHints(){
+  if(!ON){return;}
+  if(SPEAKING||IR){return;}
+  var hb=document.getElementById("hb");
+  if(hb.disabled)return;
+  // Need at least one AI message to suggest replies for
+  var lastAi="";
+  for(var i=HIST.length-1;i>=0;i--){if(HIST[i].role==="assistant"){lastAi=HIST[i].content;break;}}
+  if(!lastAi)lastAi=SESSION_SC&&SESSION_SC.opening?SESSION_SC.opening:"";
+  if(!lastAi){
+    showToast(LANG==="zh"?"開始對話後才能用提示":"Start a conversation first");
+    return;
+  }
+  hb.disabled=true;
+  var panel=document.getElementById("hintPanel");
+  panel.style.display="block";
+  panel.innerHTML='<div class="hint-panel-head"><span>💡 '+escHtml(LANG==="zh"?"提示生成中…":"Getting suggestions…")+'</span><button class="hint-panel-close" onclick="closeHint()">×</button></div>';
+  var token=SESSION_TOKEN;
+  var transLang=LANG==="zh"?"Traditional Chinese":(TARGET_LANG==="en"?"Traditional Chinese":"English");
+  var levelHint=LEVEL&&LEVEL_CONFIG[LEVEL]?(LEVEL_CONFIG[LEVEL].prompt||""):"";
+  var topicLine=TOPIC?'Conversation topic: "'+TOPIC+'". ':"";
+  var prompt=topicLine+'The learner is having a '+tln()+' conversation.\n\nThe other person just said: "'+lastAi+'"\n\nSuggest exactly 3 short natural replies the learner could say next, each 1-2 sentences. Vary them (e.g. agree, ask a follow-up question, share an experience). All replies must be in '+tln()+'.'
+    +(levelHint?levelHint:"")
+    +'\n\nReturn ONLY valid JSON, no markdown: [{"reply":"...","zh":"..."},{"reply":"...","zh":"..."},{"reply":"...","zh":"..."}]\nThe "reply" field is the suggestion in '+tln()+'. The "zh" field is the translation in '+transLang+'.';
+  aiCall({max_tokens:500,messages:[{role:"user",content:prompt}]}).then(function(raw){
+    if(token!==SESSION_TOKEN){return;}
+    hb.disabled=false;
+    raw=raw||"";
+    var m=raw.match(/\[[\s\S]*\]/);
+    if(!m){closeHint();showToast(LANG==="zh"?"暫時想不出來，請再試一次":"Could not generate hint");return;}
+    var hints=[];
+    try{hints=JSON.parse(m[0]);}catch(e){closeHint();return;}
+    if(!hints.length){closeHint();return;}
+    renderHints(hints);
+  }).catch(function(){
+    if(token!==SESSION_TOKEN)return;
+    hb.disabled=false;closeHint();
+  });
+}
+function renderHints(hints){
+  var panel=document.getElementById("hintPanel");
+  if(!panel)return;
+  var title=LANG==="zh"?"你可以說：":"You could say:";
+  var html='<div class="hint-panel-head"><span>💡 '+escHtml(title)+'</span><button class="hint-panel-close" onclick="closeHint()">×</button></div>';
+  hints.forEach(function(h){
+    if(!h||!h.reply)return;
+    var rep=escAttr(h.reply);
+    html+='<div class="hint-item">'
+      +'<div class="hint-item-row"><div class="hint-item-text">'+escHtml(h.reply)+'</div>'
+      +'<button class="hint-tts" onclick="ttsClick(this,\''+rep+'\')">🔊</button></div>'
+      +(h.zh?'<div class="hint-item-zh">'+escHtml(h.zh)+'</div>':'')
+      +'</div>';
+  });
+  panel.innerHTML=html;
+}
+function closeHint(){
+  var panel=document.getElementById("hintPanel");
+  if(panel){panel.style.display="none";panel.innerHTML="";}
+}
+
 // ── End session ──
 function endSess(){
   if(!UTTS.length){setst("Please have at least one exchange.");return;}
+  closeHint();
   window.speechSynthesis&&window.speechSynthesis.cancel();
   ON=false;SPEAKING=false;IR=false;if(RC)try{RC.stop();}catch(e){}
   // Bump token so any in-flight sendMsg response gets dropped
@@ -3291,6 +3371,7 @@ function restart(){
   if(DIALOG_PLAYING)stopDialogPlayback();
   DIALOG_SC=null;DIALOG_CURRENT=null;
   closeVocabOverlay();
+  closeHint();
   window.speechSynthesis&&window.speechSynthesis.cancel();
   bumpSessionToken();
   ON=false;HIST=[];UTTS=[];UTTS_AUDIO=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
