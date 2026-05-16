@@ -698,26 +698,67 @@ function aiCall(opts){
     .then(function(d){return (d&&d.content&&d.content[0]&&d.content[0].text)||"";});
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GLOBAL STATE — single-file app, no module system. Globals are grouped here
+// by concern. The short names (RC, IR, CUR, ON, etc.) are legacy; new code
+// should prefer reading via SESSION.* below for clarity.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// — User / preferences
 var currentUser=null,VOICE_GENDER="female";
-var RC=null,IR=false,CUR="",HIST=[],UTTS=[],UTTS_AUDIO=[],TOPIC="",SYSPR="",ON=false,SPEAKING=false;
-var silenceTimer=null,currentMode="";
-var CONF_SCORES=[],LAST_CONF=null;
-var TASK_DONE=false,TASK_DEF=null;
-var SAVED_MAP={};
 var SLOW_MODE=localStorage.getItem("pref_slow")==="1";
 var LEVEL=localStorage.getItem("pref_level")||"";
-var PENDING_TOPIC="";var PENDING_SC=null;var GENERATING_SCENARIO=false;var SESSION_SC=null;
-var TOPIC_RC=null,TOPIC_IR=false;
-
-var LANG=localStorage.getItem("pref_lang")||"en";
-var TARGET_LANG=localStorage.getItem("pref_target_lang")||"en";
+var LANG=localStorage.getItem("pref_lang")||"en";          // UI display language (zh | en)
+var TARGET_LANG=localStorage.getItem("pref_target_lang")||"en"; // practice language (en | ja | de)
 var FONT_SIZE=localStorage.getItem("pref_fz")||"md";
-var DIALOG_SC=null;
-var DIALOG_PLAYING=false;
-var DIALOG_CURRENT=null;
-var DIALOG_SRC=null;
-var DIALOG_FETCH_CTRL=null;
-var DIALOG_REQ_TOKEN=0;
+
+// — Active conversation session
+var RC=null;            // SpeechRecognition instance
+var IR=false;           // is currently recording (mic listening)
+var CUR="";             // current in-progress utterance text
+var HIST=[];            // chat history sent to AI
+var UTTS=[];            // learner utterances this session (parallel to UTTS_AUDIO/CONF_SCORES)
+var UTTS_AUDIO=[];      // blob URLs of recorded mic audio per UTTS
+var CONF_SCORES=[];     // STT confidence per UTTS
+var LAST_CONF=null;     // most recent confidence object
+var TOPIC="";           // session topic name
+var SYSPR="";           // final system prompt sent to AI
+var ON=false;           // session is active
+var SPEAKING=false;     // AI TTS is currently playing
+var silenceTimer=null;  // auto-send timer when user stops speaking
+var currentMode="";     // selected scenario mode id (free/restaurant/...)
+var TASK_DONE=false,TASK_DEF=null; // task card state
+
+// — Scenario staging (between mode-select and session-start)
+var PENDING_TOPIC="";
+var PENDING_SC=null;            // scenario object queued for Phrase Review
+var GENERATING_SCENARIO=false;  // debounce flag for AI scenario generation
+var SESSION_SC=null;             // scenario object for the active session
+var TOPIC_RC=null,TOPIC_IR=false; // mic for the topic-input field
+
+// — Saved sentences cache (rendered list)
+var SAVED_MAP={};
+
+// SESSION facade — read-only convenience accessors for new code that wants
+// to query session state without remembering the cryptic legacy names.
+// Mutations still happen on the originals; this is a viewport, not state.
+var SESSION={
+  get token(){return SESSION_TOKEN;},
+  get on(){return ON;},
+  get speaking(){return SPEAKING;},
+  get recording(){return IR;},
+  get scenario(){return SESSION_SC;},
+  get utterances(){return UTTS;},
+  get history(){return HIST;}
+};
+
+// — Sample Dialogue playback state (all DIALOG_* coordinate one feature)
+var DIALOG_SC=null;            // scenario the dialog was generated for
+var DIALOG_PLAYING=false;      // sequential auto-play active
+var DIALOG_CURRENT=null;       // dialog lines being shown
+var DIALOG_SRC=null;           // current AudioBufferSourceNode (for stop)
+var DIALOG_FETCH_CTRL=null;    // in-flight TTS fetch (for abort)
+var DIALOG_REQ_TOKEN=0;        // staleness token — see speakTextWithCallback
 var DIALOG_LINE_TIMER=null;
 var DIALOG_GEN_CTRL=null;
 var DIALOG_GEN_TOKEN=0;
