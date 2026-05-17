@@ -348,6 +348,13 @@ button:disabled{opacity:.35 !important;cursor:not-allowed !important;pointer-eve
 .sc-role-row{display:flex;align-items:center;gap:10px}
 .sc-role-input{flex:1;font-size:13px;border:1.5px solid #d0d8f0;border-radius:8px;padding:6px 10px;outline:none;background:#fff}
 .sc-role-input:focus{border-color:#185FA5}
+/* Roleplay character preset chips — quick-pick library above the freeform input */
+.rp-presets{margin-top:10px}
+.rp-presets-label{font-size:11px;color:#888;margin-bottom:6px;font-weight:500}
+.rp-chips{display:flex;flex-wrap:wrap;gap:5px}
+.rp-chip{font-size:12px;padding:4px 9px;border-radius:14px;border:1px solid #d0d8f0;background:#fff;color:#333;cursor:pointer;white-space:nowrap;line-height:1.4;transition:all .15s}
+.rp-chip:hover{border-color:#185FA5;color:#185FA5;background:#f0f4ff}
+.rp-chip.selected{border-color:#185FA5;background:#185FA5;color:#fff}
 
 /* Weakness / Analysis */
 .weakness-section{margin-bottom:1.5rem}
@@ -1455,9 +1462,25 @@ function setScMode(mode){
   var convBtn=document.getElementById("scModeConv");
   var rpBtn=document.getElementById("scModeRP");
   var roleRow=document.getElementById("scRoleRow");
+  var presets=document.getElementById("rpPresets");
   if(convBtn)convBtn.classList.toggle("active",!isRP);
   if(rpBtn)rpBtn.classList.toggle("active",isRP);
   if(roleRow)roleRow.style.display=isRP?"flex":"none";
+  if(presets)presets.style.display=isRP?"block":"none";
+}
+// Click a preset chip → fill the role input and ensure we're in roleplay mode
+function applyRolePreset(role,label){
+  var input=document.getElementById("scRoleInput");
+  if(!input)return;
+  input.value=role;
+  setScMode("rp");
+  // Highlight the active chip
+  document.querySelectorAll(".rp-chip").forEach(function(c){c.classList.remove("selected");});
+  // Find chip whose label includes the picked label (no perfect id, match by text)
+  document.querySelectorAll(".rp-chip").forEach(function(c){
+    if(c.textContent.indexOf(label)>-1)c.classList.add("selected");
+  });
+  showToast(LANG==="zh"?"已選：AI 將扮演 "+label:"AI will play: "+label);
 }
 function toggleVocabZh(btn){
   var item=btn.closest(".saved-item");
@@ -1933,6 +1956,38 @@ var TASK_CHECKS={
     return{done:s1&&facCount>=2,steps:[{label:"Complete check-in",done:s1},{label:"Ask about 2+ hotel services",done:facCount>=2}]};
   }
 };
+
+// ── Roleplay character presets ──
+// Each preset: emoji + bilingual label + role description (English, plugged into
+// "You are [role]..." prompt). Categorized for visual organization but UI shows
+// them in one horizontal scroll for quick scanning.
+var ROLEPLAY_PRESETS=[
+  // Work
+  {emoji:"👔",label_zh:"嚴格老闆",label_en:"Strict boss",role:"a strict boss demanding to know why a project is behind schedule"},
+  {emoji:"💼",label_zh:"面試官",label_en:"Interviewer",role:"a sharp job interviewer evaluating a candidate's fit for the role"},
+  {emoji:"🤝",label_zh:"難搞客戶",label_en:"Difficult client",role:"a frustrated client complaining about a delayed deliverable"},
+  {emoji:"☕",label_zh:"親切同事",label_en:"Friendly coworker",role:"a friendly coworker chatting casually during a coffee break"},
+  // Travel
+  {emoji:"🛂",label_zh:"移民官",label_en:"Immigration officer",role:"a stern immigration officer at the airport questioning the purpose of your visit"},
+  {emoji:"🧳",label_zh:"海關人員",label_en:"Customs officer",role:"a customs officer who looks suspicious of items in your luggage"},
+  {emoji:"🚕",label_zh:"計程車司機",label_en:"Taxi driver",role:"a chatty local taxi driver picking up a foreign passenger"},
+  {emoji:"🏨",label_zh:"飯店櫃台",label_en:"Hotel desk",role:"a polite hotel front desk clerk checking in a new guest"},
+  // Daily life
+  {emoji:"🛍️",label_zh:"店員",label_en:"Shop assistant",role:"a friendly shop assistant helping a customer find something"},
+  {emoji:"🩺",label_zh:"醫生",label_en:"Doctor",role:"a doctor asking a patient about their symptoms during an appointment"},
+  {emoji:"🏠",label_zh:"房東",label_en:"Landlord",role:"a landlord responding to a tenant's question about a rental issue"},
+  {emoji:"👋",label_zh:"鄰居",label_en:"Neighbor",role:"a chatty neighbor who just ran into you in the hallway"},
+  // Social
+  {emoji:"💝",label_zh:"初次約會",label_en:"First date",role:"a person on a first date with you, curious and a little nervous"},
+  {emoji:"👯",label_zh:"老朋友",label_en:"Old friend",role:"your old friend catching up after a long time apart"},
+  {emoji:"🌍",label_zh:"外國朋友",label_en:"Foreign friend",role:"a foreign friend curious to learn about your culture and daily life"},
+  {emoji:"🎉",label_zh:"派對陌生人",label_en:"Party stranger",role:"a friendly stranger you just met at a party making small talk"},
+  // Tough situations
+  {emoji:"😤",label_zh:"抱怨的客人",label_en:"Angry customer",role:"an angry customer complaining loudly about poor service"},
+  {emoji:"🚗",label_zh:"車禍對方",label_en:"Other driver",role:"the other driver right after a minor car accident, blaming you for the collision"},
+  {emoji:"👮",label_zh:"警察",label_en:"Police officer",role:"a police officer politely but firmly questioning you about a minor incident"},
+  {emoji:"📞",label_zh:"電話客服",label_en:"Phone support",role:"a customer service representative on a phone call, sticking strictly to the script"}
+];
 
 // ── Scenarios ──
 var SCENARIOS={
@@ -2754,6 +2809,11 @@ function showPhraseReview(sc){
     var modeLabel=LANG==="zh"?"對話類型":"Mode";
     var aiLabel=LANG==="zh"?"AI 扮演":"AI plays";
     var rolePh=LANG==="zh"?"例如：對方司機、面試官…":"e.g. the other driver, interviewer…";
+    var presetsLbl=LANG==="zh"?"快速選擇角色":"Quick pick";
+    var presetsHtml=ROLEPLAY_PRESETS.map(function(p){
+      var lbl=LANG==="zh"?p.label_zh:p.label_en;
+      return '<button type="button" class="rp-chip" onclick="applyRolePreset(\''+escAttr(p.role)+'\',\''+escAttr(lbl)+'\')">'+escHtml(p.emoji)+' '+escHtml(lbl)+'</button>';
+    }).join("");
     html+='<div class="sc-setup" id="scSetup">'
       +'<div class="sc-setup-row">'
       +'<span class="sc-setup-label">'+escHtml(modeLabel)+'</span>'
@@ -2764,6 +2824,10 @@ function showPhraseReview(sc){
       +'<div class="sc-role-row" id="scRoleRow" style="display:'+(isRP?'flex':'none')+'">'
       +'<span class="sc-setup-label">'+escHtml(aiLabel)+'</span>'
       +'<input type="text" id="scRoleInput" class="sc-role-input" placeholder="'+escAttr(rolePh)+'" value="'+escAttr(roleVal)+'">'
+      +'</div>'
+      +'<div class="rp-presets" id="rpPresets" style="display:'+(isRP?'block':'none')+'">'
+      +'<div class="rp-presets-label">'+escHtml(presetsLbl)+'</div>'
+      +'<div class="rp-chips">'+presetsHtml+'</div>'
       +'</div>'
       +'</div>';
   }
