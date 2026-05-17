@@ -671,7 +671,7 @@ button:disabled{opacity:.35 !important;cursor:not-allowed !important;pointer-eve
       </div>
       <div class="st" id="st">Select a scenario or topic to begin</div>
       <div class="tb" id="tb">Your speech will appear here...</div>
-      <p class="hint">🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop</p>
+      <p class="hint">🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Tap to interrupt AI</p>
       <div id="hintPanel" class="hint-panel" style="display:none"></div>
       <div class="ctrl">
         <button class="mic" id="mb" onclick="toggleRec()">
@@ -1140,7 +1140,7 @@ var UI_STRINGS={
     status_mic:"Press mic to start speaking",
     chat_init:"Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!",
     status_init:"Select a scenario or topic to begin",speech_placeholder:"Your speech will appear here...",
-    hint_text:"🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Auto-sends after you stop",
+    hint_text:"🔴 Listening &nbsp;|&nbsp; 🟢 AI speaking &nbsp;|&nbsp; Tap to interrupt AI",
     btn_end:"End and get feedback",smr_title:"Session Feedback",
     btn_restart:"Start a new session",note_browser:"Works best on Chrome or Edge browser",
     saved_title:"⭐ Saved Sentences",btn_flashcards:"📇 Flashcards",
@@ -1168,7 +1168,7 @@ var UI_STRINGS={
     status_mic:"按麥克風開始說話",
     chat_init:"你好！選擇一個情境或輸入話題，然後按麥克風開始說話。我會用語音回覆！",
     status_init:"選擇情境或輸入話題開始練習",speech_placeholder:"你說的話會出現在這裡...",
-    hint_text:"🔴 聆聽中 &nbsp;|&nbsp; 🟢 AI 回應中 &nbsp;|&nbsp; 停止說話後自動送出",
+    hint_text:"🔴 聆聽中 &nbsp;|&nbsp; 🟢 AI 回應中 &nbsp;|&nbsp; 點麥克風可打斷 AI",
     btn_end:"結束並取得回饋",smr_title:"本次練習回饋",
     btn_restart:"開始新的練習",note_browser:"建議使用 Chrome 或 Edge 瀏覽器",
     saved_title:"⭐ 收藏的句子",btn_flashcards:"📇 單字卡",
@@ -2937,11 +2937,22 @@ function startSession(topic,sysPrompt,opening,sc,firstSpeaker){
   document.getElementById("smr").style.display="none";
   if(sc&&sc.task)showTaskCard(sc);
   unlockAudio();
+  var startToken=SESSION_TOKEN;
   if(firstSpeaker==="user"){
     setst(tr("status_mic"));
+    // Continuous mode: auto-start the mic so the user can just speak
+    setTimeout(function(){
+      if(ON&&!IR&&!SPEAKING&&SESSION_TOKEN===startToken)toggleRec();
+    },400);
   } else {
     addMsg("ai",opening,true);
-    setTimeout(function(){speak(opening,function(){setst(tr("status_mic"));});},300);
+    setTimeout(function(){speak(opening,function(){
+      setst(tr("status_mic"));
+      // Auto-open mic right after the opening — continuous conversation
+      if(ON&&!IR&&!SPEAKING&&SESSION_TOKEN===startToken)setTimeout(function(){
+        if(ON&&!IR&&!SPEAKING&&SESSION_TOKEN===startToken)toggleRec();
+      },300);
+    });},300);
   }
 }
 
@@ -3210,6 +3221,9 @@ function playTTS(text,opts){
   });
 }
 // Conversation AI voice: tracks SPEAKING state, uses sophisticated fallback voices.
+// Tracks the AI's current AudioBufferSourceNode so the user can interrupt
+// mid-sentence (tap mic during AI speech).
+var CURRENT_AI_SRC=null;
 function speak(text,onDone){
   setSpeaking(true);
   var estMs=Math.max(3000,Math.round((text.split(" ").length/2.5)*1000*(SLOW_MODE?1.3:1))+1500);
@@ -3219,8 +3233,15 @@ function speak(text,onDone){
     trackUsage:true,
     safetyMs:estMs,
     fallback:speakFallback,
-    onDone:function(){setSpeaking(false);if(onDone)onDone();}
+    onSrc:function(src){CURRENT_AI_SRC=src;},
+    onDone:function(){CURRENT_AI_SRC=null;setSpeaking(false);if(onDone)onDone();}
   });
+}
+// Cut off any in-progress AI speech immediately — used when user wants to take their turn.
+function stopSpeaking(){
+  if(CURRENT_AI_SRC){try{CURRENT_AI_SRC.stop();}catch(e){}CURRENT_AI_SRC=null;}
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  setSpeaking(false);
 }
 
 // ── STT ──
@@ -3256,7 +3277,13 @@ function initRec(){
 }
 function toggleRec(){
   if(!ON){setst("Please select a scenario or topic first.");return;}
-  if(SPEAKING)return;
+  // Tap while AI is speaking → interrupt the AI so the user can take their turn
+  if(SPEAKING){
+    stopSpeaking();
+    // Small settle delay before opening the mic (audio context fade)
+    setTimeout(function(){if(ON&&!IR&&!SPEAKING)toggleRec();},120);
+    return;
+  }
   unlockAudio();if(!RC&&!initRec())return;
   if(IR){RC.stop();IR=false;}
   else{
@@ -3398,7 +3425,7 @@ function closeHint(){
 function endSess(){
   if(!UTTS.length){setst("Please have at least one exchange.");return;}
   closeHint();
-  window.speechSynthesis&&window.speechSynthesis.cancel();
+  stopSpeaking();
   ON=false;SPEAKING=false;IR=false;if(RC)try{RC.stop();}catch(e){}
   // Bump token so any in-flight sendMsg response gets dropped
   var token=bumpSessionToken();
@@ -3528,7 +3555,7 @@ function restart(){
   DIALOG_SC=null;DIALOG_CURRENT=null;
   closeVocabOverlay();
   closeHint();
-  window.speechSynthesis&&window.speechSynthesis.cancel();
+  stopSpeaking();
   bumpSessionToken();
   ON=false;HIST=[];UTTS=[];UTTS_AUDIO=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
   TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;SESSION_SC=null;
