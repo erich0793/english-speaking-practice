@@ -137,6 +137,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;justify-content:center}
 .tag{font-size:11px;padding:3px 10px;border-radius:20px;background:#E6F1FB;color:#0C447C}
 .chat{min-height:200px;max-height:340px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:12px;background:#f9f9f9;padding:1rem;display:flex;flex-direction:column;gap:10px;margin-bottom:1rem}
+/* Session progress: live time + word-count goal during conversation */
+.session-progress{display:flex;align-items:center;gap:12px;background:#f0f4ff;border-radius:8px;padding:6px 12px;margin-bottom:10px;font-size:12px;color:#666}
+.sp-time{font-weight:600;color:#185FA5;font-variant-numeric:tabular-nums;flex-shrink:0}
+.sp-words{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.sp-words-bar{flex:1;height:5px;background:#d0dbef;border-radius:3px;overflow:hidden;min-width:40px}
+.sp-words-fill{height:100%;background:linear-gradient(90deg,#185FA5,#3b82d8);width:0%;transition:width .5s,background .3s}
+.sp-words-fill.done{background:linear-gradient(90deg,#639922,#7ab32a)}
+.sp-words-num{font-variant-numeric:tabular-nums;font-weight:600;flex-shrink:0;color:#333}
 .msg{display:flex;gap:8px}
 .msg.user{flex-direction:row-reverse}
 .av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:2px}
@@ -673,6 +681,7 @@ button:disabled{opacity:.35 !important;cursor:not-allowed !important;pointer-eve
       </div>
     </div>
     <div id="practiceRight">
+      <div id="sessionProgress" class="session-progress" style="display:none"></div>
       <div class="chat" id="chat">
         <div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">Hi! Choose a scenario or type a topic, then press the mic. I will reply with voice!</div></div>
       </div>
@@ -3000,6 +3009,7 @@ function startSession(topic,sysPrompt,opening,sc,firstSpeaker){
   document.getElementById("chat").innerHTML="";
   document.getElementById("smr").style.display="none";
   if(sc&&sc.task)showTaskCard(sc);
+  startProgressTimer();
   unlockAudio();
   var startToken=SESSION_TOKEN;
   if(firstSpeaker==="user"){
@@ -3366,6 +3376,7 @@ function sendMsg(){
   var txt=CUR.trim(),conf=LAST_CONF;
   UTTS.push(txt);UTTS_AUDIO.push(LATEST_AUDIO_URL);addMsg("user",txt,false,conf,LATEST_AUDIO_URL);
   LATEST_AUDIO_URL=null;
+  updateSessionProgress();
   CUR="";LAST_CONF=null;document.getElementById("tb").textContent=tr("speech_placeholder");
   setst("AI is thinking...");HIST.push({role:"user",content:txt});showThinking();
   var token=SESSION_TOKEN;
@@ -3490,6 +3501,7 @@ function endSess(){
   if(!UTTS.length){setst("Please have at least one exchange.");return;}
   closeHint();
   stopSpeaking();
+  stopProgressTimer();
   ON=false;SPEAKING=false;IR=false;if(RC)try{RC.stop();}catch(e){}
   // Bump token so any in-flight sendMsg response gets dropped
   var token=bumpSessionToken();
@@ -3620,6 +3632,7 @@ function restart(){
   closeVocabOverlay();
   closeHint();
   stopSpeaking();
+  stopProgressTimer();
   bumpSessionToken();
   ON=false;HIST=[];UTTS=[];UTTS_AUDIO=[];CONF_SCORES=[];TOPIC="";SYSPR="";CUR="";SPEAKING=false;IR=false;currentMode="";
   TASK_DONE=false;TASK_DEF=null;LAST_CONF=null;SESSION_SC=null;
@@ -3632,6 +3645,56 @@ function restart(){
   document.querySelectorAll(".mode-btn").forEach(function(b){b.classList.remove("active");});
   document.getElementById("chat").innerHTML='<div class="msg"><div class="av aiav">AI</div><div class="bbl aibbl">'+escHtml(tr("chat_init"))+'</div></div>';
   setst(tr("status_init"));
+}
+
+// ── Session progress (live time + word-count goal) ──
+var SESSION_START_TIME=0,PROGRESS_TIMER=null,SESSION_GOAL_REACHED=false;
+function getWordGoal(){return LEVEL==="beginner"?30:(LEVEL==="advanced"?120:60);}
+function countSessionWords(){
+  var n=0;
+  UTTS.forEach(function(u){
+    if(!u)return;
+    if(TARGET_LANG==="ja"){
+      // No spaces in Japanese → use characters / 2 as rough word equivalent
+      n+=Math.ceil(u.replace(/\s/g,"").length/2);
+    } else {
+      n+=u.split(/\s+/).filter(function(w){return w.length>0;}).length;
+    }
+  });
+  return n;
+}
+function _fmtElapsed(ms){var s=Math.floor(ms/1000),m=Math.floor(s/60);s=s%60;return m+":"+(s<10?"0":"")+s;}
+function updateSessionProgress(){
+  if(!ON)return;
+  var bar=document.getElementById("sessionProgress");
+  if(!bar)return;
+  var elapsed=Date.now()-SESSION_START_TIME;
+  var words=countSessionWords();
+  var goal=getWordGoal();
+  var pct=Math.min(100,Math.round(words/goal*100));
+  bar.innerHTML='<span class="sp-time">⏱ '+_fmtElapsed(elapsed)+'</span>'
+    +'<span class="sp-words">'
+    +'<span class="sp-words-bar"><span class="sp-words-fill'+(words>=goal?' done':'')+'" style="width:'+pct+'%"></span></span>'
+    +'<span class="sp-words-num">💬 '+words+'/'+goal+'</span>'
+    +'</span>';
+  if(!SESSION_GOAL_REACHED&&words>=goal){
+    SESSION_GOAL_REACHED=true;
+    showToast(LANG==="zh"?"🎯 達成今日字數目標！":"🎯 Word goal reached!");
+  }
+}
+function startProgressTimer(){
+  stopProgressTimer();
+  SESSION_START_TIME=Date.now();
+  SESSION_GOAL_REACHED=false;
+  var bar=document.getElementById("sessionProgress");
+  if(bar)bar.style.display="flex";
+  updateSessionProgress();
+  PROGRESS_TIMER=setInterval(updateSessionProgress,1000);
+}
+function stopProgressTimer(){
+  if(PROGRESS_TIMER){clearInterval(PROGRESS_TIMER);PROGRESS_TIMER=null;}
+  var bar=document.getElementById("sessionProgress");
+  if(bar){bar.style.display="none";bar.innerHTML="";}
 }
 
 // ── Streak (daily practice habit) ──
