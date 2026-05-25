@@ -1,0 +1,37 @@
+$ cat "/Users/jiemingchen/Documents/Claude Code/english-speaking-practice/.github/workflows/keepalive.yml"
+
+# Daily ping to the Supabase PostgREST endpoint to prevent the free-tier
+# project from auto-pausing after 7 days of inactivity.
+#
+# This only reads one row's id column (~100 bytes). It does NOT invoke the
+# ai-proxy Edge Function, so it costs ZERO Gemini tokens or TTS credits.
+#
+# Setup:
+#   1. Go to GitHub → Settings → Secrets and variables → Actions
+#   2. Add a repository secret named SUPABASE_ANON_KEY
+#   3. Paste the anon key from index.html (var SUPA_ANON=...)
+name: Supabase keepalive
+
+on:
+  schedule:
+    # Every day at 08:00 UTC (16:00 Taipei). Cron is in UTC.
+    - cron: "0 8 * * *"
+  workflow_dispatch: # Allow manual run from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          HTTP_CODE=$(curl -s -o /tmp/body -w "%{http_code}" \
+            "https://xujxibajkncuubgwfgkq.supabase.co/rest/v1/users?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/body
+          # Fail the workflow on non-2xx so we get notified (email) if auth breaks
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Supabase ping failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
